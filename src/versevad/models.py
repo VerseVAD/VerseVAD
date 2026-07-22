@@ -12,6 +12,12 @@ from typing import Mapping
 DIMENSIONS = ("valence", "arousal", "dominance")
 
 
+class LexiconValueKind(StrEnum):
+    VAD = "vad"
+    CATEGORICAL_ASSOCIATION = "categorical_association"
+    EMOTION_INTENSITY = "emotion_intensity"
+
+
 @dataclass(frozen=True)
 class VadScores:
     """Valence, arousal, and dominance scores on a declared scale."""
@@ -43,6 +49,14 @@ class LexiconMetadata:
     citation: str
     license_notice: str
     phrase_support: bool
+    value_kind: LexiconValueKind = LexiconValueKind.VAD
+    dimensions: tuple[str, ...] = DIMENSIONS
+    source_format: str = ""
+    encoding: str = "utf-8"
+    case_behavior: str = "Unicode-normalized case-insensitive lookup"
+    expected_duplicate_behavior: str = "Duplicate normalized keys are invalid"
+    column_mapping: tuple[tuple[str, str], ...] = ()
+    preprocessing_assumptions: str = ""
 
 
 @dataclass(frozen=True)
@@ -59,6 +73,7 @@ class LexiconValidation:
     out_of_range_scores: int
     errors: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    loaded_at_utc: str = ""
 
     @property
     def is_valid(self) -> bool:
@@ -121,6 +136,71 @@ class VadLexicon:
 
 
 @dataclass(frozen=True)
+class EmotionAssociationEntry:
+    lexicon_id: str
+    source_term: str
+    lookup_form: str
+    source_rows: tuple[int, ...]
+    associations: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class EmotionAssociationLexicon:
+    metadata: LexiconMetadata
+    entries: Mapping[str, EmotionAssociationEntry]
+    validation: LexiconValidation
+
+    @classmethod
+    def create(
+        cls,
+        metadata: LexiconMetadata,
+        entries: Mapping[str, EmotionAssociationEntry],
+        validation: LexiconValidation,
+    ) -> "EmotionAssociationLexicon":
+        return cls(metadata, MappingProxyType(dict(entries)), validation)
+
+    def resolve(
+        self, normalized_form: str, observed_form: str
+    ) -> tuple[EmotionAssociationEntry | None, bool]:
+        del observed_form
+        return self.entries.get(normalized_form), False
+
+
+@dataclass(frozen=True)
+class EmotionIntensityEntry:
+    lexicon_id: str
+    source_term: str
+    lookup_form: str
+    source_rows: tuple[int, ...]
+    intensities: tuple[tuple[str, float], ...]
+
+    def intensity_map(self) -> Mapping[str, float]:
+        return MappingProxyType(dict(self.intensities))
+
+
+@dataclass(frozen=True)
+class EmotionIntensityLexicon:
+    metadata: LexiconMetadata
+    entries: Mapping[str, EmotionIntensityEntry]
+    validation: LexiconValidation
+
+    @classmethod
+    def create(
+        cls,
+        metadata: LexiconMetadata,
+        entries: Mapping[str, EmotionIntensityEntry],
+        validation: LexiconValidation,
+    ) -> "EmotionIntensityLexicon":
+        return cls(metadata, MappingProxyType(dict(entries)), validation)
+
+    def resolve(
+        self, normalized_form: str, observed_form: str
+    ) -> tuple[EmotionIntensityEntry | None, bool]:
+        del observed_form
+        return self.entries.get(normalized_form), False
+
+
+@dataclass(frozen=True)
 class TextDocument:
     text_id: str
     title: str
@@ -165,9 +245,24 @@ class TokenRecord:
 class MatchMethod(StrEnum):
     EXACT = "exact"
     POSSESSIVE = "possessive_normalization"
+    PHRASE = "exact_phrase"
     LEMMA = "pos_sensitive_lemma"
     UNMATCHED = "unmatched"
     NOT_ELIGIBLE = "not_eligible"
+
+
+class PhrasePolicy(StrEnum):
+    PHRASE_PREFERRED = "phrase_preferred"
+    UNIGRAM_ONLY = "unigram_only"
+    PHRASE_AND_COMPONENT = "phrase_and_component_exploratory"
+
+
+class MatchSelection(StrEnum):
+    INCLUDED = "included"
+    UNMATCHED = "unmatched"
+    NOT_ELIGIBLE = "not_eligible"
+    SUPPRESSED_COMPONENT = "suppressed_component"
+    SUPPRESSED_OVERLAP = "suppressed_overlap"
 
 
 @dataclass(frozen=True)
@@ -272,3 +367,106 @@ class AnalysisResult:
 
     def match_map(self) -> Mapping[str, TokenMatch]:
         return MappingProxyType({match.token_id: match for match in self.matches})
+
+
+@dataclass(frozen=True)
+class AffectMatchRecord:
+    match_id: str
+    lexicon_id: str
+    token_ids: tuple[str, ...]
+    start_token_position: int
+    end_token_position: int
+    line_number: int
+    stanza_number: int
+    method: MatchMethod
+    selection: MatchSelection
+    matched_term: str | None
+    matched_lookup_form: str | None
+    source_rows: tuple[int, ...]
+    original_scores: VadScores | None
+    normalized_scores: VadScores | None
+    associations: tuple[str, ...]
+    intensities: tuple[tuple[str, float], ...]
+    included: bool
+    suppressed_by_match_id: str | None
+    reason: str
+
+    def intensity_map(self) -> Mapping[str, float]:
+        return MappingProxyType(dict(self.intensities))
+
+
+@dataclass(frozen=True)
+class TermContribution:
+    term: str
+    token_count: int
+    source_value: float | None = None
+
+
+@dataclass(frozen=True)
+class EmotionCategoryStatistics:
+    category: str
+    associated_token_count: int
+    associated_unique_type_count: int
+    proportion_of_lexical_tokens: float | None
+    proportion_of_matched_emotion_bearing_tokens: float | None
+    proportion_of_unique_lexical_types: float | None
+    line_distribution: tuple[tuple[int, int], ...]
+    stanza_distribution: tuple[tuple[int, int], ...]
+    top_contributing_terms: tuple[TermContribution, ...]
+
+
+@dataclass(frozen=True)
+class EmotionIntensityStatistics:
+    category: str
+    matched_word_emotion_pairs: int
+    matched_token_occurrences: int
+    prevalence_among_lexical_tokens: float | None
+    prevalence_among_emotion_intensity_matches: float | None
+    token_weighted: DescriptiveStatistics
+    type_weighted: DescriptiveStatistics
+    line_distribution: tuple[tuple[int, int], ...]
+    stanza_distribution: tuple[tuple[int, int], ...]
+    top_contributing_terms: tuple[TermContribution, ...]
+
+
+@dataclass(frozen=True)
+class Phase2AnalysisResult:
+    analysis_id: str
+    scenario_id: str
+    phrase_policy: PhrasePolicy
+    document: TextDocument
+    lexicon_metadata: LexiconMetadata
+    lexicon_validation: LexiconValidation
+    preprocessing: PreprocessingMetadata
+    tokens: tuple[TokenRecord, ...]
+    matches: tuple[AffectMatchRecord, ...]
+    coverage: CoverageStatistics
+    vad_summary: VadSummary | None
+    category_statistics: tuple[EmotionCategoryStatistics, ...]
+    intensity_statistics: tuple[EmotionIntensityStatistics, ...]
+    warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ComparisonMetric:
+    lexicon_id: str
+    display_name: str
+    family: str
+    version: str
+    value_kind: LexiconValueKind
+    metric: str
+    weighting: str
+    scale: str
+    denominator: str
+    value: float | int | None
+
+
+@dataclass(frozen=True)
+class CrossLexiconComparison:
+    comparison_id: str
+    text_version_id: str
+    scenario_id: str
+    phrase_policy: PhrasePolicy
+    lexicon_ids: tuple[str, ...]
+    metrics: tuple[ComparisonMetric, ...]
+    consensus_score: None = None

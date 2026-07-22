@@ -10,15 +10,17 @@ intended, or what a reader experiences.
 
 ## Current status
 
-**Phase 1: minimum validated engine is complete.** VerseVAD now has a tested
-Warriner VAD adapter, poetry-preserving token records, exact-first matching,
-POS-sensitive lemma fallback, coverage, token- and type-weighted descriptive
-VAD statistics, token-level audit data, and CSV export. The included validation
-demonstration uses only invented text and ratings.
+**Phase 2: all five lexicons is complete.** VerseVAD now has read-only adapters
+for Warriner VAD, both NRC VAD versions, NRC Emotion, and NRC Emotion Intensity.
+It supports exact-first and POS-sensitive matching, deterministic phrase
+policies, categorical association and intensity summaries, side-by-side
+cross-lexicon results, and auditable CSV export. Hand-calculated invented
+fixtures validate the formulas; the local demonstration also exercises all five
+private source files.
 
 The full graphical application is not built yet. Project persistence, the
-remaining four adapters, phrase matching, review scenarios, and corpus analysis
-belong to later phases.
+review system, corpus analysis, and ordinary text-import workflow belong to
+later phases.
 
 See:
 
@@ -50,8 +52,7 @@ writes to `source_lexicons/`:
 python scripts\inspect_lexicons.py
 ```
 
-Python setup and double-clickable launchers will be added in a later phase.
-Nontechnical users will not be expected to run this command routinely.
+Nontechnical users do not need to run this inspection command routinely.
 
 ## Test the Phase 1 engine
 
@@ -62,3 +63,11 @@ hand-calculated example and pause so the result can be read. Success is shown as
 
 See [the Phase 1 validation report](docs/phase1-validation.md) for the expected
 numbers, limitations, and removal instructions.
+
+## Test Phase 2
+
+Double-click `test_phase2.bat`. The test verifies all five source checksums,
+reproduces the hand-calculated phrase, category, and intensity examples, then
+runs one short invented text independently through all five lexicons. It writes
+seven auditable CSV files to `phase2_demo_output/` and creates no consensus
+score. See [the Phase 2 validation report](docs/phase2-validation.md).

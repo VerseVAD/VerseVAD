@@ -20,11 +20,29 @@ made a public release.
 - Coverage calculations and sparse/no-match warnings.
 - Atomic token-audit, coverage, summary, and analysis-manifest CSV exports.
 - Invented hand-calculated validation corpus and double-clickable Phase 1 test.
+- Read-only NRC VAD v1, NRC VAD v2.1, NRC Emotion v0.92, and NRC Emotion
+  Intensity v1 adapters with source-contract validation.
+- Explicit source-value kinds, dimensions, formats, scales, column mappings,
+  phrases, citations, usage notices, adapter versions, and source hashes.
+- Deterministic longest-first exact phrase matching with phrase-preferred,
+  unigram-only, and exploratory phrase-and-component policies.
+- Auditable included, unmatched, ineligible, suppressed-component, and
+  suppressed-overlap match records.
+- Categorical emotion association counts, unique types, stated denominators,
+  structural distributions, and contributing terms.
+- Emotion-intensity prevalence plus separate token- and type-weighted matched
+  intensity statistics without converting absent pairs to zero.
+- Side-by-side cross-lexicon metrics that retain source/family identity and do
+  not generate a consensus score.
+- Seven-file Phase 2 CSV bundle and double-clickable five-lexicon validation.
 
 ### Changed
 
 - The lexicon inspector now distinguishes duplicate source keys from
   case-insensitive lookup collisions.
+- Phase 2 identifies NRC VAD v1 and v2.1 as versions of the same family rather
+  than independent replications.
+- Project development version advanced to `0.2.0.dev0`.
 
 ### Fixed
 

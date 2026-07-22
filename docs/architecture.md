@@ -1,6 +1,6 @@
 # Architecture Decision: Local Modular Python Application
 
-Status: accepted; the Phase 1 subset has been validated locally.
+Status: accepted; the Phase 2 five-lexicon engine has been validated locally.
 
 Date: 2026-07-22
 
@@ -33,6 +33,10 @@ Phase 1 selected and locked Python 3.12, spaCy 3.8.14,
 `en_core_web_sm` 3.8.0, Click 8.4.2, and pytest 9.1.1 in `uv.lock`. The working
 runtime, package cache, and `uv` executable are kept in ignored project-local
 directories rather than installed computer-wide.
+
+Phase 2 adds no runtime dependency. Its adapter, phrase, categorical, intensity,
+comparison, and CSV-export logic remains in the framework-independent Python
+package. The development package version is `0.2.0.dev0`.
 
 ## Why this fits VerseVAD
 

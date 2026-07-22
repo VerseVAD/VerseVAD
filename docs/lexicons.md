@@ -50,14 +50,14 @@ counts.
   *Behavior Research Methods*, 45, 1191–1207.
 - **SHA-256:**
   `78ac8107c78e116bb96538fae4faa47281a155f5f8fe39f30bbc6ea3db05b446`
-- **Human review:** confirm original provenance, source version, license text,
-  and whether the 102 whitespace-containing terms should use phrase matching.
-  Case-colliding ratings must remain separate: exact source capitalization may
-  disambiguate them, while unresolved forms should be flagged rather than
-  assigned an arbitrary rating.
+- **Human review:** confirm original provenance, source version, and license
+  text. Case-colliding ratings must remain separate: exact source
+  capitalization may disambiguate them, while unresolved forms should be
+  flagged rather than assigned an arbitrary rating.
 - **Adapter status:** implemented and contract-tested in Phase 1. All source
   values remain on the 1–9 scale; separate 0–1 values use
-  `(original - 1) / 8`. Phrase matching remains deferred.
+  `(original - 1) / 8`. The 102 whitespace entries remain retained but inactive
+  under the Phase 2 word/lemma-level default.
 
 ## 2. NRC VAD Lexicon v1
 
@@ -82,8 +82,11 @@ counts.
   Linguistics*.
 - **SHA-256:**
   `fd49023f760155c8377424d96ca18d57c6685891d78ba381e47af6f4a1b148a7`
-- **Human review:** determine the phrase policy for the 132 terms containing
-  whitespace; do not infer that every row is necessarily a single token.
+- **Phrase decision:** the 132 whitespace-containing entries remain retained but
+  inactive under the conservative word-level default. A later sensitivity
+  scenario can revisit this without changing the source or default analysis.
+- **Adapter status:** implemented and contract-tested in Phase 2. Source values
+  and normalized values are identical on the 0–1 scale.
 
 ## 3. NRC VAD Lexicon v2.1
 
@@ -112,6 +115,10 @@ counts.
 - **Important family note:** v1 and v2.1 are versions of the same NRC VAD
   family, not independent replications. v2 includes entries collected using a
   different rating procedure as documented by the supplied paper and README.
+- **Adapter status:** implemented and contract-tested in Phase 2. Original
+  −1–1 values are retained; separate normalized values use
+  `(original + 1) / 2`. Its multiword expressions participate in deterministic
+  phrase matching.
 
 ## 4. NRC Emotion Lexicon v0.92
 
@@ -148,6 +155,9 @@ counts.
   `02c661544f4f12ae0c14f9576a10959e8d39a151bb091e455a71a08dcaa2535a`
 - **Human review:** none blocking. The word-level union should be described
   clearly in methods reports because it does not disambiguate senses in context.
+- **Adapter status:** implemented and contract-tested in Phase 2. Binary values
+  remain categorical associations rather than intensities. Every denominator is
+  labeled and a token may contribute to multiple categories.
 
 ## 5. NRC Emotion Intensity Lexicon v1
 
@@ -177,6 +187,9 @@ counts.
   four-emotion release, while the README and current file cover eight emotions.
   Methods reports must cite the paper and record that the analyzed source is
   the later version 1 package.
+- **Adapter status:** implemented and contract-tested in Phase 2. Only supplied
+  word-emotion pairs enter category-specific means; an absent pair is never
+  converted into intensity zero.
 
 ## Integrity result
 
@@ -191,6 +204,11 @@ All five primary files passed the Phase 0 structural checks:
 - no duplicate source primary keys;
 - ten Warriner case-insensitive lookup collisions preserved for explicit
   resolution or review.
+
+Phase 2 adapters repeat these checks during loading, preserve the recorded
+source hashes, and stop with a plain-language error before analysis when a
+contract fails. The double-clickable Phase 2 test also compares all five hashes
+with this inventory before producing exports.
 
 This validates file structure, not the scholarly correctness of individual
 ratings or the suitability of a particular match in context.

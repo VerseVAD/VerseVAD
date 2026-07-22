@@ -75,11 +75,10 @@ legible.
 
 ## Hand-calculated validation corpus
 
-Phase 1 will add invented texts and tiny synthetic lexicons. Every fixture will
-include a plain-language worksheet showing tokens, selected matches, coverage,
-token-weighted mean, type-weighted mean, and expected warnings. Later phases
-will extend the same corpus for phrases, emotions, mappings, sensitivity, and
-cross-lexicon disagreement.
+Phase 1 added an invented VAD text and tiny synthetic lexicon. Phase 2 extends
+the validation materials with overlapping phrases, categorical associations,
+emotion intensities, all three phrase policies, explicit denominators, and
+cross-lexicon results with no consensus score.
 
 ## Validation performed
 
@@ -94,3 +93,11 @@ lemma fallbacks, repeated words, sparse/no-match behavior, source and
 normalized descriptive statistics, case-insensitive source collisions,
 Warriner adapter errors and local integration, atomic CSV exports, empty-text
 exports, and the hand-calculated demonstration.
+
+Phase 2 brings the full suite to 49 passing tests. The added tests cover all
+four new adapters against the local supplied files, exact counts and hashes,
+scale normalization, multi-category terms, missing intensity pairs, malformed
+source refusal, longest-first phrase selection, overlap and component audit,
+line-boundary behavior, all phrase policies, categorical denominators,
+token/type intensity statistics, source-specific comparison, seven-file CSV
+export, UTF-8 byte-order marks, and safe replacement of prior exports.

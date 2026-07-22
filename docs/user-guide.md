@@ -2,8 +2,8 @@
 
 ## Current status
 
-VerseVAD has a validated Phase 1 calculation engine and a double-clickable
-demonstration. There is not yet a graphical project workspace or ordinary text
+VerseVAD has a validated Phase 2 five-lexicon engine and double-clickable
+demonstrations. There is not yet a graphical project workspace or ordinary text
 import screen. This guide will grow alongside tested features so it never
 promises controls that do not exist.
 
@@ -22,6 +22,23 @@ You do not need to do anything with the source lexicon files. Keep the
 The demonstration does not analyze a copyrighted poem and does not copy the
 supplied lexicons into its output. Delete `phase1_demo_output` if you want to
 remove the generated files; the next demonstration can recreate them.
+
+## Run the Phase 2 demonstration
+
+1. Open the `ANEW VAD Study` folder.
+2. Double-click `test_phase2.bat`.
+3. Wait while VerseVAD validates and analyzes with all five lexicons locally.
+4. Look for `VerseVAD Phase 2 validation passed.`
+5. Confirm that five separate coverage lines appear and that the heading says
+   `Independent results (no consensus score)`.
+6. Press any key after reading the result.
+7. Open `phase2_demo_output` to inspect the seven CSV files.
+
+The match audit shows selected NRC VAD v2.1 phrases such as `a bit` and
+`dark night`, along with their suppressed component candidates. The comparison
+file places source-specific metrics side by side and deliberately has no
+consensus-score column. Delete only `phase2_demo_output` to remove the generated
+files; the test recreates them.
 
 ## What the finished application will do
 
@@ -92,14 +109,13 @@ be added and tested with the graphical application.
 ## Scholarly review items
 
 Please review the plain-language descriptions in `docs/lexicons.md`, especially
-the two items marked for human review:
+the remaining provenance item:
 
 1. whether you have any original documentation or acquisition notes for the
-   Warriner file beyond the supplied XANEW README;
-2. whether whitespace-containing entries in resources described as word or
-   lemma lists should be evaluated as phrases in a later sensitivity scenario.
+   Warriner file beyond the supplied XANEW README.
 
-Neither decision blocked Phase 1, and neither will be guessed silently. Phase 1
-also found ten differently rated capitalization pairs in the Warriner source.
+This does not block private analysis. Phase 2 conservatively activates phrases
+only for NRC VAD v2.1, the source explicitly containing unigrams and multiword
+expressions. Phase 1 also found ten differently rated capitalization pairs in the Warriner source.
 VerseVAD preserves both ratings and refuses to guess when capitalization does
 not identify one source entry.

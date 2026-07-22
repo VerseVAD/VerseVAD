@@ -6,7 +6,7 @@ import csv
 import hashlib
 from pathlib import Path
 
-from versevad.adapters.base import LexiconAdapterError
+from versevad.adapters.base import LexiconAdapterError, current_utc_timestamp
 from versevad.models import (
     LexiconMetadata,
     LexiconValidation,
@@ -58,6 +58,20 @@ class WarrinerVadAdapter:
                 "Keep the source file private and do not redistribute it."
             ),
             phrase_support=False,
+            source_format="UTF-8 comma-separated values with header",
+            column_mapping=(
+                ("term", "Word"),
+                ("valence", "V.Mean.Sum"),
+                ("arousal", "A.Mean.Sum"),
+                ("dominance", "D.Mean.Sum"),
+            ),
+            expected_duplicate_behavior=(
+                "Exact duplicate keys are invalid; capitalization collisions are "
+                "preserved and require exact source casing or review"
+            ),
+            preprocessing_assumptions=(
+                "Word/lemma-level source; whitespace entries retained but inactive"
+            ),
         )
 
     def load(self, source_path: Path) -> VadLexicon:
@@ -168,9 +182,9 @@ class WarrinerVadAdapter:
             errors.append(f"Found {out_of_range_scores} rows outside the 1-9 scale.")
         if phrase_entries:
             warnings.append(
-                f"Retained {phrase_entries} whitespace-containing entries. Phase 1 "
-                "does not yet perform phrase matching, so they cannot contribute to "
-                "the current token-level summaries."
+                f"Retained {phrase_entries} whitespace-containing entries. The "
+                "documented word/lemma-level policy does not activate them as "
+                "phrases, so they cannot contribute to phrase summaries."
             )
         if conflicting_entries:
             warnings.append(
@@ -194,6 +208,7 @@ class WarrinerVadAdapter:
             out_of_range_scores=out_of_range_scores,
             errors=tuple(errors),
             warnings=tuple(warnings),
+            loaded_at_utc=current_utc_timestamp(),
         )
         if errors:
             raise LexiconAdapterError(

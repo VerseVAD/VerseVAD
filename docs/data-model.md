@@ -11,6 +11,14 @@ Phase 1 now implements immutable in-memory forms of `TextDocument`,
 scenario, source-hash, adapter, recipe, and model identifiers. SQLite entities
 remain conceptual until the persistence phase.
 
+Phase 2 adds immutable emotion-association and emotion-intensity entries and
+lexicons, explicit lexicon value kinds and dimensions, span-based
+`AffectMatchRecord` values, phrase-policy and match-selection enums, category
+and intensity statistics, `Phase2AnalysisResult`, and source-specific
+`CrossLexiconComparison` metrics. Match records can link one phrase to multiple
+token IDs and can point from a suppressed component or overlap to the selected
+phrase responsible for suppression. No consensus-score entity is populated.
+
 ## Identity and versioning
 
 All primary entities use stable opaque IDs. Human-readable titles and filenames

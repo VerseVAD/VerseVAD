@@ -64,6 +64,13 @@ NRC Emotion Lexicon values are binary associations, not intensities. A term may
 belong to multiple categories, so category percentages need not total 100%.
 Every percentage will state its denominator.
 
+Phase 2 reports, for every category, occurrence count, unique matched entry
+count, rate per all lexical tokens, rate among tokens bearing at least one
+positive association, rate per unique lexical surface type, line and stanza
+distributions, and frequent contributing terms. A source term present in the
+word-level lexicon but carrying no positive category association can count as a
+lexicon match for coverage but not as an emotion-bearing token.
+
 ## Emotion intensity summaries
 
 Prevalence and intensity answer different questions and remain separate:
@@ -74,6 +81,49 @@ Prevalence and intensity answer different questions and remain separate:
 
 A token without a score for an emotion is not an intensity-zero observation in
 the primary mean.
+
+Phase 2 defines a matched word-emotion pair as one distinct matched lexicon
+entry and category. Matched token occurrences repeat when the same entry occurs
+more than once. The token-weighted intensity mean repeats those occurrences;
+the type-weighted mean uses each matched entry-category pair once. Prevalence is
+the category's matched occurrences divided by all lexical tokens or by tokens
+matched anywhere in the intensity lexicon, as labeled.
+
+## Phrase policies
+
+NRC VAD v2.1 explicitly supplies unigrams and multiword expressions. Phase 2
+normalizes exact surface tokens, constructs candidates within a single poetic
+line without crossing punctuation, orders candidates by descending token length
+and then textual position, and greedily selects non-overlapping spans.
+
+The three policies are:
+
+- `phrase_preferred`: selected phrases contribute one summary observation;
+  component candidates remain visible but suppressed;
+- `unigram_only`: phrase entries are ignored and unigram matching proceeds as in
+  Phase 1;
+- `phrase_and_component_exploratory`: selected phrases and independently matched
+  components both contribute, with a warning that this intentionally
+  double-counts the span.
+
+Shorter or equal-length phrase candidates that overlap selected spans remain in
+the audit as suppressed overlaps. Coverage counts unique lexical token
+occurrences covered by included records, so exploratory double-counting does
+not inflate the matched-token numerator. A selected phrase contributes one VAD
+observation even when it covers multiple tokens.
+
+The older Warriner and NRC VAD v1 sources are documented as word or lemma level.
+Their whitespace-containing rows remain preserved and counted during validation
+but are not active phrase candidates under the Phase 2 default.
+
+## Cross-lexicon comparison
+
+Each lexicon is analyzed independently. Numeric VAD means may be displayed on a
+separate normalized 0-1 scale alongside source-scale results. NRC VAD v1 and
+v2.1 remain labeled as versions of the same family, not independent
+replications. Categorical association rates and intensity prevalence/means keep
+their different value kinds and denominators. Phase 2 creates no consensus
+score or pooled rating.
 
 ## Context and close reading
 

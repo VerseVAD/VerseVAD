@@ -55,11 +55,28 @@ review required.
 
 ## Phase 2 - All five lexicons
 
-- [ ] Implement and validate the remaining four adapters.
-- [ ] Retain source-scale values and add explicit derived normalization.
-- [ ] Implement categorical emotion and intensity calculations.
-- [ ] Implement longest-first phrase matching and overlap policies.
-- [ ] Add side-by-side cross-lexicon results without a default consensus score.
+- [x] Implement and validate the remaining four adapters.
+- [x] Retain source-scale values and add explicit derived normalization.
+- [x] Implement categorical emotion and intensity calculations.
+- [x] Implement longest-first phrase matching and overlap policies.
+- [x] Add side-by-side cross-lexicon results without a default consensus score.
+- [x] Add a double-clickable five-lexicon validation and audit export.
+
+### Phase 2 exit criteria
+
+- [x] All five private source files pass their adapter contracts and known
+  SHA-256 checksums without modification.
+- [x] NRC VAD v1 retains its 0-1 source scale; NRC VAD v2.1 retains -1-1 source
+  values and separately derives `(original + 1) / 2` values.
+- [x] Longest-first phrase selection, suppressed overlaps, and all three phrase
+  policies reproduce hand-calculated fixtures.
+- [x] Categorical associations state both lexical-token and matched-bearing-token
+  denominators, and category rates are not forced to total 100%.
+- [x] Emotion-intensity prevalence remains separate from matched-entry intensity;
+  missing word-emotion pairs never become zero observations.
+- [x] Cross-lexicon exports remain source-specific and contain no consensus score.
+- [x] All Phase 0-2 automated tests and the five-lexicon demonstration pass.
+- [x] Create the Phase 2 source-control checkpoint.
 
 ## Phase 3 - Local graphical interface
 
@@ -107,8 +124,9 @@ review required.
 - [?] Confirm the provenance and original documentation of the locally supplied
   Warriner data. The package is a secondary XANEW distribution and does not
   include the original Warriner paper or an independent license file.
-- [?] Decide, during Phase 2, whether whitespace-containing entries in the
-  nominally word-level Warriner and NRC VAD v1 files should participate in
-  phrase matching or be treated as exceptional source entries.
+- [x] Phase 2 conservatively retains but does not activate whitespace-containing
+  Warriner and NRC VAD v1 entries. NRC VAD v2.1 explicitly supports multiword
+  expressions and participates in phrase matching. A later sensitivity scenario
+  may revisit the older word/lemma-level resources without changing this default.
 - [?] Confirm whether publication years, approximate dates, and date ranges
   should be modeled at import time or deferred until the corpus phase.
