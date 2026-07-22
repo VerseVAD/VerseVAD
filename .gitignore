@@ -1,0 +1,42 @@
+# Licensed or restricted source data
+/source_lexicons/
+
+# Private literary texts and runtime data
+/corpora/
+/projects/
+/exports/
+/backups/
+/data/private/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# Local environments and downloaded models/tools
+.venv/
+/.runtime/
+/.tools/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Generated or temporary artifacts
+/tmp/
+/output/
+/dist/
+/build/
+*.egg-info/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
