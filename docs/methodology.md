@@ -89,3 +89,24 @@ Aggregates with few matched items will be marked sparse or unstable. Missing
 data remains missing rather than becoming zero. Coverage, lemma reliance,
 mapping reliance, exclusions, and semantic-risk dependence are part of the
 result, not merely diagnostics hidden elsewhere.
+
+## Phase 1 statistical definitions
+
+Phase 1 reports descriptive statistics on the included matched observations.
+Its standard deviation is the population standard deviation (`ddof = 0`),
+because it describes the complete selected match set rather than estimating a
+larger sampled population. Quartiles use the inclusive method. A single
+observation has zero dispersion and quartiles equal to that observation. An
+empty match set has missing statistics, not zeros.
+
+Confidence intervals are deliberately deferred until the resampling unit and
+dependence structure can be declared for the requested comparison. No
+inferential meaning should be attached to the current descriptive summaries.
+
+## Capitalization collisions
+
+Case-insensitive lookup can collapse source entries that have different
+capitalization and ratings. The Warriner file contains ten such pairs. The
+adapter retains every source entry. Exact source capitalization may resolve the
+pair; otherwise the occurrence is left unmatched for review. VerseVAD does not
+average the candidates or select the first row.

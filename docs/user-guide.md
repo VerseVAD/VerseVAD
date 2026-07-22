@@ -2,12 +2,26 @@
 
 ## Current status
 
-VerseVAD is in its inspection and planning phase. There is not yet an analysis
-button or Windows launcher. This guide will grow alongside tested features so
-it never promises controls that do not exist.
+VerseVAD has a validated Phase 1 calculation engine and a double-clickable
+demonstration. There is not yet a graphical project workspace or ordinary text
+import screen. This guide will grow alongside tested features so it never
+promises controls that do not exist.
 
 You do not need to do anything with the source lexicon files. Keep the
 `source_lexicons` folder in place and do not rename or edit its contents.
+
+## Run the Phase 1 demonstration
+
+1. Open the `ANEW VAD Study` folder.
+2. Double-click `test_phase1.bat`.
+3. Wait while the invented validation example runs.
+4. Look for `VerseVAD Phase 1 validation passed.`
+5. Press any key after reading the result.
+6. Open `phase1_demo_output` to inspect the four CSV files.
+
+The demonstration does not analyze a copyrighted poem and does not copy the
+supplied lexicons into its output. Delete `phase1_demo_output` if you want to
+remove the generated files; the next demonstration can recreate them.
 
 ## What the finished application will do
 
@@ -75,7 +89,7 @@ export or backup elsewhere. Ordinary analysis will not require a paid API or
 upload your texts. Detailed backup, restore, uninstall, and upgrade steps will
 be added and tested with the graphical application.
 
-## Phase 0 review requested from the scholar
+## Scholarly review items
 
 Please review the plain-language descriptions in `docs/lexicons.md`, especially
 the two items marked for human review:
@@ -85,4 +99,7 @@ the two items marked for human review:
 2. whether whitespace-containing entries in resources described as word or
    lemma lists should be evaluated as phrases in a later sensitivity scenario.
 
-Neither decision blocks Phase 1, and neither should be guessed silently.
+Neither decision blocked Phase 1, and neither will be guessed silently. Phase 1
+also found ten differently rated capitalization pairs in the Warriner source.
+VerseVAD preserves both ratings and refuses to guess when capitalization does
+not identify one source entry.

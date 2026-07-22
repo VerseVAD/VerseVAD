@@ -81,9 +81,16 @@ token-weighted mean, type-weighted mean, and expected warnings. Later phases
 will extend the same corpus for phrases, emotions, mappings, sensitivity, and
 cross-lexicon disagreement.
 
-## Phase 0 validation performed
+## Validation performed
 
 The read-only inspection utility validated all five selected source files for
 presence, parseable structure, required columns, score ranges, blank terms,
 duplicate primary keys, and malformed rows. SHA-256 checksums were recorded in
 `docs/lexicons.md`.
+
+Phase 1 adds 32 passing automated tests. They cover normalization, poem
+structure, the pinned POS-sensitive model, exact-first matching, possessives,
+lemma fallbacks, repeated words, sparse/no-match behavior, source and
+normalized descriptive statistics, case-insensitive source collisions,
+Warriner adapter errors and local integration, atomic CSV exports, empty-text
+exports, and the hand-calculated demonstration.

@@ -13,6 +13,7 @@ import csv
 import hashlib
 import json
 import sys
+import unicodedata
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -191,6 +192,7 @@ def inspect_one(source_root: Path, spec: LexiconSpec) -> dict[str, object]:
     phrase_rows = 0
     out_of_range_scores = 0
     keys: Counter[tuple[str, ...]] = Counter()
+    normalized_key_sources: dict[tuple[str, ...], set[tuple[str, ...]]] = {}
     terms: set[str] = set()
     categories: Counter[str] = Counter()
     observed_min: dict[str, float] = {}
@@ -229,6 +231,11 @@ def inspect_one(source_root: Path, spec: LexiconSpec) -> dict[str, object]:
                 phrase_rows += 1
             terms.add(term)
             keys[key] += 1
+            normalized_key = (
+                unicodedata.normalize("NFC", term).casefold(),
+                *key[1:],
+            )
+            normalized_key_sources.setdefault(normalized_key, set()).add(key)
             if category is not None:
                 categories[category] += 1
 
@@ -242,6 +249,9 @@ def inspect_one(source_root: Path, spec: LexiconSpec) -> dict[str, object]:
 
     duplicate_key_count = sum(1 for count in keys.values() if count > 1)
     duplicate_row_excess = sum(count - 1 for count in keys.values() if count > 1)
+    conflicting_normalized_keys = sum(
+        1 for sources in normalized_key_sources.values() if len(sources) > 1
+    )
     result.update(
         {
             "header": fieldnames,
@@ -253,6 +263,7 @@ def inspect_one(source_root: Path, spec: LexiconSpec) -> dict[str, object]:
             "malformed_rows": malformed_rows,
             "duplicate_keys": duplicate_key_count,
             "duplicate_row_excess": duplicate_row_excess,
+            "conflicting_normalized_keys": conflicting_normalized_keys,
             "observed_score_min": observed_min,
             "observed_score_max": observed_max,
             "out_of_range_scores": out_of_range_scores,

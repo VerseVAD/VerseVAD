@@ -4,6 +4,13 @@ This model is conceptual during Phase 0. Phase 1 will implement only the subset
 needed for a validated single-text engine; persistent migrations begin with the
 project/corpus phase.
 
+Phase 1 now implements immutable in-memory forms of `TextDocument`,
+`TokenRecord`, `LexiconMetadata`, `LexiconValidation`, `VadEntry`, `TokenMatch`,
+`CoverageStatistics`, `VadSummary`, `PreprocessingMetadata`, and
+`AnalysisResult`. CSV exports carry their stable text, token, analysis,
+scenario, source-hash, adapter, recipe, and model identifiers. SQLite entities
+remain conceptual until the persistence phase.
+
 ## Identity and versioning
 
 All primary entities use stable opaque IDs. Human-readable titles and filenames

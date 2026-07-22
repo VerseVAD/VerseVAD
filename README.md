@@ -10,11 +10,15 @@ intended, or what a reader experiences.
 
 ## Current status
 
-**Phase 0: inspection and planning.** The application is not yet runnable.
-The supplied lexicons have been identified and structurally inspected, and the
-initial architecture and data model are documented. Phase 1 will implement the
-first validated command-line analysis engine using synthetic text and one VAD
-adapter before any full graphical interface is attempted.
+**Phase 1: minimum validated engine is complete.** VerseVAD now has a tested
+Warriner VAD adapter, poetry-preserving token records, exact-first matching,
+POS-sensitive lemma fallback, coverage, token- and type-weighted descriptive
+VAD statistics, token-level audit data, and CSV export. The included validation
+demonstration uses only invented text and ratings.
+
+The full graphical application is not built yet. Project persistence, the
+remaining four adapters, phrase matching, review scenarios, and corpus analysis
+belong to later phases.
 
 See:
 
@@ -48,3 +52,13 @@ python scripts\inspect_lexicons.py
 
 Python setup and double-clickable launchers will be added in a later phase.
 Nontechnical users will not be expected to run this command routinely.
+
+## Test the Phase 1 engine
+
+Double-click `test_phase1.bat`. A console window will run an invented,
+hand-calculated example and pause so the result can be read. Success is shown as
+`VerseVAD Phase 1 validation passed.` The generated CSV files are placed in
+`phase1_demo_output/`, which is excluded from source control.
+
+See [the Phase 1 validation report](docs/phase1-validation.md) for the expected
+numbers, limitations, and removal instructions.

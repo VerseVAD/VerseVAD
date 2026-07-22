@@ -38,8 +38,10 @@ counts.
 - **Documentation file:**
   `source_lexicons/XANEW-master/XANEW-master/README.md`
 - **Observed structure:** comma-separated file with a header; 13,915 rows and
-  13,915 unique terms; no blank terms, malformed score rows, duplicate term
-  keys, or out-of-range overall V/A/D means.
+  13,915 unique source terms; no blank terms, malformed score rows, duplicate
+  source-term keys, or out-of-range overall V/A/D means. Ten pairs collapse to
+  the same key under case-insensitive lookup while retaining different source
+  capitalization and ratings.
 - **License stated by package:** Creative Commons
   Attribution-NonCommercial-NoDerivs 3.0 Unported. This is stated by the
   secondary distributor; an independent original license file is not supplied.
@@ -50,6 +52,12 @@ counts.
   `78ac8107c78e116bb96538fae4faa47281a155f5f8fe39f30bbc6ea3db05b446`
 - **Human review:** confirm original provenance, source version, license text,
   and whether the 102 whitespace-containing terms should use phrase matching.
+  Case-colliding ratings must remain separate: exact source capitalization may
+  disambiguate them, while unresolved forms should be flagged rather than
+  assigned an arbitrary rating.
+- **Adapter status:** implemented and contract-tested in Phase 1. All source
+  values remain on the 1–9 scale; separate 0–1 values use
+  `(original - 1) / 8`. Phrase matching remains deferred.
 
 ## 2. NRC VAD Lexicon v1
 
@@ -180,7 +188,9 @@ All five primary files passed the Phase 0 structural checks:
 - source-scale range checks pass;
 - no blank terms;
 - no malformed rows;
-- no duplicate adapter primary keys.
+- no duplicate source primary keys;
+- ten Warriner case-insensitive lookup collisions preserved for explicit
+  resolution or review.
 
 This validates file structure, not the scholarly correctness of individual
 ratings or the suitability of a particular match in context.

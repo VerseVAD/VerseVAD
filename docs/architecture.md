@@ -1,6 +1,6 @@
 # Architecture Decision: Local Modular Python Application
 
-Status: accepted for Phase 1, subject to validation during implementation.
+Status: accepted; the Phase 1 subset has been validated locally.
 
 Date: 2026-07-22
 
@@ -22,14 +22,17 @@ The initial technology choices are:
 - openpyxl or XlsxWriter for Excel exports after export requirements are tested;
 - pytest for engine, adapter, migration, export, and interface smoke tests;
 - Jinja templates for local HTML methods reports;
-- `uv` as the preferred project-local dependency and Python manager, pending a
-  clean-Windows setup test.
+- `uv` as the project-local dependency and Python manager.
 
-Dependency versions and the linguistic model will be locked once Phase 1 proves
-the minimum compatible set. No system-wide package installation is required by
-the architecture. A Windows launcher will activate the project environment and
-start the local application. A packaged executable can be evaluated after the
-interface is stable; it is not a Phase 1 dependency.
+No system-wide package installation is required by the architecture. A Windows
+launcher will activate the project environment and start the local application.
+A packaged executable can be evaluated after the interface is stable; it is not
+a Phase 1 dependency.
+
+Phase 1 selected and locked Python 3.12, spaCy 3.8.14,
+`en_core_web_sm` 3.8.0, Click 8.4.2, and pytest 9.1.1 in `uv.lock`. The working
+runtime, package cache, and `uv` executable are kept in ignored project-local
+directories rather than installed computer-wide.
 
 ## Why this fits VerseVAD
 

@@ -31,6 +31,7 @@ __pycache__/
 # Generated or temporary artifacts
 /tmp/
 /output/
+/phase1_demo_output/
 /dist/
 /build/
 *.egg-info/

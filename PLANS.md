@@ -22,21 +22,36 @@ review required.
 
 - [x] No supplied lexicon file changed.
 - [x] All five primary source files are readable and within documented ranges.
-- [x] No malformed rows, blank terms, or duplicate primary keys were found.
+- [x] No malformed rows, blank terms, or duplicate source primary keys were
+  found; ten Warriner case-insensitive lookup collisions were documented.
 - [x] Phase 1 can begin without a data-format blocker.
 
 ## Phase 1 - Minimum validated engine
 
-- [ ] Define a versioned adapter interface and validation result model.
-- [ ] Implement the first VAD adapter using a synthetic fixture before the
+- [x] Define a versioned adapter interface and validation result model.
+- [x] Implement the first VAD adapter using a synthetic fixture before the
   full source file.
-- [ ] Preserve line and stanza structure during tokenization.
-- [ ] Add exact normalized matching and POS-sensitive lemma fallback.
-- [ ] Produce a token-level audit table with match provenance.
-- [ ] Calculate coverage and token- and type-weighted VAD summaries.
-- [ ] Export the token audit and summaries to CSV.
-- [ ] Add hand-calculated validation cases and automated tests.
-- [ ] Document exactly how the first engine can be tested.
+- [x] Preserve line and stanza structure during tokenization.
+- [x] Add exact normalized matching, conservative possessive normalization,
+  and POS-sensitive lemma fallback.
+- [x] Produce a token-level audit table with match provenance.
+- [x] Calculate coverage and token- and type-weighted VAD summaries.
+- [x] Export the token audit, coverage, summaries, and manifest to CSV.
+- [x] Add hand-calculated validation cases and automated tests.
+- [x] Document exactly how the first engine can be tested.
+
+### Phase 1 exit criteria
+
+- [x] The invented validation example reproduces all hand-calculated counts and
+  means.
+- [x] The local supplied Warriner source passes its adapter contract and works
+  end to end without source-file modification.
+- [x] Exact entries take priority over lemma entries.
+- [x] Unmatched words remain missing rather than receiving neutral scores.
+- [x] Case-insensitive source collisions remain separate and unresolved cases
+  are sent to review instead of being guessed.
+- [x] All Phase 0 and Phase 1 automated tests pass.
+- [x] Create the Phase 1 source-control checkpoint.
 
 ## Phase 2 - All five lexicons
 

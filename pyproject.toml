@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "versevad"
+version = "0.1.0.dev0"
+description = "Transparent local affective lexicon analysis for literary texts"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+license = { text = "Source code license not yet selected" }
+authors = [{ name = "VerseVAD Development" }]
+dependencies = [
+  "click==8.4.2",
+  "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+  "spacy==3.8.14",
+]
+
+[project.scripts]
+versevad-phase1-demo = "versevad.demo:main"
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/versevad"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+pythonpath = ["src", "."]
+testpaths = ["tests"]

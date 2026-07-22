@@ -59,6 +59,31 @@ class InspectLexiconsTests(unittest.TestCase):
             self.assertEqual(result["duplicate_row_excess"], 1)
             self.assertEqual(result["out_of_range_scores"], 1)
 
+    def test_casefold_collisions_are_distinct_from_duplicate_source_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "fixture.tsv"
+            source.write_text(
+                "term\tvalue\ninvented\t0.5\nInvented\t0.7\n",
+                encoding="utf-8",
+            )
+            spec = LexiconSpec(
+                lexicon_id="fixture",
+                relative_path="fixture.tsv",
+                delimiter="\t",
+                has_header=True,
+                term_column="term",
+                key_columns=("term",),
+                score_columns=("value",),
+                expected_score_min=0.0,
+                expected_score_max=1.0,
+            )
+
+            result = inspect_one(root, spec)
+
+            self.assertEqual(result["duplicate_keys"], 0)
+            self.assertEqual(result["conflicting_normalized_keys"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
