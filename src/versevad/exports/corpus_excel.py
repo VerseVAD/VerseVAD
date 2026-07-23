@@ -29,6 +29,8 @@ PAPER = "FBF8F1"
 PALE = "EEF3EC"
 WHITE = "FFFFFF"
 
+CORPUS_WORKBOOK_API_VERSION = 2
+
 
 def _label(name: str) -> str:
     return name.replace("_", " ").strip().title()

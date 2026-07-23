@@ -109,6 +109,22 @@ if _explorer_was_reloaded:
     importlib.reload(_explorer_ui_services)
     st.session_state["_explorer_runtime_revision"] = _EXPLORER_RUNTIME_REVISION
 
+# Corpus Excel gained a methodology argument after the persistent workspace
+# first shipped. An already-open Streamlit process can otherwise retain the
+# four-argument exporter while loading the newer five-argument corpus page.
+_CORPUS_RUNTIME_REVISION = "2026-07-23-corpus-export-2"
+import versevad.exports.corpus_excel as _corpus_excel_services
+
+_corpus_was_reloaded = (
+    st.session_state.get("_corpus_runtime_revision") != _CORPUS_RUNTIME_REVISION
+    or getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 2
+)
+if _corpus_was_reloaded:
+    importlib.reload(_corpus_excel_services)
+    if "versevad.ui.corpus" in sys.modules:
+        importlib.reload(sys.modules["versevad.ui.corpus"])
+    st.session_state["_corpus_runtime_revision"] = _CORPUS_RUNTIME_REVISION
+
 if _application_was_reloaded:
     st.session_state.pop("workspace", None)
 if _application_was_reloaded or _explorer_was_reloaded:

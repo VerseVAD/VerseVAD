@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
 
+import versevad.exports.corpus_excel as corpus_excel_exports
 from versevad.application import LEXICON_SPECS, TextImportError
 from versevad.corpus import analyze_corpus, corpus_vad_profiles, decode_corpus_files
 from versevad.db import ProjectRepository, default_database_path
-from versevad.exports.corpus_excel import build_corpus_workbook
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import TextPreprocessor
 from versevad.ui.stopwords import render_stopword_settings
@@ -636,12 +637,17 @@ def _render_export_tab(repository: ProjectRepository, project_id: str) -> None:
     if not metrics:
         st.info("Complete a corpus analysis before exporting a workbook.")
         return
-    workbook = build_corpus_workbook(
+    # A Streamlit process can remain open while VerseVAD is updated. Resolve
+    # the exporter through its module and refresh it if that process retained
+    # the pre-methodology four-argument API.
+    if getattr(corpus_excel_exports, "CORPUS_WORKBOOK_API_VERSION", 0) < 2:
+        importlib.reload(corpus_excel_exports)
+    workbook = corpus_excel_exports.build_corpus_workbook(
         project,
         texts,
         metrics,
         unmatched,
-        repository.latest_methodology(project_id),
+        methodology=repository.latest_methodology(project_id),
     )
     st.download_button(
         "Download corpus Excel workbook",

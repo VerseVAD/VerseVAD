@@ -8,7 +8,10 @@ from versevad.db import (
     ProjectRecord,
     UnmatchedQcRecord,
 )
-from versevad.exports.corpus_excel import build_corpus_workbook
+from versevad.exports.corpus_excel import (
+    CORPUS_WORKBOOK_API_VERSION,
+    build_corpus_workbook,
+)
 
 
 def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
@@ -105,3 +108,39 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
     assert workbook["Corpus profiles"]["I5"].value == 0.875
     assert workbook["Unmatched QC"]["K5"].value == "Review historical sense."
     assert workbook["Text metadata"]["I5"].value == "abc123"
+
+    methodology_content = build_corpus_workbook(
+        project,
+        (text,),
+        metrics,
+        unmatched,
+        methodology={
+            "software_version": "0.5.0.dev0",
+            "scenario_id": "scenario-test",
+            "phrase_policy": "phrase_preferred",
+            "minimum_match_requirement": 1,
+            "stopword_policy": {
+                "mode": "standard",
+                "source": "spaCy English STOP_WORDS",
+                "library_version": "3.8.14",
+                "list_version": "test-list",
+                "active_list_sha256": "abc123",
+                "protected_words": ("not", "never"),
+                "custom_additions": (),
+                "custom_removals": (),
+            },
+        },
+    )
+    methodology_workbook = load_workbook(
+        BytesIO(methodology_content),
+        data_only=False,
+    )
+    assert CORPUS_WORKBOOK_API_VERSION == 2
+    assert methodology_workbook.sheetnames[-1] == "Methodology"
+    methodology_rows = {
+        row[0].value: row[1].value
+        for row in methodology_workbook["Methodology"].iter_rows(min_row=5)
+        if row[0].value
+    }
+    assert methodology_rows["Stopword source"] == "spaCy English STOP_WORDS"
+    assert methodology_rows["Protected words"] == "not, never"

@@ -112,3 +112,5 @@ made a public release.
   allowing case-insensitive lookup to select one silently.
 - Prevented stale Streamlit module state from breaking Lexicon Explorer after
   application-model updates.
+- Prevented an already-open Streamlit process from pairing the updated corpus
+  page with the older four-argument Excel exporter.
