@@ -14,6 +14,7 @@ import streamlit as st
 
 import versevad.application as _application_services
 import versevad.adapters.nrc_vad as _nrc_vad_services
+import versevad.db.repository as _repository_services
 
 # Codex may update the local source while a Streamlit server is still open.
 # Streamlit reruns this page but Python normally retains already imported
@@ -28,10 +29,12 @@ _application_was_reloaded = (
             "vad_cumulative_views",
             "vad_contributor_views",
             "vad_sensitivity_views",
+            "part_of_speech_views",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
     or not _nrc_vad_services.NrcVadV1Adapter.configuration.phrase_support
+    or getattr(_repository_services, "SCHEMA_VERSION", 0) < 3
 )
 if _application_was_reloaded:
     # Reload the framework-independent dependency graph in type-definition
@@ -77,8 +80,10 @@ from versevad.application import (
     emotion_intensity_views,
     match_views,
     overview_notes,
+    part_of_speech_views,
     run_workspace_analysis,
     scholar_summary_csv,
+    sentiment_association_views,
     unmatched_views,
     vad_contributor_views,
     vad_cumulative_views,
@@ -118,12 +123,12 @@ if _explorer_was_reloaded:
 # Corpus Excel gained a methodology argument after the persistent workspace
 # first shipped. An already-open Streamlit process can otherwise retain the
 # four-argument exporter while loading the newer five-argument corpus page.
-_CORPUS_RUNTIME_REVISION = "2026-07-23-corpus-export-2"
+_CORPUS_RUNTIME_REVISION = "2026-07-23-phase5-review-pos-2"
 import versevad.exports.corpus_excel as _corpus_excel_services
 
 _corpus_was_reloaded = (
     st.session_state.get("_corpus_runtime_revision") != _CORPUS_RUNTIME_REVISION
-    or getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 2
+    or getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 4
 )
 if _corpus_was_reloaded:
     importlib.reload(_corpus_excel_services)
@@ -204,13 +209,13 @@ def _display_self_test() -> None:
 
 workspace_page = st.segmented_control(
     "Workspace",
-    options=["One poem", "Projects & corpus", "Lexicon Explorer"],
-    default="One poem",
+    options=["One Poem", "Projects & Corpus", "Lexicon Explorer"],
+    default="One Poem",
     selection_mode="single",
     key="workspace_page",
 )
-workspace_page = workspace_page or "One poem"
-if workspace_page == "Projects & corpus":
+workspace_page = workspace_page or "One Poem"
+if workspace_page == "Projects & Corpus":
     from versevad.ui.corpus import render_corpus_workspace
 
     render_corpus_workspace(_preprocessor())
@@ -220,21 +225,21 @@ if workspace_page == "Lexicon Explorer":
     render_lexicon_explorer(_preprocessor())
 
 
-if workspace_page == "One poem":
+if workspace_page == "One Poem":
     st.session_state.setdefault("project_name", "Temporary private workspace")
     st.session_state.setdefault("poem_title", "")
     st.session_state.setdefault("poem_text", "")
     st.session_state.setdefault("workspace", None)
 
     with st.sidebar:
-        st.markdown("### Local workspace")
+        st.markdown("### Local Workspace")
         st.caption(f"VerseVAD {__version__}")
         st.success("Private by design: analysis stays on this computer.")
         st.info(
             "One-poem results last only while the app is open. Download them before "
-            "closing, or use Projects & corpus for persistent local work."
+            "closing, or use Projects & Corpus for persistent local work."
         )
-        st.markdown("### Installation check")
+        st.markdown("### Installation Check")
         if st.button("Run self-test", width="stretch", key="run_self_test"):
             _display_self_test()
         if "self_test_checks" in st.session_state:
@@ -261,7 +266,7 @@ if workspace_page == "One poem":
     )
 
     with st.container(border=True):
-        st.subheader("1. Add a poem")
+        st.subheader("1. Add a Poem")
         uploaded = st.file_uploader(
             "Choose a UTF-8 plain-text file (optional)",
             type=["txt"],
@@ -299,7 +304,7 @@ if workspace_page == "One poem":
         )
 
     with st.container(border=True):
-        st.subheader("2. Choose evidence")
+        st.subheader("2. Choose Evidence")
         spec_by_id = {spec.lexicon_id: spec for spec in LEXICON_SPECS}
         selected_lexicons = st.multiselect(
             "Lexicons",
@@ -395,7 +400,7 @@ if workspace_page == "One poem":
 
     workspace = st.session_state.get("workspace")
     if workspace is None:
-        st.markdown("### What happens next")
+        st.markdown("### What Happens Next")
         steps = st.columns(3)
         steps[0].markdown("**1 — Overview**  \nCoverage and a plain-language orientation.")
         steps[1].markdown("**2 — Profiles**  \nComparable VAD plus separate association and intensity views.")
@@ -419,8 +424,24 @@ if workspace_page == "One poem":
         f"Phrase policy: {workspace.request.phrase_policy.value.replace('_', ' ')}"
     )
 
-    overview_tab, vad_tab, emotion_tab, evidence_tab, download_tab, help_tab = st.tabs(
-        ["Overview", "VAD profile", "Emotion profile", "Evidence", "Downloads", "How to read"]
+    (
+        overview_tab,
+        language_tab,
+        vad_tab,
+        emotion_tab,
+        evidence_tab,
+        download_tab,
+        help_tab,
+    ) = st.tabs(
+        [
+            "Overview",
+            "Language Profile",
+            "VAD Profile",
+            "Emotion Profile",
+            "Evidence",
+            "Downloads",
+            "How to Read",
+        ]
     )
 
     with overview_tab:
@@ -541,7 +562,7 @@ if workspace_page == "One poem":
         st.caption(
             "The 60% and 80% coverage bands are orientation aids, not universal scholarly cutoffs."
         )
-        st.subheader("How to frame this result")
+        st.subheader("How to Frame This Result")
         for note in overview_notes(workspace):
             st.markdown(f"- {note}")
         warnings = [
@@ -553,6 +574,48 @@ if workspace_page == "One poem":
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
                 for lexicon, warning in warnings:
                     st.warning(f"{lexicon}: {warning}")
+
+    with language_tab:
+        st.subheader("Part-of-Speech Profile")
+        st.write(
+            "This is a grammatical profile of all eligible lexical token occurrences, "
+            "independent of affective-lexicon coverage. The count is the number of "
+            "occurrences assigned to a category; the share divides that count by all "
+            "eligible lexical tokens in this text."
+        )
+        pos_rows = part_of_speech_views(workspace)
+        if pos_rows:
+            pos_frame = _frame(
+                pos_rows,
+                {
+                    "tag": "Universal POS tag",
+                    "category": "Part of speech",
+                    "token_count": "Token count",
+                    "share_of_lexical_tokens": "Share of lexical tokens",
+                    "unique_type_count": "Unique normalized types",
+                    "example_forms": "Examples",
+                    "lexical_token_denominator": "Lexical-token denominator",
+                },
+            )
+            st.bar_chart(
+                pos_frame.set_index("Part of speech")[["Share of lexical tokens"]],
+                height=320,
+            )
+            st.dataframe(
+                pos_frame.style.format(
+                    {"Share of lexical tokens": lambda value: _percentage(value)}
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            st.warning(
+                "Part-of-speech labels are generated by the installed English model. "
+                "Poetic syntax, archaic forms, fragments, and deliberate ambiguity can "
+                "produce uncertain labels; inspect the token-level Evidence table when "
+                "a distinction matters."
+            )
+        else:
+            st.info("This text contains no eligible lexical tokens to profile.")
 
     with vad_tab:
         visible_vad_views = set()
@@ -571,7 +634,7 @@ if workspace_page == "One poem":
             else:
                 st.info("No VAD lexicon was selected. Choose Warriner or either NRC VAD source to see this view.")
         else:
-            st.subheader("Parallel normalized VAD views")
+            st.subheader("Parallel Normalized VAD Views")
             st.write(
                 "These means use a derived 0–1 scale so the three VAD sources can be "
                 "placed side by side. Higher values mean higher normative ratings on "
@@ -663,7 +726,7 @@ if workspace_page == "One poem":
                 "All three dimensions are normative lexical ratings. They do not identify "
                 "the poem's emotion or predict an individual reader's response."
             )
-            st.subheader("What valence, arousal, and dominance mean")
+            st.subheader("What Valence, Arousal, and Dominance Mean")
             definition_columns = st.columns(3)
             for column, dimension in zip(
                 definition_columns,
@@ -691,7 +754,7 @@ if workspace_page == "One poem":
                         f"{explanation.dimension.title()}:** {explanation.explanation}"
                     )
 
-            st.subheader("Repetition-sensitive and vocabulary-sensitive means")
+            st.subheader("Repetition-Sensitive and Vocabulary-Sensitive Means")
             st.write(
                 "Token-weighted means count every included occurrence, so repetition matters. "
                 "Type-weighted means count each distinct matched lexicon entry once, so they "
@@ -784,7 +847,7 @@ if workspace_page == "One poem":
                     width="stretch",
                 )
 
-            st.subheader("Stopword sensitivity")
+            st.subheader("Stopword Sensitivity")
             st.write(
                 "Stopword sensitivity is the stopword-excluded mean minus the "
                 "all-matched mean. A large absolute difference indicates that common "
@@ -817,7 +880,7 @@ if workspace_page == "One poem":
                 width="stretch",
             )
 
-            st.subheader("Cumulative normative lexical load")
+            st.subheader("Cumulative Normative Lexical Load")
             st.write(
                 "These token totals are deliberately sensitive to length and repetition. "
                 "The absolute midpoint load sums each matched rating's distance from 0.5; "
@@ -873,7 +936,7 @@ if workspace_page == "One poem":
                 width="stretch",
             )
 
-            st.subheader("Top contributors to each mean")
+            st.subheader("Top Contributors to Each Mean")
             st.write(
                 "Signed contribution is frequency × (normalized rating − 0.5). "
                 "This midpoint-centered calculation shows how repetition and distance "
@@ -984,14 +1047,16 @@ if workspace_page == "One poem":
 
     with emotion_tab:
         associations = emotion_association_views(workspace)
+        sentiments = sentiment_association_views(workspace)
         intensities = emotion_intensity_views(workspace)
-        if not associations and not intensities:
+        if not associations and not sentiments and not intensities:
             st.info("Select NRC Emotion or NRC Emotion Intensity to see this view.")
         if associations:
-            st.subheader("Categorical emotion associations")
+            st.subheader("Eight Emotion Associations")
             st.write(
-                "This counts vocabulary associated with each category in NRC Emotion. "
-                "One token may belong to several categories, so rates do not sum to 100%."
+                "This counts vocabulary associated with anger, anticipation, disgust, "
+                "fear, joy, sadness, surprise, and trust in NRC Emotion. One token may "
+                "belong to several categories, so rates do not sum to 100%."
             )
             association_frame = _frame(
                 associations,
@@ -1018,8 +1083,40 @@ if workspace_page == "One poem":
                 hide_index=True,
                 width="stretch",
             )
+        if sentiments:
+            st.subheader("Positive and Negative Sentiment Associations")
+            st.write(
+                "Positive and negative are broad sentiment labels, so VerseVAD reports "
+                "them separately from the eight emotion categories. One token may have "
+                "more than one source association, and these rates need not sum to 100%."
+            )
+            sentiment_frame = _frame(
+                sentiments,
+                {
+                    "category": "Sentiment",
+                    "token_count": "Token count",
+                    "unique_types": "Unique types",
+                    "rate_per_lexical_token": "Rate per lexical token",
+                    "rate_among_emotion_bearing_tokens": "Rate among association-bearing tokens",
+                    "top_terms": "Top contributors",
+                },
+            )
+            st.bar_chart(
+                sentiment_frame.set_index("Sentiment")[["Rate per lexical token"]],
+                height=220,
+            )
+            st.dataframe(
+                sentiment_frame.style.format(
+                    {
+                        "Rate per lexical token": lambda value: _percentage(value),
+                        "Rate among association-bearing tokens": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
         if intensities:
-            st.subheader("Emotion intensity among supplied matches")
+            st.subheader("Emotion Intensity Among Supplied Matches")
             st.write(
                 "Prevalence asks how often category-scored vocabulary occurs. Mean "
                 "intensity asks how strong the supplied ratings are only among those matches."
@@ -1052,7 +1149,7 @@ if workspace_page == "One poem":
             st.caption("A missing word-category pair remains missing; VerseVAD does not enter a zero.")
 
     with evidence_tab:
-        st.subheader("Match evidence")
+        st.subheader("Match Evidence")
         st.write(
             "Use this table when you want to know exactly which surface form, lemma, "
             "phrase, or source entry contributed—or why it was suppressed."
@@ -1125,7 +1222,7 @@ if workspace_page == "One poem":
         st.dataframe(match_frame, hide_index=True, width="stretch", height=420)
         st.caption(f"Showing {len(filtered):,} of {len(all_matches):,} audit records.")
 
-        st.subheader("Unmatched vocabulary")
+        st.subheader("Unmatched Vocabulary")
         unmatched = unmatched_views(workspace)
         if unmatched:
             unmatched_frame = _frame(
@@ -1148,7 +1245,7 @@ if workspace_page == "One poem":
             st.success("Every lexical token matched each selected lexicon under this policy.")
 
     with download_tab:
-        st.subheader("Readable first, audit trail second")
+        st.subheader("Readable First, Audit Trail Second")
         st.write(
             "The compact summary is meant to be opened first. The ZIP adds every "
             "detailed table needed to inspect or reproduce the result."
@@ -1189,7 +1286,7 @@ if workspace_page == "One poem":
         )
 
     with help_tab:
-        st.subheader("A practical reading order")
+        st.subheader("A Practical Reading Order")
         st.markdown(
             """
             1. **Coverage:** Is enough vocabulary represented to make the aggregate useful?
@@ -1200,7 +1297,7 @@ if workspace_page == "One poem":
             6. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
-        st.subheader("What the main terms mean")
+        st.subheader("What the Main Terms Mean")
         definitions = [
             ("Coverage", "The share of eligible lexical tokens that found a source entry."),
             ("Token-weighted", "Every matched occurrence contributes, including repetitions."),

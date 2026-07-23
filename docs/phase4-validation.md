@@ -99,7 +99,7 @@ but the note remains keyed to project, work, lexicon, and normalized form.
 1. Open **Excel export** and download the corpus workbook.
 2. Open it in Excel.
 
-Confirm the sheets **START HERE**, **Corpus profiles**, **Work VAD**,
+Confirm the sheets **START HERE**, **Corpus Profiles**, **Work VAD**,
 **Cumulative load**, **Coverage and emotion**, **Unmatched QC**, and **Text
 metadata**. The first sheet explains the weighting distinctions. The workbook
 contains filters, frozen headers, readable number formats, and the quality-

@@ -51,6 +51,24 @@ class CorpusVadProfile:
     volume_coverage: float | None
 
 
+@dataclass(frozen=True)
+class CorpusScenarioDelta:
+    """Like-for-like difference between two immutable corpus batches."""
+
+    text_id: str
+    title: str
+    lexicon_id: str
+    lexicon: str
+    analysis_view: str
+    metric: str
+    dimension: str
+    weighting: str
+    scale: str
+    baseline_value: float
+    reviewed_value: float
+    difference: float
+
+
 def decode_corpus_files(
     files: Iterable[tuple[str, bytes]],
 ) -> CorpusImportSummary:
@@ -170,6 +188,53 @@ def corpus_vad_profiles(
     )
 
 
+def corpus_scenario_deltas(
+    baseline: Sequence[CorpusMetricRecord],
+    reviewed: Sequence[CorpusMetricRecord],
+) -> tuple[CorpusScenarioDelta, ...]:
+    """Compare only directly compatible metrics; missing values stay unpaired."""
+
+    def key(row: CorpusMetricRecord) -> tuple[str, ...]:
+        return (
+            row.text_id,
+            row.lexicon_id,
+            row.analysis_view,
+            row.metric,
+            row.dimension,
+            row.category,
+            row.weighting,
+            row.scale,
+        )
+
+    baseline_by_key = {
+        key(row): row for row in baseline if row.value is not None
+    }
+    reviewed_by_key = {
+        key(row): row for row in reviewed if row.value is not None
+    }
+    rows = []
+    for shared in sorted(set(baseline_by_key) & set(reviewed_by_key)):
+        first = baseline_by_key[shared]
+        second = reviewed_by_key[shared]
+        rows.append(
+            CorpusScenarioDelta(
+                text_id=first.text_id,
+                title=first.title,
+                lexicon_id=first.lexicon_id,
+                lexicon=first.lexicon,
+                analysis_view=first.analysis_view,
+                metric=first.metric,
+                dimension=first.dimension,
+                weighting=first.weighting,
+                scale=first.scale,
+                baseline_value=float(first.value),
+                reviewed_value=float(second.value),
+                difference=float(second.value) - float(first.value),
+            )
+        )
+    return tuple(rows)
+
+
 def analyze_corpus(
     repository: ProjectRepository,
     project_id: str,
@@ -182,6 +247,7 @@ def analyze_corpus(
     protected_stopwords: Sequence[str] = DEFAULT_PROTECTED_WORDS,
     custom_stopword_additions: Sequence[str] = (),
     custom_stopword_removals: Sequence[str] = (),
+    scenario_version_id: str = "",
     preprocessor: TextPreprocessor | None = None,
     progress: Callable[[int, int, str], None] | None = None,
 ) -> CorpusBatchRecord:
@@ -196,6 +262,13 @@ def analyze_corpus(
     selected = tuple(text for text in available if text.text_id in selected_set)
     if len(selected) != len(selected_set):
         raise ValueError("One or more selected texts do not belong to this project.")
+    scenario = (
+        repository.get_review_scenario_version(scenario_version_id)
+        if scenario_version_id
+        else None
+    )
+    if scenario is not None and scenario.project_id != project_id:
+        raise ValueError("The selected review scenario does not belong to this project.")
     batch = repository.begin_corpus_batch(
         project_id,
         text_ids=(text.text_id for text in selected),
@@ -206,6 +279,7 @@ def analyze_corpus(
         protected_stopwords=protected_stopwords,
         custom_stopword_additions=custom_stopword_additions,
         custom_stopword_removals=custom_stopword_removals,
+        scenario_version_id=scenario_version_id,
     )
     processor = preprocessor or SpacyEnglishPreprocessor()
     total = len(selected)
@@ -213,6 +287,15 @@ def analyze_corpus(
         for position, text in enumerate(selected, start=1):
             if progress is not None:
                 progress(position - 1, total, text.title)
+            review_rules = (
+                repository.review_rules_for_text(
+                    scenario_version_id,
+                    text_id=text.text_id,
+                    text_version_id=text.text_version_id,
+                )
+                if scenario_version_id
+                else ()
+            )
             workspace = run_workspace_analysis(
                 AnalysisRequest(
                     project_name=project.title,
@@ -227,6 +310,13 @@ def analyze_corpus(
                     protected_stopwords=tuple(protected_stopwords),
                     custom_stopword_additions=tuple(custom_stopword_additions),
                     custom_stopword_removals=tuple(custom_stopword_removals),
+                    scenario_id=(
+                        scenario.scenario_id
+                        if scenario is not None
+                        else "phase2-multi-lexicon-v1"
+                    ),
+                    scenario_version_id=scenario_version_id,
+                    review_rules=review_rules,
                 ),
                 preprocessor=processor,
             )

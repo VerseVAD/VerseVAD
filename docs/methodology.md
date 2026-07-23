@@ -75,6 +75,20 @@ Categorical emotion associations and numeric word-emotion intensities are not
 alternate scales for VAD. They retain their own value kinds and denominators
 and are never normalized into or averaged with the VAD dimensions.
 
+## Part-of-speech profile
+
+The linguistic profile is independent of lexicon matching. It counts every
+eligible lexical token assigned to each universal part-of-speech category by
+the pinned English model:
+
+`POS share = category token occurrences / all eligible lexical token occurrences`
+
+One-poem shares use that text's denominator. The combined corpus profile pools
+occurrences from current work versions, while the work-by-work table uses each
+work's own denominator. Counts, shares, unique normalized types, examples,
+model name, and model version remain visible. These model-generated labels can
+be uncertain for poetic syntax, archaisms, fragments, and ambiguity.
+
 ## Dual VAD reporting and stopword policy
 
 VerseVAD does not treat stopword removal as neutral preprocessing. Every VAD
@@ -111,13 +125,19 @@ Positive values raise the cumulative midpoint-centered total; negative values
 lower it. The ranking is an accounting of normative lexical evidence, not a
 claim about causal reader response.
 
-## Emotion association summaries
+## Emotion and sentiment association summaries
 
 NRC Emotion Lexicon values are binary associations, not intensities. A term may
 belong to multiple categories, so category percentages need not total 100%.
 Every percentage will state its denominator.
 
-Phase 2 reports, for every category, occurrence count, unique matched entry
+VerseVAD reports the eight emotion categories—anger, anticipation, disgust,
+fear, joy, sadness, surprise, and trust—separately from the source's broad
+positive and negative sentiment labels. Both constructs use the same documented
+association-counting calculations, but the interface and readable summary keep
+their headings distinct.
+
+Phase 2 reports, for every association, occurrence count, unique matched entry
 count, rate per all lexical tokens, rate among tokens bearing at least one
 positive association, rate per unique lexical surface type, line and stanza
 distributions, and frequent contributing terms. A source term present in the
@@ -215,6 +235,33 @@ Corpus comparisons use one completed batch. A pending or failed batch can
 contain individually complete work runs for recovery and audit, but it never
 replaces the latest complete comparison view.
 
+## Versioned review scenarios
+
+The unreviewed baseline remains distinct from every reviewed analysis. A named
+scenario contains append-only decision revisions and produces immutable
+scenario versions.
+
+- A **flag** records a concern without changing matching or aggregates.
+- An **exclusion** retains the published candidate in the audit but omits it
+  from that scenario's aggregate.
+- An **approved mapping** may map a source form to a verified exact entry in one
+  selected lexicon only after exact, apostrophe/possessive, and lemma candidates
+  fail.
+
+Decisions use explicit occurrence, work, project, or global-within-scenario-use
+scope. The narrowest defensible scope is preferred. Conflicting mappings at the
+same applicable scope are rejected rather than guessed. Each decision records
+the source form, target when applicable, lexicon, preserved text/version and
+token location when applicable, semantic-risk category, rationale, revision,
+and active/revoked state.
+
+Creating, revising, revoking, restoring, or restoring an older scenario
+snapshot appends a new version. Every completed run records the exact scenario
+version and active decision revisions. Batch comparison therefore shows
+before-and-after coverage and VAD deltas without rewriting the baseline.
+Mapping and exclusion counts remain visible; unmatched-note proposals do not
+affect scores unless converted into active scenario decisions.
+
 ## Lexicon Explorer derivations
 
 Lexicon Explorer resolves an exact normalized entry or phrase before displaying
@@ -243,10 +290,10 @@ score or pooled rating.
 ## Context and close reading
 
 Negation, irony, metaphor, quotation, speaker attribution, narrative distance,
-and historical sense are not solved by lexicon matching. VerseVAD may flag
-contexts for review, but flags will not silently change primary scores.
-Scholar-approved exclusions or mappings will create explicit alternative
-scenarios with visible before-and-after results.
+and historical sense are not solved by lexicon matching. VerseVAD can flag
+contexts for review, but flags do not change primary scores. Scholar-approved
+exclusions or mappings create explicit alternative scenarios with visible
+before-and-after results.
 
 ## Sparse and uncertain results
 

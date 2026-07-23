@@ -6,6 +6,10 @@ from zipfile import ZipFile
 ROOT = Path(__file__).parents[1]
 MANUAL = ROOT / "docs" / "VerseVAD_User_Manual.docx"
 SOURCE = ROOT / "docs" / "VerseVAD_User_Manual_Source.md"
+VALUES_GUIDE = ROOT / "docs" / "VerseVAD_Values_and_Terminology_Guide.docx"
+VALUES_SOURCE = (
+    ROOT / "docs" / "VerseVAD_Values_and_Terminology_Guide_Source.md"
+)
 NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
 W = f"{{{NS['w']}}}"
 
@@ -34,13 +38,17 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
         assert "{{DATE}}" not in text
         for required in (
             "Dual VAD reporting and stopwords",
-            "Projects & corpus workspace",
+            "Projects & Corpus Workspace",
             "Lexicon Explorer",
             "Mathematical formulas",
             "Midpoint-centered contribution",
             "Delete a project",
             "phase2_results.json",
             "132 whitespace-containing rows in NRC VAD v1",
+            "Review decisions and named scenarios",
+            "Positive and negative sentiment associations",
+            "Installation Check",
+            "Part-of-speech profile",
         ):
             assert required in text
 
@@ -83,3 +91,35 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             for element in numbering.iter(f"{W}numFmt")
         }
         assert {"bullet", "decimal"}.issubset(formats)
+
+
+def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
+    assert VALUES_GUIDE.is_file()
+    assert VALUES_GUIDE.stat().st_size > 35_000
+    assert VALUES_SOURCE.is_file()
+
+    with ZipFile(VALUES_GUIDE) as package:
+        document = _xml(package, "word/document.xml")
+        text = "".join(element.text or "" for element in document.iter(f"{W}t"))
+        assert "{{VERSION}}" not in text
+        assert "{{DATE}}" not in text
+        for required in (
+            "Valence, Arousal, and Dominance",
+            "Stopwords and the Two VAD Views",
+            "Token-Weighted and Type-Weighted Statistics",
+            "Part-of-Speech Profiles",
+            "Dispersion of Matched Ratings",
+            "Stopword Sensitivity",
+            "Cumulative Normative Lexical Load",
+            "Above-Midpoint Load",
+            "Below-Midpoint Load",
+            "Net Midpoint Load",
+            "Absolute Midpoint Load",
+            "Positive and Negative Sentiment Associations",
+            "Review Decisions and Scenarios",
+            "Worked Examples",
+            "How to Report a Result",
+            "mean_token = sum(x_i) / N",
+            "absolute = above + below",
+        ):
+            assert required in text

@@ -10,10 +10,22 @@ import pandas as pd
 import streamlit as st
 
 import versevad.exports.corpus_excel as corpus_excel_exports
-from versevad.application import LEXICON_SPECS, TextImportError
-from versevad.corpus import analyze_corpus, corpus_vad_profiles, decode_corpus_files
+from versevad.application import (
+    LEXICON_SPECS,
+    TextImportError,
+    WorkspaceAnalysisError,
+    load_lexicon,
+    part_of_speech_views_for_tokens,
+)
+from versevad.corpus import (
+    analyze_corpus,
+    corpus_scenario_deltas,
+    corpus_vad_profiles,
+    decode_corpus_files,
+)
 from versevad.db import ProjectRepository, default_database_path
-from versevad.models import PhrasePolicy
+from versevad.models import PhrasePolicy, ReviewAction, ReviewScope, TextDocument
+from versevad.normalization import normalize_lookup
 from versevad.preprocessing import TextPreprocessor
 from versevad.ui.stopwords import render_stopword_settings
 
@@ -28,6 +40,84 @@ def _safe_filename(value: str) -> str:
 
 def _records_frame(records) -> pd.DataFrame:
     return pd.DataFrame([asdict(record) for record in records])
+
+
+def _corpus_part_of_speech_rows(
+    repository: ProjectRepository,
+    project_id: str,
+    preprocessor: TextPreprocessor,
+) -> tuple[dict[str, object], ...]:
+    texts = repository.list_texts(project_id)
+    metadata = preprocessor.metadata
+    signature = (
+        project_id,
+        metadata.recipe_id,
+        metadata.pipeline_name,
+        metadata.pipeline_version,
+        tuple(
+            (
+                text.text_id,
+                text.text_version_id,
+                text.title,
+                text.collection,
+            )
+            for text in texts
+        ),
+    )
+    cache_key = f"corpus_pos_profile_{project_id}"
+    cached = st.session_state.get(cache_key)
+    if cached and cached["signature"] == signature:
+        return cached["rows"]
+
+    rows: list[dict[str, object]] = []
+    all_tokens = []
+    for text in texts:
+        document = TextDocument(
+            text_id=text.text_id,
+            title=text.title,
+            original_text=text.original_text,
+            text_sha256=text.text_sha256,
+            text_version_id=text.text_version_id,
+        )
+        tokens = preprocessor.process(document)
+        all_tokens.extend(tokens)
+        for view in part_of_speech_views_for_tokens(tokens):
+            rows.append(
+                {
+                    "Scope": "Work",
+                    "Work": text.title,
+                    "Collection": text.collection,
+                    "Universal POS tag": view.tag,
+                    "Part of speech": view.category,
+                    "Token count": view.token_count,
+                    "Share of lexical tokens": view.share_of_lexical_tokens,
+                    "Unique normalized types": view.unique_type_count,
+                    "Examples": view.example_forms,
+                    "Lexical-token denominator": view.lexical_token_denominator,
+                    "Model": (
+                        f"{metadata.pipeline_name} {metadata.pipeline_version}"
+                    ),
+                }
+            )
+    for view in part_of_speech_views_for_tokens(all_tokens):
+        rows.append(
+            {
+                "Scope": "All Works Combined",
+                "Work": "All Works Combined",
+                "Collection": "",
+                "Universal POS tag": view.tag,
+                "Part of speech": view.category,
+                "Token count": view.token_count,
+                "Share of lexical tokens": view.share_of_lexical_tokens,
+                "Unique normalized types": view.unique_type_count,
+                "Examples": view.example_forms,
+                "Lexical-token denominator": view.lexical_token_denominator,
+                "Model": f"{metadata.pipeline_name} {metadata.pipeline_version}",
+            }
+        )
+    materialized = tuple(rows)
+    st.session_state[cache_key] = {"signature": signature, "rows": materialized}
+    return materialized
 
 
 def _create_project(repository: ProjectRepository, *, expanded: bool) -> None:
@@ -55,7 +145,7 @@ def _create_project(repository: ProjectRepository, *, expanded: bool) -> None:
 
 
 def _render_texts_tab(repository: ProjectRepository, project_id: str) -> None:
-    st.subheader("Import a folder of works")
+    st.subheader("Import a Folder of Works")
     st.write(
         "Choose a folder containing UTF-8 `.txt` files. Each file becomes one work; "
         "subfolder paths are retained. Re-importing a changed file creates a new "
@@ -91,7 +181,7 @@ def _render_texts_tab(repository: ProjectRepository, project_id: str) -> None:
     if not texts:
         st.info("No works have been imported into this project yet.")
         return
-    st.subheader(f"Works in this project ({len(texts):,})")
+    st.subheader(f"Works in This Project ({len(texts):,})")
     summary = pd.DataFrame(
         [
             {
@@ -108,7 +198,7 @@ def _render_texts_tab(repository: ProjectRepository, project_id: str) -> None:
     )
     st.dataframe(summary, hide_index=True, width="stretch", height=300)
 
-    st.subheader("Edit one work's metadata")
+    st.subheader("Edit One Work's Metadata")
     selected_id = st.selectbox(
         "Work",
         options=[text.text_id for text in texts],
@@ -157,7 +247,7 @@ def _render_profiles(metrics, total_works: int) -> None:
     if not profiles:
         st.info("The latest complete corpus batch has no normalized VAD means to compare.")
         return
-    st.subheader("Collection VAD: report both views")
+    st.subheader("Collection VAD: Report Both Views")
     st.write(
         "The **token-weighted volume profile** pools included matched observations, so "
         "long works contribute more. The **work-weighted volume profile** gives every "
@@ -224,7 +314,7 @@ def _render_analysis_tab(
     if not texts:
         st.info("Import a folder of `.txt` works before running corpus analysis.")
         return
-    st.subheader("Run a complete corpus batch")
+    st.subheader("Run a Complete Corpus Batch")
     st.write(
         "VerseVAD analyzes one work at a time, preserving separate work-level results. "
         "The comparison dashboard updates only after every selected work finishes."
@@ -243,6 +333,28 @@ def _render_analysis_tab(
         default=list(lexicon_lookup),
         format_func=lambda lexicon_id: lexicon_lookup[lexicon_id].display_name,
         key=f"analysis_lexicons_{project_id}",
+    )
+    scenarios = repository.list_review_scenarios(project_id)
+    scenario_by_version = {
+        scenario.scenario_version_id: scenario for scenario in scenarios
+    }
+    scenario_version_id = st.selectbox(
+        "Review scenario",
+        options=["", *scenario_by_version],
+        format_func=lambda value: (
+            "Unreviewed baseline — no review decisions"
+            if not value
+            else (
+                f"{scenario_by_version[value].name} "
+                f"(version {scenario_by_version[value].version_number}, "
+                f"{scenario_by_version[value].decision_count} decision revisions)"
+            )
+        ),
+        key=f"analysis_scenario_{project_id}",
+        help=(
+            "A scenario applies only its pinned decision revisions. Running it creates "
+            "new immutable analyses; it never changes the baseline batch."
+        ),
     )
     with st.expander("Advanced batch methodology"):
         policies = {
@@ -295,12 +407,14 @@ def _render_analysis_tab(
                 protected_stopwords=stopword_settings.protected_words,
                 custom_stopword_additions=stopword_settings.custom_additions,
                 custom_stopword_removals=stopword_settings.custom_removals,
+                scenario_version_id=scenario_version_id,
                 preprocessor=preprocessor,
                 progress=update_progress,
             )
             progress_bar.progress(1.0, text="Corpus analysis complete")
             st.success(
-                f"Completed batch {batch.batch_id}. Comparisons now use this internally consistent run."
+                f"Completed immutable {'reviewed' if scenario_version_id else 'baseline'} "
+                f"batch {batch.batch_id}. Comparisons now use this internally consistent run."
             )
             st.rerun()
         except Exception as error:
@@ -314,7 +428,7 @@ def _render_analysis_tab(
         st.info("No complete corpus batch is available yet.")
         return
     st.divider()
-    st.subheader("Filter the completed comparison batch")
+    st.subheader("Filter the Completed Comparison Batch")
     collections = sorted({row.collection or "(unassigned)" for row in metrics})
     authors = sorted({row.author or "(unassigned)" for row in metrics})
     genres = sorted({row.genre or "(unassigned)" for row in metrics})
@@ -370,7 +484,7 @@ def _render_analysis_tab(
         return
     _render_profiles(metrics, len({row.text_id for row in metrics}))
 
-    st.subheader("Compare individual works")
+    st.subheader("Compare Individual Works")
     vad = [
         row
         for row in metrics
@@ -450,7 +564,7 @@ def _render_analysis_tab(
                     width="stretch",
                 )
 
-    st.subheader("Length-sensitive cumulative load by work")
+    st.subheader("Length-Sensitive Cumulative Load by Work")
     st.write(
         "These sums answer a different question from means. They grow with included "
         "matched vocabulary and repetition; they are not estimates of a reader's psychological response."
@@ -486,6 +600,130 @@ def _render_analysis_tab(
             width="stretch",
             height=380,
         )
+    _render_batch_comparison(repository, project_id)
+
+
+def _render_batch_comparison(
+    repository: ProjectRepository,
+    project_id: str,
+) -> None:
+    batches = repository.list_completed_batches(project_id)
+    if len(batches) < 2:
+        return
+    st.divider()
+    st.subheader("Compare Two Immutable Analysis Batches")
+    st.write(
+        "Use this to compare an untouched baseline with a reviewed scenario, or "
+        "two different scenario versions. Only like-for-like metrics are subtracted."
+    )
+
+    def label(batch_id: str) -> str:
+        batch = next(item for item in batches if item.batch_id == batch_id)
+        if batch.scenario_version_id:
+            try:
+                scenario = repository.get_review_scenario_version(
+                    batch.scenario_version_id
+                )
+                scenario_label = f"{scenario.name} v{scenario.version_number}"
+            except KeyError:
+                scenario_label = batch.scenario_version_id
+        else:
+            scenario_label = "Unreviewed baseline"
+        completed = (batch.completed_at or batch.created_at)[:19]
+        return f"{scenario_label} — {completed} — {batch.batch_id}"
+
+    batch_ids = [batch.batch_id for batch in batches]
+    defaults = (
+        next(
+            (
+                index
+                for index, batch in enumerate(batches)
+                if not batch.scenario_version_id
+            ),
+            min(1, len(batches) - 1),
+        ),
+        next(
+            (
+                index
+                for index, batch in enumerate(batches)
+                if batch.scenario_version_id
+            ),
+            0,
+        ),
+    )
+    columns = st.columns(2)
+    baseline_id = columns[0].selectbox(
+        "Reference batch",
+        options=batch_ids,
+        index=defaults[0],
+        format_func=label,
+        key=f"scenario_reference_batch_{project_id}",
+    )
+    reviewed_id = columns[1].selectbox(
+        "Comparison batch",
+        options=batch_ids,
+        index=defaults[1],
+        format_func=label,
+        key=f"scenario_comparison_batch_{project_id}",
+    )
+    if baseline_id == reviewed_id:
+        st.info("Choose two different batches to calculate changes.")
+        return
+    deltas = corpus_scenario_deltas(
+        repository.list_metrics_for_batch(project_id, baseline_id),
+        repository.list_metrics_for_batch(project_id, reviewed_id),
+    )
+    primary = [
+        row
+        for row in deltas
+        if (
+            row.metric == "coverage"
+            or (row.metric == "vad_mean" and row.scale == "normalized_0_1")
+        )
+    ]
+    if not primary:
+        st.info(
+            "These batches have no directly compatible coverage or normalized VAD means."
+        )
+        return
+    frame = pd.DataFrame(
+        [
+            {
+                "Work": row.title,
+                "Lexicon": row.lexicon,
+                "Analysis view": (
+                    "All matched tokens"
+                    if row.analysis_view == "all_matched"
+                    else "Stopwords excluded"
+                ),
+                "Measure": (
+                    "Coverage"
+                    if row.metric == "coverage"
+                    else f"{row.dimension.title()} mean ({row.weighting})"
+                ),
+                "Reference": row.baseline_value,
+                "Comparison": row.reviewed_value,
+                "Difference": row.difference,
+            }
+            for row in primary
+        ]
+    )
+    st.dataframe(
+        frame.style.format(
+            {
+                "Reference": "{:.3f}",
+                "Comparison": "{:.3f}",
+                "Difference": "{:+.3f}",
+            }
+        ),
+        hide_index=True,
+        width="stretch",
+        height=380,
+    )
+    st.caption(
+        "A difference is descriptive sensitivity to the recorded review decisions; "
+        "it is not evidence that either scenario is universally correct."
+    )
 
 
 def _render_project_settings_tab(
@@ -493,12 +731,12 @@ def _render_project_settings_tab(
     project_id: str,
 ) -> None:
     project = repository.get_project(project_id)
-    st.subheader("Project settings")
+    st.subheader("Project Settings")
     st.warning(
         "Deleting this project permanently removes only this project's imported "
         "texts, preserved versions, completed analyses, corpus batches, and "
-        "quality-control notes from the local VerseVAD database. Other projects "
-        "are not affected."
+        "quality-control notes, review decisions, and scenario history from the "
+        "local VerseVAD database. Other projects are not affected."
     )
     confirmation = st.text_input(
         f'Type the exact project title to confirm: "{project.title}"',
@@ -524,9 +762,390 @@ def _render_project_settings_tab(
             st.error(f"The project was not deleted: {error}")
 
 
+def _render_review_tab(
+    repository: ProjectRepository,
+    project_id: str,
+) -> None:
+    st.subheader("Review Decisions and Named Scenarios")
+    st.write(
+        "The baseline always remains untouched. A scenario is a versioned set of "
+        "explicit flags, exclusions, and mappings. Every change creates a new "
+        "scenario version, and every rerun creates new immutable analysis records."
+    )
+    st.info(
+        "**Flag** records a concern without changing scores. **Exclude** removes a "
+        "published candidate only from that scenario's aggregates. **Map** connects "
+        "an otherwise unmatched token to one exact published entry; VerseVAD never "
+        "chooses the target automatically."
+    )
+    with st.expander("Create a named review scenario"):
+        with st.form(f"create_review_scenario_{project_id}", clear_on_submit=True):
+            name = st.text_input(
+                "Scenario name",
+                placeholder="Example: Conservative reviewed analysis",
+            )
+            description = st.text_area(
+                "Purpose and methodological boundary",
+                placeholder=(
+                    "Example: Includes only mappings verified against the selected edition."
+                ),
+                height=90,
+            )
+            create = st.form_submit_button("Create review scenario", type="primary")
+        if create:
+            try:
+                repository.create_review_scenario(
+                    project_id,
+                    name,
+                    description=description,
+                )
+                st.success("Review scenario created with an empty version 1.")
+                st.rerun()
+            except (KeyError, ValueError) as error:
+                st.error(f"The scenario was not created: {error}")
+
+    scenarios = repository.list_review_scenarios(project_id)
+    if not scenarios:
+        st.caption(
+            "Create a scenario to turn quality-control observations into reversible "
+            "analysis decisions. Unmatched notes remain available below."
+        )
+        with st.expander("Documentation-only unmatched notes"):
+            _render_qc_tab(repository, project_id)
+        return
+    scenario_id = st.selectbox(
+        "Scenario to edit",
+        options=[scenario.scenario_id for scenario in scenarios],
+        format_func=lambda value: next(
+            (
+                f"{scenario.name} — version {scenario.version_number}"
+                for scenario in scenarios
+                if scenario.scenario_id == value
+            ),
+            value,
+        ),
+        key=f"review_scenario_{project_id}",
+    )
+    scenario = repository.get_review_scenario(scenario_id)
+    st.caption(
+        f"Current immutable snapshot: version {scenario.version_number} · "
+        f"{scenario.decision_count} pinned decision revision(s). "
+        f"{scenario.description or 'No description recorded.'}"
+    )
+
+    decisions = repository.list_review_decisions(scenario.scenario_version_id)
+    if decisions:
+        st.markdown("**Pinned decisions in this version**")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "State": decision.state,
+                        "Action": decision.action,
+                        "Scope": decision.scope,
+                        "Lexicon": decision.lexicon_id,
+                        "Source": decision.source_form,
+                        "Mapping target": decision.mapping_target,
+                        "Risk": decision.risk_category,
+                        "Revision": decision.revision_number,
+                        "Rationale": decision.rationale,
+                    }
+                    for decision in decisions
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+            height=260,
+        )
+        selected_decision_id = st.selectbox(
+            "Decision to revoke or restore",
+            options=[decision.decision_id for decision in decisions],
+            format_func=lambda value: next(
+                (
+                    f"{decision.action}: {decision.source_form} "
+                    f"({decision.scope}, {decision.state})"
+                    for decision in decisions
+                    if decision.decision_id == value
+                ),
+                value,
+            ),
+            key=f"review_decision_state_{project_id}_{scenario_id}",
+        )
+        selected_decision = next(
+            decision
+            for decision in decisions
+            if decision.decision_id == selected_decision_id
+        )
+        with st.form(
+            f"toggle_review_decision_{project_id}_{scenario_id}_{selected_decision_id}"
+        ):
+            change_rationale = st.text_area(
+                (
+                    "Why restore this decision?"
+                    if selected_decision.state == "revoked"
+                    else "Why revoke this decision?"
+                ),
+                height=80,
+            )
+            toggle = st.form_submit_button(
+                (
+                    "Restore as a new revision"
+                    if selected_decision.state == "revoked"
+                    else "Revoke as a new revision"
+                )
+            )
+        if toggle:
+            try:
+                repository.set_review_decision_state(
+                    scenario_id,
+                    selected_decision_id,
+                    active=selected_decision.state == "revoked",
+                    rationale=change_rationale,
+                )
+                st.success(
+                    "A new decision revision and scenario version were recorded."
+                )
+                st.rerun()
+            except (KeyError, ValueError) as error:
+                st.error(f"The decision was not changed: {error}")
+    else:
+        st.info("This scenario version has no decisions yet.")
+
+    st.divider()
+    st.markdown("**Semantic-risk and quality-control queue**")
+    st.write(
+        "Suggested items include unmatched tokens, lemma and possessive fallbacks, "
+        "multiword phrases, source collisions, prior mappings, and exclusions. "
+        "These are review prompts—not claims that a match is wrong."
+    )
+    include_exact = st.checkbox(
+        "Also show ordinary exact matches for optional contextual review",
+        key=f"review_include_exact_{project_id}",
+    )
+    candidates = repository.list_review_candidates(
+        project_id,
+        include_exact=include_exact,
+    )
+    if candidates:
+        categories = sorted({candidate.risk_category for candidate in candidates})
+        selected_categories = st.multiselect(
+            "Candidate types",
+            options=categories,
+            default=categories,
+            format_func=lambda value: value.replace("_", " ").title(),
+            key=f"review_categories_{project_id}",
+        )
+        search = st.text_input(
+            "Search word, context, work, or lexicon",
+            key=f"review_candidate_search_{project_id}",
+        ).casefold()
+        filtered = [
+            candidate
+            for candidate in candidates
+            if candidate.risk_category in selected_categories
+            and (
+                not search
+                or search
+                in " ".join(
+                    (
+                        candidate.surface_form,
+                        candidate.normalized_form,
+                        candidate.matched_term,
+                        candidate.text_title,
+                        candidate.lexicon,
+                        candidate.context,
+                    )
+                ).casefold()
+            )
+        ]
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Work": candidate.text_title,
+                        "Lexicon": candidate.lexicon,
+                        "Line": candidate.line_number,
+                        "Surface": candidate.surface_form,
+                        "Matched entry": candidate.matched_term,
+                        "Method": candidate.method,
+                        "Status": candidate.selection,
+                        "Review prompt": candidate.risk_category.replace("_", " "),
+                        "Context": candidate.context,
+                    }
+                    for candidate in filtered
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+            height=340,
+        )
+        if filtered:
+            candidate_index = st.selectbox(
+                "Occurrence to review",
+                options=range(len(filtered)),
+                format_func=lambda index: (
+                    f"{filtered[index].surface_form} — {filtered[index].text_title}, "
+                    f"line {filtered[index].line_number} — {filtered[index].lexicon}"
+                ),
+                key=f"review_candidate_{project_id}_{scenario_id}",
+            )
+            selected = filtered[candidate_index]
+            possible_actions = (
+                [ReviewAction.FLAG, ReviewAction.MAP]
+                if selected.selection == "unmatched"
+                else [ReviewAction.FLAG, ReviewAction.EXCLUDE]
+            )
+            action_labels = {
+                ReviewAction.FLAG: "Flag only — record concern; do not change results",
+                ReviewAction.EXCLUDE: "Exclude — omit this match under the scenario",
+                ReviewAction.MAP: "Map — use one exact published lexicon entry",
+            }
+            scope_labels = {
+                ReviewScope.OCCURRENCE: "This occurrence only",
+                ReviewScope.WORK: "Every occurrence of this form in this work",
+                ReviewScope.PROJECT: "Every occurrence of this form in this project",
+                ReviewScope.GLOBAL: (
+                    "Every eligible work evaluated with this scenario"
+                ),
+            }
+            with st.form(
+                f"add_review_decision_{project_id}_{scenario_id}_{selected.match_id}"
+            ):
+                action = st.selectbox(
+                    "Decision",
+                    options=possible_actions,
+                    format_func=lambda value: action_labels[value],
+                )
+                scope = st.selectbox(
+                    "Scope",
+                    options=list(ReviewScope),
+                    format_func=lambda value: scope_labels[value],
+                )
+                mapping_target = st.text_input(
+                    "Exact published mapping target",
+                    help=(
+                        "Required only for Map. The target must exist exactly in this "
+                        "lexicon; similarity suggestions are never applied automatically."
+                    ),
+                )
+                rationale = st.text_area(
+                    "Scholarly rationale",
+                    placeholder=(
+                        "Record the edition, contextual reading, or other evidence "
+                        "supporting this decision."
+                    ),
+                    height=100,
+                )
+                add = st.form_submit_button(
+                    "Add decision and create a new scenario version",
+                    type="primary",
+                )
+            if add:
+                try:
+                    if action == ReviewAction.MAP:
+                        lexicon = load_lexicon(selected.lexicon_id)
+                        entry, conflict = lexicon.resolve(
+                            normalize_lookup(mapping_target),
+                            mapping_target.strip(),
+                        )
+                        if conflict:
+                            raise ValueError(
+                                "That target has a capitalization collision in the "
+                                "source lexicon. Enter an exact source form or choose another target."
+                            )
+                        if entry is None:
+                            raise ValueError(
+                                f"{mapping_target!r} is not an exact published entry "
+                                f"in {selected.lexicon}."
+                            )
+                    repository.create_review_decision(
+                        scenario_id,
+                        action=action,
+                        scope=scope,
+                        lexicon_id=selected.lexicon_id,
+                        source_form=selected.normalized_form,
+                        mapping_target=mapping_target,
+                        text_id=selected.text_id,
+                        text_version_id=selected.text_version_id,
+                        token_position=selected.token_position,
+                        risk_category=selected.risk_category,
+                        rationale=rationale,
+                    )
+                    st.success(
+                        "Decision saved as a new immutable revision and scenario version."
+                    )
+                    st.rerun()
+                except (KeyError, ValueError, WorkspaceAnalysisError) as error:
+                    st.error(f"The review decision was not added: {error}")
+        else:
+            st.info("No candidates match the current filters.")
+    else:
+        st.info(
+            "Run a complete corpus batch first. Its occurrence-level audit will "
+            "populate the review queue."
+        )
+
+    versions = repository.list_review_scenario_versions(scenario_id)
+    if len(versions) > 1:
+        with st.expander("Version history and rollback"):
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Version": version.version_number,
+                            "Pinned revisions": version.decision_count,
+                            "Created": version.created_at,
+                            "Change": version.change_note,
+                        }
+                        for version in versions
+                    ]
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            older = [
+                version
+                for version in versions
+                if version.scenario_version_id != scenario.scenario_version_id
+            ]
+            with st.form(f"restore_scenario_version_{project_id}_{scenario_id}"):
+                source_version_id = st.selectbox(
+                    "Historical version to restore",
+                    options=[version.scenario_version_id for version in older],
+                    format_func=lambda value: next(
+                        f"Version {version.version_number} — {version.change_note}"
+                        for version in older
+                        if version.scenario_version_id == value
+                    ),
+                )
+                restore_reason = st.text_area(
+                    "Why restore this version?",
+                    height=80,
+                )
+                restore = st.form_submit_button(
+                    "Restore as a new version",
+                )
+            if restore:
+                try:
+                    repository.restore_review_scenario_version(
+                        scenario_id,
+                        source_version_id,
+                        rationale=restore_reason,
+                    )
+                    st.success(
+                        "The historical decision set was copied into a new immutable version."
+                    )
+                    st.rerun()
+                except (KeyError, ValueError) as error:
+                    st.error(f"The scenario was not restored: {error}")
+
+    with st.expander("Documentation-only unmatched notes"):
+        _render_qc_tab(repository, project_id)
+
+
 def _render_qc_tab(repository: ProjectRepository, project_id: str) -> None:
     rows = repository.list_latest_unmatched(project_id)
-    st.subheader("Unmatched-vocabulary quality control")
+    st.subheader("Unmatched-Vocabulary Quality Control")
     st.write(
         "These observations did not match a selected lexicon in the latest complete "
         "batch. Notes persist locally by project, work, lexicon, and normalized form. "
@@ -623,12 +1242,86 @@ def _render_qc_tab(repository: ProjectRepository, project_id: str) -> None:
         st.rerun()
 
 
-def _render_export_tab(repository: ProjectRepository, project_id: str) -> None:
+def _render_part_of_speech_tab(
+    repository: ProjectRepository,
+    project_id: str,
+    preprocessor: TextPreprocessor,
+) -> None:
+    st.subheader("Part-of-Speech Profile")
+    st.write(
+        "Counts and shares use every eligible lexical token in the current preserved "
+        "version of each work, independent of affective-lexicon matches. The combined "
+        "profile pools token occurrences across all works, so longer works contribute "
+        "more to that specific view."
+    )
+    rows = _corpus_part_of_speech_rows(repository, project_id, preprocessor)
+    if not rows:
+        st.info("Import at least one work to build a part-of-speech profile.")
+        return
+    frame = pd.DataFrame(rows)
+    combined = frame[frame["Scope"] == "All Works Combined"].copy()
+    st.markdown("**All Works Combined**")
+    st.bar_chart(
+        combined.set_index("Part of speech")[["Share of lexical tokens"]],
+        height=320,
+    )
+    st.dataframe(
+        combined[
+            [
+                "Universal POS tag",
+                "Part of speech",
+                "Token count",
+                "Share of lexical tokens",
+                "Unique normalized types",
+                "Examples",
+                "Lexical-token denominator",
+            ]
+        ].style.format(
+            {"Share of lexical tokens": lambda value: f"{value:.1%}"}
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    work_rows = frame[frame["Scope"] == "Work"].copy()
+    if not work_rows.empty:
+        st.markdown("**Work-by-Work Comparison**")
+        st.dataframe(
+            work_rows[
+                [
+                    "Work",
+                    "Collection",
+                    "Part of speech",
+                    "Universal POS tag",
+                    "Token count",
+                    "Share of lexical tokens",
+                    "Unique normalized types",
+                    "Examples",
+                    "Lexical-token denominator",
+                ]
+            ].style.format(
+                {"Share of lexical tokens": lambda value: f"{value:.1%}"}
+            ),
+            hide_index=True,
+            width="stretch",
+            height=420,
+        )
+    st.warning(
+        "These grammatical labels are generated by the installed English model. "
+        "Poetic syntax, fragments, archaic forms, and ambiguity can produce uncertain "
+        "assignments. Counts are descriptive and are not affective-lexicon results."
+    )
+
+
+def _render_export_tab(
+    repository: ProjectRepository,
+    project_id: str,
+    part_of_speech_rows: tuple[dict[str, object], ...],
+) -> None:
     project = repository.get_project(project_id)
     texts = repository.list_texts(project_id)
     metrics = repository.list_latest_metrics(project_id)
     unmatched = repository.list_latest_unmatched(project_id)
-    st.subheader("Excel research workbook")
+    st.subheader("Excel Research Workbook")
     st.write(
         "The workbook begins with a reading guide and includes both collection "
         "weightings, individual-work token/type means, cumulative load, coverage, "
@@ -640,14 +1333,17 @@ def _render_export_tab(repository: ProjectRepository, project_id: str) -> None:
     # A Streamlit process can remain open while VerseVAD is updated. Resolve
     # the exporter through its module and refresh it if that process retained
     # the pre-methodology four-argument API.
-    if getattr(corpus_excel_exports, "CORPUS_WORKBOOK_API_VERSION", 0) < 2:
+    if getattr(corpus_excel_exports, "CORPUS_WORKBOOK_API_VERSION", 0) < 4:
         importlib.reload(corpus_excel_exports)
+    methodology = repository.latest_methodology(project_id)
     workbook = corpus_excel_exports.build_corpus_workbook(
         project,
         texts,
         metrics,
         unmatched,
-        methodology=repository.latest_methodology(project_id),
+        methodology=methodology,
+        review_decisions=tuple(methodology.get("review_decisions", ())),
+        part_of_speech_rows=part_of_speech_rows,
     )
     st.download_button(
         "Download corpus Excel workbook",
@@ -668,7 +1364,7 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
     repository = ProjectRepository(default_database_path())
     repository.initialize()
     with st.sidebar:
-        st.markdown("### Persistent local projects")
+        st.markdown("### Persistent Local Projects")
         st.success("Projects, texts, notes, and results stay on this computer.")
         st.caption(f"Database: {repository.database_path}")
         st.markdown("---")
@@ -680,10 +1376,10 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
         '<p class="verse-kicker">Private corpus research workspace</p>',
         unsafe_allow_html=True,
     )
-    st.title("VerseVAD projects & corpus")
+    st.title("VerseVAD Projects & Corpus")
     st.write(
         "Import a folder as separate works, add metadata, compare complete analysis "
-        "batches, review unmatched vocabulary, and export a readable Excel workbook."
+        "batches, build versioned review scenarios, and export a readable Excel workbook."
     )
     project_flash = st.session_state.pop("corpus_project_flash", None)
     if project_flash:
@@ -706,22 +1402,37 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
         f"{project.description or 'No project description.'} "
         f"Researcher: {project.researcher or 'not recorded'}."
     )
-    texts_tab, analysis_tab, qc_tab, export_tab, settings_tab = st.tabs(
+    part_of_speech_rows = _corpus_part_of_speech_rows(
+        repository,
+        project_id,
+        preprocessor,
+    )
+    (
+        texts_tab,
+        language_tab,
+        analysis_tab,
+        review_tab,
+        export_tab,
+        settings_tab,
+    ) = st.tabs(
         [
-            "Works & metadata",
-            "Analyze & compare",
-            "Unmatched QC",
-            "Excel export",
-            "Project settings",
+            "Works & Metadata",
+            "Language Profile",
+            "Analyze & Compare",
+            "Review & Scenarios",
+            "Excel Export",
+            "Project Settings",
         ]
     )
     with texts_tab:
         _render_texts_tab(repository, project_id)
+    with language_tab:
+        _render_part_of_speech_tab(repository, project_id, preprocessor)
     with analysis_tab:
         _render_analysis_tab(repository, project_id, preprocessor)
-    with qc_tab:
-        _render_qc_tab(repository, project_id)
+    with review_tab:
+        _render_review_tab(repository, project_id)
     with export_tab:
-        _render_export_tab(repository, project_id)
+        _render_export_tab(repository, project_id, part_of_speech_rows)
     with settings_tab:
         _render_project_settings_tab(repository, project_id)

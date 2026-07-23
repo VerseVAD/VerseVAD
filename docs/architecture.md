@@ -1,8 +1,9 @@
 # Architecture Decision: Local Modular Python Application
 
-Status: accepted; the Phase 3 local graphical workspace has been validated.
+Status: accepted; the Phase 5 local review and reporting workspace has been
+validated.
 
-Date: 2026-07-22
+Date: 2026-07-23
 
 ## Decision
 
@@ -42,7 +43,15 @@ Phase 3 pins Streamlit 1.60.0 and its resolved dependency tree in `uv.lock`.
 `versevad.application` owns text validation, lexicon loading, analysis
 orchestration, friendly view models, and download construction; the Streamlit
 page only presents those services. Workspaces and downloads are in memory in
-this phase. The development package version is `0.3.0.dev0`.
+this phase.
+
+Phase 4 adds the persistent SQLite repository, immutable complete corpus
+batches, dual collection weighting, and Excel export. Phase 4.1 adds the
+versioned dual stopword reporting policy. Phase 5 advances the development
+package to `0.6.0.dev0`, migrates the database to schema version 3, and adds
+named/versioned review scenarios, append-only decisions, occurrence evidence,
+baseline-versus-reviewed batch comparison, a separate sentiment presentation,
+and lexicon-independent part-of-speech profiles.
 
 ## Why this fits VerseVAD
 
@@ -69,6 +78,12 @@ SQLite repositories / immutable exports
 
 Streamlit must remain a thin presentation layer. Statistical or matching logic
 inside page code would be difficult to test and audit.
+
+The part-of-speech calculation therefore lives in framework-independent
+application services. The corpus UI derives project/work profiles from current
+preserved text versions using the pinned preprocessor, caches the exact
+version/model signature for the active session, and exports the resulting
+counts and shares without treating them as affective-lexicon metrics.
 
 ## Planned package boundaries
 

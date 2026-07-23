@@ -249,6 +249,7 @@ class MatchMethod(StrEnum):
     POSSESSIVE = "possessive_normalization"
     PHRASE = "exact_phrase"
     LEMMA = "pos_sensitive_lemma"
+    USER_MAPPING = "approved_user_mapping"
     UNMATCHED = "unmatched"
     NOT_ELIGIBLE = "not_eligible"
 
@@ -288,6 +289,43 @@ class MatchSelection(StrEnum):
     NOT_ELIGIBLE = "not_eligible"
     SUPPRESSED_COMPONENT = "suppressed_component"
     SUPPRESSED_OVERLAP = "suppressed_overlap"
+    EXCLUDED_REVIEW = "excluded_by_review"
+
+
+class ReviewAction(StrEnum):
+    """Effect of one explicit scholarly review decision."""
+
+    FLAG = "flag"
+    EXCLUDE = "exclude"
+    MAP = "map"
+
+
+class ReviewScope(StrEnum):
+    """Where a review decision is eligible to apply."""
+
+    OCCURRENCE = "occurrence"
+    WORK = "work"
+    PROJECT = "project"
+    GLOBAL = "global"
+
+
+@dataclass(frozen=True)
+class ReviewRule:
+    """One immutable, versioned rule supplied by a named review scenario."""
+
+    decision_id: str
+    decision_revision_id: str
+    action: ReviewAction
+    scope: ReviewScope
+    lexicon_id: str
+    source_form: str
+    mapping_target: str = ""
+    project_id: str = ""
+    text_id: str = ""
+    text_version_id: str = ""
+    token_position: int | None = None
+    risk_category: str = ""
+    rationale: str = ""
 
 
 @dataclass(frozen=True)
@@ -497,6 +535,8 @@ class Phase2AnalysisResult:
     warnings: tuple[str, ...]
     stopword_policy: StopwordPolicy | None = None
     stopword_coverage: StopwordCoverageStatistics | None = None
+    scenario_version_id: str = ""
+    review_rules: tuple[ReviewRule, ...] = ()
 
 
 @dataclass(frozen=True)

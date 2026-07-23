@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter, defaultdict
+from dataclasses import asdict, replace
 from typing import Iterable
 
 from versevad.analysis.statistics import descriptive_statistics, weighted_vad_statistics
@@ -23,6 +24,9 @@ from versevad.models import (
     MatchSelection,
     Phase2AnalysisResult,
     PhrasePolicy,
+    ReviewAction,
+    ReviewRule,
+    ReviewScope,
     StopwordCoverageStatistics,
     StopwordPolicy,
     TermContribution,
@@ -169,6 +173,76 @@ def _resolve_unigram(
     return None, MatchMethod.UNMATCHED, "No entry matched under the Phase 2 policy."
 
 
+_REVIEW_SCOPE_PRIORITY = {
+    ReviewScope.GLOBAL: 0,
+    ReviewScope.PROJECT: 1,
+    ReviewScope.WORK: 2,
+    ReviewScope.OCCURRENCE: 3,
+}
+
+
+def _rule_matches_tokens(
+    rule: ReviewRule,
+    tokens: tuple[TokenRecord, ...],
+) -> bool:
+    """Match a normalized selector without widening its declared scope."""
+
+    if not tokens:
+        return False
+    observed = " ".join(token.normalized_form for token in tokens)
+    first = tokens[0]
+    if observed != rule.source_form:
+        return False
+    if rule.scope in {ReviewScope.WORK, ReviewScope.OCCURRENCE}:
+        if rule.text_id != first.text_id:
+            return False
+    if rule.scope == ReviewScope.OCCURRENCE:
+        return (
+            rule.text_version_id == first.text_version_id
+            and rule.token_position == first.token_position
+        )
+    return True
+
+
+def _top_mapping_rule(
+    rules: tuple[ReviewRule, ...],
+    token: TokenRecord,
+) -> ReviewRule | None:
+    candidates = [
+        rule
+        for rule in rules
+        if rule.action == ReviewAction.MAP
+        and _rule_matches_tokens(rule, (token,))
+    ]
+    if not candidates:
+        return None
+    highest = max(_REVIEW_SCOPE_PRIORITY[rule.scope] for rule in candidates)
+    top = [
+        rule
+        for rule in candidates
+        if _REVIEW_SCOPE_PRIORITY[rule.scope] == highest
+    ]
+    targets = {rule.mapping_target for rule in top}
+    if len(targets) > 1:
+        raise ValueError(
+            f"Conflicting active review mappings target {token.surface_form!r} "
+            "at the same scope. Revise the scenario before analysis."
+        )
+    return sorted(top, key=lambda rule: rule.decision_revision_id)[-1]
+
+
+def _review_exclusion_revisions(
+    rules: tuple[ReviewRule, ...],
+    tokens: tuple[TokenRecord, ...],
+) -> tuple[str, ...]:
+    return tuple(
+        rule.decision_revision_id
+        for rule in rules
+        if rule.action == ReviewAction.EXCLUDE
+        and _rule_matches_tokens(rule, tokens)
+    )
+
+
 def _phrase_candidates(
     tokens: tuple[TokenRecord, ...], lexicon: SupportedLexicon
 ) -> list[tuple[tuple[TokenRecord, ...], SupportedEntry]]:
@@ -234,8 +308,10 @@ def _build_matches(
     lexicon: SupportedLexicon,
     phrase_policy: PhrasePolicy,
     stopword_policy: StopwordPolicy,
-) -> tuple[AffectMatchRecord, ...]:
+    review_rules: tuple[ReviewRule, ...],
+) -> tuple[tuple[AffectMatchRecord, ...], tuple[str, ...]]:
     records: list[AffectMatchRecord] = []
+    review_warnings: list[str] = []
     selected_phrases = []
     suppressed_phrases = []
     if phrase_policy != PhrasePolicy.UNIGRAM_ONLY:
@@ -246,22 +322,34 @@ def _build_matches(
     phrase_by_token: dict[str, str] = {}
     for span, entry in selected_phrases:
         match_id = f"{lexicon.metadata.lexicon_id}:m{len(records) + 1}"
-        records.append(
-            _record(
-                match_id=match_id,
-                lexicon_id=lexicon.metadata.lexicon_id,
-                tokens=span,
-                method=MatchMethod.PHRASE,
-                selection=MatchSelection.INCLUDED,
-                entry=entry,
-                included=True,
-                stopword_policy=stopword_policy,
+        record = _record(
+            match_id=match_id,
+            lexicon_id=lexicon.metadata.lexicon_id,
+            tokens=span,
+            method=MatchMethod.PHRASE,
+            selection=MatchSelection.INCLUDED,
+            entry=entry,
+            included=True,
+            stopword_policy=stopword_policy,
+            reason=(
+                "Selected as the deterministic longest non-overlapping exact "
+                "phrase candidate."
+            ),
+        )
+        exclusion_revisions = _review_exclusion_revisions(review_rules, span)
+        if exclusion_revisions:
+            record = replace(
+                record,
+                selection=MatchSelection.EXCLUDED_REVIEW,
+                included=False,
+                included_in_stopword_view=False,
                 reason=(
-                    "Selected as the deterministic longest non-overlapping exact "
-                    "phrase candidate."
+                    "Excluded by active review decision revision(s): "
+                    + ", ".join(exclusion_revisions)
+                    + ". The published phrase match remains in the audit trail."
                 ),
             )
-        )
+        records.append(record)
         for token in span:
             phrase_by_token[token.token_id] = match_id
 
@@ -288,6 +376,37 @@ def _build_matches(
 
     for token in tokens:
         entry, method, reason = _resolve_unigram(token, lexicon)
+        if (
+            entry is None
+            and method == MatchMethod.UNMATCHED
+            and token.token_id not in phrase_by_token
+        ):
+            mapping_rule = _top_mapping_rule(review_rules, token)
+            if mapping_rule is not None:
+                target = normalize_lookup(mapping_rule.mapping_target)
+                mapped_entry, conflict = lexicon.resolve(
+                    target,
+                    mapping_rule.mapping_target,
+                )
+                if conflict:
+                    review_warnings.append(
+                        f"Review mapping {mapping_rule.decision_revision_id} for "
+                        f"{token.surface_form!r} reached a source collision and was not applied."
+                    )
+                elif mapped_entry is None:
+                    review_warnings.append(
+                        f"Review mapping {mapping_rule.decision_revision_id} targets "
+                        f"{mapping_rule.mapping_target!r}, which is not an exact published "
+                        f"entry in {lexicon.metadata.display_name}; the token remains unmatched."
+                    )
+                else:
+                    entry = mapped_entry
+                    method = MatchMethod.USER_MAPPING
+                    reason = (
+                        f"Matched only through approved review mapping "
+                        f"{mapping_rule.decision_revision_id}: "
+                        f"{token.surface_form} → {mapped_entry.source_term}."
+                    )
         if method == MatchMethod.NOT_ELIGIBLE:
             selection = MatchSelection.NOT_ELIGIBLE
             included = False
@@ -304,25 +423,41 @@ def _build_matches(
         else:
             selection = MatchSelection.INCLUDED
             included = True
-        records.append(
-            _record(
-                match_id=f"{lexicon.metadata.lexicon_id}:m{len(records) + 1}",
-                lexicon_id=lexicon.metadata.lexicon_id,
-                tokens=(token,),
-                method=method,
-                selection=selection,
-                entry=entry,
-                included=included,
-                stopword_policy=stopword_policy,
-                suppressed_by=(
-                    phrase_by_token.get(token.token_id)
-                    if selection == MatchSelection.SUPPRESSED_COMPONENT
-                    else None
-                ),
-                reason=reason,
-            )
+        record = _record(
+            match_id=f"{lexicon.metadata.lexicon_id}:m{len(records) + 1}",
+            lexicon_id=lexicon.metadata.lexicon_id,
+            tokens=(token,),
+            method=method,
+            selection=selection,
+            entry=entry,
+            included=included,
+            stopword_policy=stopword_policy,
+            suppressed_by=(
+                phrase_by_token.get(token.token_id)
+                if selection == MatchSelection.SUPPRESSED_COMPONENT
+                else None
+            ),
+            reason=reason,
         )
-    return tuple(records)
+        if record.included:
+            exclusion_revisions = _review_exclusion_revisions(
+                review_rules,
+                (token,),
+            )
+            if exclusion_revisions:
+                record = replace(
+                    record,
+                    selection=MatchSelection.EXCLUDED_REVIEW,
+                    included=False,
+                    included_in_stopword_view=False,
+                    reason=(
+                        "Excluded by active review decision revision(s): "
+                        + ", ".join(exclusion_revisions)
+                        + ". The candidate match remains in the audit trail."
+                    ),
+                )
+        records.append(record)
+    return tuple(records), tuple(dict.fromkeys(review_warnings))
 
 
 def _coverage(
@@ -331,18 +466,31 @@ def _coverage(
     lexical = tuple(token for token in tokens if token.is_lexical)
     lexical_by_id = {token.token_id: token for token in lexical}
     included = tuple(match for match in matches if match.included)
+    excluded = tuple(
+        match
+        for match in matches
+        if match.selection == MatchSelection.EXCLUDED_REVIEW
+    )
+    matched_evidence = (*included, *excluded)
     matched_token_ids = {
         token_id
-        for match in included
+        for match in matched_evidence
         for token_id in match.token_ids
         if token_id in lexical_by_id
     }
     lexical_types = {token.normalized_form for token in lexical}
     matched_types = {lexical_by_id[token_id].normalized_form for token_id in matched_token_ids}
-    exact = sum(match.method == MatchMethod.EXACT for match in included)
-    possessive = sum(match.method == MatchMethod.POSSESSIVE for match in included)
-    lemma = sum(match.method == MatchMethod.LEMMA for match in included)
-    phrases = sum(match.method == MatchMethod.PHRASE for match in included)
+    exact = sum(match.method == MatchMethod.EXACT for match in matched_evidence)
+    possessive = sum(match.method == MatchMethod.POSSESSIVE for match in matched_evidence)
+    lemma = sum(match.method == MatchMethod.LEMMA for match in matched_evidence)
+    phrases = sum(match.method == MatchMethod.PHRASE for match in matched_evidence)
+    mappings = sum(match.method == MatchMethod.USER_MAPPING for match in matched_evidence)
+    excluded_token_ids = {
+        token_id
+        for match in excluded
+        for token_id in match.token_ids
+        if token_id in lexical_by_id
+    }
     return CoverageStatistics(
         total_tokens=len(tokens),
         total_lexical_tokens=len(lexical),
@@ -362,12 +510,12 @@ def _coverage(
         lemma_fallback_coverage=_safe_rate(lemma, len(lexical)),
         phrase_match_count=phrases,
         phrase_match_coverage=_safe_rate(phrases, len(lexical)),
-        approved_mapping_count=0,
-        approved_mapping_coverage=_safe_rate(0, len(lexical)),
+        approved_mapping_count=mappings,
+        approved_mapping_coverage=_safe_rate(mappings, len(lexical)),
         compound_derived_count=0,
         compound_derived_coverage=_safe_rate(0, len(lexical)),
-        excluded_token_count=0,
-        excluded_token_rate=_safe_rate(0, len(lexical)),
+        excluded_token_count=len(excluded_token_ids),
+        excluded_token_rate=_safe_rate(len(excluded_token_ids), len(lexical)),
     )
 
 
@@ -400,6 +548,14 @@ def _stopword_coverage(
             or token.token_id in retained_phrase_token_ids
         )
     }
+    review_excluded_ids = {
+        token_id
+        for match in matches
+        if match.selection == MatchSelection.EXCLUDED_REVIEW
+        for token_id in match.token_ids
+        if token_id in lexical_by_id
+    }
+    eligible_ids.difference_update(review_excluded_ids)
     filtered_matches = tuple(
         match for match in matches if match.included_in_stopword_view
     )
@@ -600,6 +756,8 @@ def analyze_lexicon(
     scenario_id: str = PHASE2_SCENARIO_ID,
     minimum_match_requirement: int = 3,
     stopword_policy: StopwordPolicy | None = None,
+    scenario_version_id: str = "",
+    review_rules: tuple[ReviewRule, ...] = (),
 ) -> Phase2AnalysisResult:
     """Run one supplied lexicon independently under an explicit phrase policy."""
 
@@ -609,7 +767,16 @@ def analyze_lexicon(
         raise ValueError("A lexicon with validation errors cannot be analyzed.")
     active_stopword_policy = stopword_policy or build_stopword_policy()
     tokens = preprocessor.process(document)
-    matches = _build_matches(tokens, lexicon, phrase_policy, active_stopword_policy)
+    lexicon_rules = tuple(
+        rule for rule in review_rules if rule.lexicon_id == lexicon.metadata.lexicon_id
+    )
+    matches, review_warnings = _build_matches(
+        tokens,
+        lexicon,
+        phrase_policy,
+        active_stopword_policy,
+        lexicon_rules,
+    )
     coverage = _coverage(tokens, matches)
     stopword_coverage = _stopword_coverage(tokens, matches, active_stopword_policy)
     vad_summary = None
@@ -623,6 +790,13 @@ def analyze_lexicon(
         intensities = _intensity_statistics(tokens, matches, lexicon.metadata.dimensions)
 
     warnings = list(lexicon.validation.warnings)
+    warnings.extend(review_warnings)
+    flag_count = sum(rule.action == ReviewAction.FLAG for rule in lexicon_rules)
+    if flag_count:
+        warnings.append(
+            f"This scenario contains {flag_count} non-scoring review flag(s) for "
+            f"{lexicon.metadata.display_name}; flags do not change aggregates."
+        )
     if not coverage.matched_token_count:
         warnings.append(
             "No lexical tokens matched this lexicon; missing aggregates remain missing, not zero."
@@ -666,6 +840,8 @@ def analyze_lexicon(
             str(minimum_match_requirement),
             active_stopword_policy.mode.value,
             active_stopword_policy.active_list_sha256,
+            scenario_version_id,
+            repr(tuple(asdict(rule) for rule in lexicon_rules)),
         )
     )
     return Phase2AnalysisResult(
@@ -685,6 +861,8 @@ def analyze_lexicon(
         warnings=tuple(warnings),
         stopword_policy=active_stopword_policy,
         stopword_coverage=stopword_coverage,
+        scenario_version_id=scenario_version_id,
+        review_rules=lexicon_rules,
     )
 
 
@@ -725,7 +903,7 @@ def _comparison_metrics(result: Phase2AnalysisResult) -> list[ComparisonMetric]:
                     metric="matched_token_count",
                     weighting="token",
                     scale="count",
-                    denominator="eligible non-stopword lexical tokens",
+                    denominator="eligible non-stopword, non-review-excluded lexical tokens",
                     value=result.stopword_coverage.matched_token_count,
                     analysis_view="stopwords_excluded",
                 ),
@@ -734,7 +912,7 @@ def _comparison_metrics(result: Phase2AnalysisResult) -> list[ComparisonMetric]:
                     metric="lexical_token_coverage",
                     weighting="token",
                     scale="proportion",
-                    denominator="eligible non-stopword lexical tokens",
+                    denominator="eligible non-stopword, non-review-excluded lexical tokens",
                     value=result.stopword_coverage.lexical_token_coverage,
                     analysis_view="stopwords_excluded",
                 ),
@@ -830,6 +1008,10 @@ def compare_lexicons(results: Iterable[Phase2AnalysisResult]) -> CrossLexiconCom
             raise ValueError("Cross-lexicon results must analyze the same text version.")
         if result.scenario_id != first.scenario_id:
             raise ValueError("Cross-lexicon results must use the same scenario.")
+        if result.scenario_version_id != first.scenario_version_id:
+            raise ValueError(
+                "Cross-lexicon results must use the same scenario version."
+            )
         if result.phrase_policy != first.phrase_policy:
             raise ValueError("Cross-lexicon results must use the same phrase policy.")
         if result.stopword_policy != first.stopword_policy:

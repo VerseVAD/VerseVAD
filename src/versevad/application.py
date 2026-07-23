@@ -6,11 +6,12 @@ import csv
 import hashlib
 import io
 import zipfile
+from collections import Counter
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from versevad.adapters import (
     NrcEmotionAdapter,
@@ -26,8 +27,10 @@ from versevad.models import (
     MatchSelection,
     Phase2AnalysisResult,
     PhrasePolicy,
+    ReviewRule,
     StopwordMode,
     TextDocument,
+    TokenRecord,
 )
 from versevad.preprocessing import SpacyEnglishPreprocessor, TextPreprocessor, create_text_document
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
@@ -122,6 +125,9 @@ class AnalysisRequest:
     protected_stopwords: tuple[str, ...] = DEFAULT_PROTECTED_WORDS
     custom_stopword_additions: tuple[str, ...] = ()
     custom_stopword_removals: tuple[str, ...] = ()
+    scenario_id: str = "phase2-multi-lexicon-v1"
+    scenario_version_id: str = ""
+    review_rules: tuple[ReviewRule, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -146,6 +152,37 @@ class CoverageView:
     lemma_matches: int
     phrase_matches: int
     note: str
+
+
+PART_OF_SPEECH_LABELS = {
+    "ADJ": "Adjective",
+    "ADP": "Adposition",
+    "ADV": "Adverb",
+    "AUX": "Auxiliary",
+    "CCONJ": "Coordinating Conjunction",
+    "DET": "Determiner",
+    "INTJ": "Interjection",
+    "NOUN": "Noun",
+    "NUM": "Numeral",
+    "PART": "Particle",
+    "PRON": "Pronoun",
+    "PROPN": "Proper Noun",
+    "SCONJ": "Subordinating Conjunction",
+    "SYM": "Symbol",
+    "VERB": "Verb",
+    "X": "Other or Uncertain",
+}
+
+
+@dataclass(frozen=True)
+class PartOfSpeechView:
+    tag: str
+    category: str
+    token_count: int
+    share_of_lexical_tokens: float
+    unique_type_count: int
+    example_forms: str
+    lexical_token_denominator: int
 
 
 @dataclass(frozen=True)
@@ -182,6 +219,61 @@ VAD_DEFINITIONS = {
         "constraint or vulnerability; higher ratings with greater control or power."
     ),
 }
+
+
+def part_of_speech_views_for_tokens(
+    tokens: Sequence[TokenRecord],
+) -> tuple[PartOfSpeechView, ...]:
+    """Summarize model-assigned universal POS labels over lexical tokens."""
+
+    lexical_tokens = tuple(token for token in tokens if token.is_lexical)
+    denominator = len(lexical_tokens)
+    if not denominator:
+        return ()
+    by_tag: dict[str, list[TokenRecord]] = {}
+    for token in lexical_tokens:
+        tag = token.part_of_speech or "X"
+        by_tag.setdefault(tag, []).append(token)
+    rows = []
+    for tag, tagged_tokens in by_tag.items():
+        forms = Counter(
+            token.normalized_form or token.surface_form.casefold()
+            for token in tagged_tokens
+        )
+        examples = ", ".join(
+            form
+            for form, _frequency in sorted(
+                forms.items(),
+                key=lambda item: (-item[1], item[0]),
+            )[:6]
+        )
+        rows.append(
+            PartOfSpeechView(
+                tag=tag,
+                category=PART_OF_SPEECH_LABELS.get(tag, tag.title()),
+                token_count=len(tagged_tokens),
+                share_of_lexical_tokens=len(tagged_tokens) / denominator,
+                unique_type_count=len(forms),
+                example_forms=examples,
+                lexical_token_denominator=denominator,
+            )
+        )
+    return tuple(
+        sorted(
+            rows,
+            key=lambda row: (-row.token_count, row.category, row.tag),
+        )
+    )
+
+
+def part_of_speech_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[PartOfSpeechView, ...]:
+    """Return a lexicon-independent POS profile for one analyzed text."""
+
+    if not workspace.results:
+        return ()
+    return part_of_speech_views_for_tokens(workspace.results[0].tokens)
 
 
 @dataclass(frozen=True)
@@ -399,6 +491,9 @@ def run_workspace_analysis(
             phrase_policy=request.phrase_policy,
             minimum_match_requirement=request.minimum_match_requirement,
             stopword_policy=stopword_policy,
+            scenario_id=request.scenario_id,
+            scenario_version_id=request.scenario_version_id,
+            review_rules=request.review_rules,
         )
         for lexicon_id in request.lexicon_ids
     )
@@ -808,9 +903,38 @@ def vad_cumulative_views(
 def emotion_association_views(
     workspace: WorkspaceAnalysis,
 ) -> tuple[EmotionAssociationView, ...]:
+    return _association_views(
+        workspace,
+        {
+            "anger",
+            "anticipation",
+            "disgust",
+            "fear",
+            "joy",
+            "sadness",
+            "surprise",
+            "trust",
+        },
+    )
+
+
+def sentiment_association_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[EmotionAssociationView, ...]:
+    """Keep positive/negative sentiment distinct from the eight emotions."""
+
+    return _association_views(workspace, {"positive", "negative"})
+
+
+def _association_views(
+    workspace: WorkspaceAnalysis,
+    categories: set[str],
+) -> tuple[EmotionAssociationView, ...]:
     rows = []
     for result in workspace.results:
         for stats in result.category_statistics:
+            if stats.category not in categories:
+                continue
             rows.append(
                 EmotionAssociationView(
                     category=stats.category,
@@ -942,11 +1066,20 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
         )
     if emotion_association_views(workspace):
         notes.append(
-            "Emotion associations are multi-label categories, so their percentages are not expected to sum to 100%."
+            "The eight emotion associations are multi-label categories, so their "
+            "percentages are not expected to sum to 100%. Positive/negative "
+            "sentiment is reported separately."
         )
     if emotion_intensity_views(workspace):
         notes.append(
             "Emotion intensity means use only supplied word-emotion pairs; missing pairs are not treated as zero."
+        )
+    if workspace.request.scenario_version_id:
+        notes.append(
+            f"This is a reviewed scenario result pinned to "
+            f"{workspace.request.scenario_version_id} with "
+            f"{len(workspace.request.review_rules)} active decision revision(s). "
+            "The unreviewed baseline remains separate."
         )
     return tuple(notes)
 
@@ -971,6 +1104,57 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
         "plain_language_note",
     ]
     rows: list[dict[str, object]] = []
+    if workspace.request.scenario_version_id:
+        rows.extend(
+            (
+                {
+                    "section": "Review methodology",
+                    "lexicon": "",
+                    "analysis_view": "Reviewed scenario",
+                    "metric": "Scenario version ID",
+                    "value": workspace.request.scenario_version_id,
+                    "unit_or_scale": "stable local identifier",
+                    "denominator": "",
+                    "plain_language_note": (
+                        "This immutable result uses the exact decision revisions "
+                        "listed in the detailed manifest."
+                    ),
+                },
+                {
+                    "section": "Review methodology",
+                    "lexicon": "",
+                    "analysis_view": "Reviewed scenario",
+                    "metric": "Active review decision revisions",
+                    "value": len(workspace.request.review_rules),
+                    "unit_or_scale": "count",
+                    "denominator": "",
+                    "plain_language_note": (
+                        "Flags are non-scoring; mappings and exclusions apply only "
+                        "within this scenario."
+                    ),
+                },
+            )
+        )
+    for pos in part_of_speech_views(workspace):
+        rows.append(
+            {
+                "section": "Part of speech",
+                "lexicon": "spaCy English linguistic model",
+                "analysis_view": "All eligible lexical tokens",
+                "metric": f"{pos.category} share",
+                "value": pos.share_of_lexical_tokens,
+                "unit_or_scale": "proportion",
+                "denominator": (
+                    f"{pos.token_count} of {pos.lexical_token_denominator} "
+                    "lexical token occurrences"
+                ),
+                "plain_language_note": (
+                    f"Universal POS tag {pos.tag}; {pos.unique_type_count} unique "
+                    f"normalized type(s). Examples: {pos.example_forms or 'none'}. "
+                    "Labels are model-generated and may be uncertain in poetic syntax."
+                ),
+            }
+        )
     for coverage in coverage_views(workspace):
         rows.append(
             {
@@ -1001,10 +1185,12 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 ),
                 "unit_or_scale": "proportion",
                 "denominator": (
-                    f"{coverage.eligible_token_count} eligible non-stopword tokens"
+                    f"{coverage.eligible_token_count} eligible non-stopword, "
+                    "non-review-excluded tokens"
                 ),
                 "plain_language_note": (
-                    "Intentionally excluded stopwords are removed from this denominator."
+                    "Intentionally excluded stopwords and scenario exclusions are "
+                    "removed from this secondary denominator."
                 ),
             }
         )
@@ -1101,6 +1287,26 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 "plain_language_note": f"Contributors: {row.top_terms or 'none'}",
             }
         )
+    for row in sentiment_association_views(workspace):
+        rows.append(
+            {
+                "section": "Sentiment association",
+                "lexicon": "NRC Emotion",
+                "analysis_view": "All matched tokens",
+                "metric": f"{row.category} sentiment-association rate",
+                "value": (
+                    row.rate_per_lexical_token
+                    if row.rate_per_lexical_token is not None
+                    else ""
+                ),
+                "unit_or_scale": "proportion",
+                "denominator": "all lexical tokens",
+                "plain_language_note": (
+                    f"Contributors: {row.top_terms or 'none'}. Sentiment is "
+                    "presented separately from the eight emotion categories."
+                ),
+            }
+        )
     for row in emotion_intensity_views(workspace):
         rows.append(
             {
@@ -1166,12 +1372,12 @@ def csv_reading_guide() -> bytes:
             "file": "phase2_manifest.csv",
             "what_it_answers": "Can this analysis be reproduced?",
             "start_with": "text/source hashes, versions, model, scenario, phrase policy, and stopword-list metadata.",
-            "important_caution": "This is provenance rather than a results table.",
+            "important_caution": "This is provenance rather than a results table; reviewed runs also list exact decision revisions.",
         },
         {
             "file": "phase2_results.json",
             "what_it_answers": "Can software read the complete nested result and methodology?",
-            "start_with": "results, comparison, stopword_policy, stopword_coverage, and vad_summary.",
+            "start_with": "results, comparison, review_rules, stopword_policy, stopword_coverage, and vad_summary.",
             "important_caution": "All-matched and stopword-excluded fields are separate views of the same audited matches.",
         },
     ]

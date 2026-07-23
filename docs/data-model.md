@@ -2,8 +2,11 @@
 
 This model began as the Phase 0 design. Phase 4 implements persistent local
 projects and corpus results. Schema version 2 adds explicit analysis-view and
-stopword-methodology fields while migrating existing version-1 databases
-transactionally.
+stopword-methodology fields. Phase 5 schema version 3 adds named review
+scenarios, immutable scenario-version snapshots, append-only decision
+revisions, semantic-risk candidates, and scenario-version links on batches and
+runs. Existing version-1 or version-2 databases migrate transactionally after
+a verified, non-overwriting `pre-v3` SQLite backup is created.
 
 Phase 1 now implements immutable in-memory forms of `TextDocument`,
 `TokenRecord`, `LexiconMetadata`, `LexiconValidation`, `VadEntry`, `TokenMatch`,
@@ -32,7 +35,9 @@ still carry the stable text version, analysis, scenario, adapter, recipe,
 software, source-hash, and inclusion metadata produced by the engine.
 
 Phase 3.1 adds VAD definition, interpretation, contributor, and cumulative-load
-view records. Phase 4 implements `projects`, `texts`, `text_versions`,
+view records. The framework-independent application layer also exposes a
+lexicon-independent `PartOfSpeechView` over the preserved run's token records.
+Phase 4 implements `projects`, `texts`, `text_versions`,
 `corpus_batches`, `analysis_runs`, `analysis_metrics`,
 `unmatched_observations`, and `unmatched_notes`. Every stored run links to the
 active preserved text version, source hashes, adapter versions, recipe,
@@ -41,6 +46,15 @@ choice. Phase 4.1 additionally records stopword mode, source/version/hash,
 protected words, custom additions/removals, and `analysis_view` on persisted
 metrics. Completed corpus batches are immutable; pending or failed batches do
 not appear as the current comparison. Excel remains a derived export.
+
+Phase 5 adds `review_scenarios`, `review_scenario_versions`,
+`review_decisions`, and `review_candidates`. `corpus_batches` and
+`analysis_runs` store the exact `scenario_version_id`. The scenario-version
+snapshot stores its active decision-revision IDs, and every completed analysis
+manifest retains the resolved rule payload. Flags are non-scoring; exclusions
+and mappings remain auditable and scenario-specific. Part-of-speech corpus
+profiles are derived locally from current preserved text versions and the
+pinned preprocessing model; they do not depend on lexicon matches.
 
 The local source lexicons are not copied into the project database. Their
 immutable adapter models are loaded in place from known source paths and hashes.
@@ -122,15 +136,27 @@ policies. It is immutable after use.
 
 ### ReviewDecisionVersion
 
-A typed decision: annotation, exclusion, or mapping. It stores target and
-scope, proposed and approved values, reason, evidence, creator, timestamps,
-approval state, predecessor, and whether it affects future runs. Occurrence,
-text, author, and project scopes are explicit.
+A typed decision revision: flag, exclusion, or mapping. It stores the source
+form, optional verified mapping target, lexicon, project, optional preserved
+text/version and token position, occurrence/work/project/global scope,
+semantic-risk category, rationale, timestamp, active/revoked state, and stable
+decision identity. Revoke and restore operations append revisions rather than
+updating prior history.
 
 ### AnalysisScenarioVersion
 
-Names a reproducible combination of recipe, lexicons, mappings, exclusions,
-semantic-risk decisions, minimum-match rules, weighting, and comparison set.
+Names an immutable snapshot of the active decision revisions in one named
+project review scenario. Restoring an older snapshot creates a new version.
+An analysis also records recipe, lexicons, minimum-match rule, weighting,
+stopword policy, software version, and other calculation inputs separately.
+
+### ReviewCandidate
+
+Stores occurrence-level evidence produced by an analysis for semantic-risk
+review, including unmatched forms, case collisions, lemma/possessive/phrase
+matches, prior mappings/exclusions, and optionally exact matches. It retains
+text/version/token identity, context, proposed lemma, source candidate, match
+method, and risk category. Candidate presence does not itself change a score.
 
 ### AnalysisRun
 
@@ -171,10 +197,18 @@ AggregateResult -> AnalysisRun -> included MatchRecord(s)
 The active scenario, recipe, matching method, and review decision must also be
 recoverable from that path.
 
+The part-of-speech profile follows a separate non-lexicon path:
+
+```text
+PartOfSpeechView -> TokenOccurrence(s) -> TextVersion
+ -> preserved original text -> pinned preprocessing model/version
+```
+
 ## Transaction and backup rules
 
 - Database migrations run inside transactions where SQLite permits it.
-- A verified backup is created before migration.
+- A verified, non-overwriting backup is created before every schema-3 upgrade
+  from an earlier supported database.
 - Analysis completion is one atomic state transition.
 - Restores never overwrite an open project without explicit confirmation.
 - Cached results are disposable and keyed by all relevant input versions.

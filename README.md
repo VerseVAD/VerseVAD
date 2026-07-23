@@ -10,14 +10,20 @@ intended, or what a reader experiences.
 
 ## Current status
 
-**Phase 4: the local one-poem, corpus, and Lexicon Explorer workspaces are
-complete.** The one-poem path now explains VAD, shows token/type weighting,
+**Phase 5: the local one-poem, corpus, review, and Lexicon Explorer workspaces
+are complete.** The one-poem path now explains VAD, shows token/type weighting,
 top contributors, and cumulative normative lexical loads. Persistent projects
 can import an entire folder as separate works, preserve text versions and
-metadata, compare works, record unmatched-vocabulary notes, and export a
-readable Excel workbook. Collection VAD reports both a token-weighted volume
-profile and an equal-work-weighted profile so long poems do not determine the
-only result.
+metadata, compare works, create named/versioned review scenarios, and export a
+readable Excel workbook. Flags, exclusions, and approved mappings are scoped,
+reversible, auditable, and applied only through an exact scenario version.
+Collection VAD reports both a token-weighted volume profile and an
+equal-work-weighted profile so long poems do not determine the only result.
+
+The new Language Profile reports model-assigned part-of-speech counts and
+relative shares independently of affective-lexicon coverage, both for one poem
+and for combined/work-by-work corpus views. Positive/negative sentiment is
+presented separately from the eight emotion associations.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
@@ -43,6 +49,8 @@ See:
 - [Testing strategy](docs/testing.md)
 - [Beginner user guide](docs/user-guide.md)
 - [Comprehensive Word user manual](docs/VerseVAD_User_Manual.docx)
+- [Values and terminology Word guide](docs/VerseVAD_Values_and_Terminology_Guide.docx)
+- [Phase 5 validation and test steps](docs/phase5-validation.md)
 - [Phase 3 validation and test steps](docs/phase3-validation.md)
 - [Phase 4 validation and test steps](docs/phase4-validation.md)
 
@@ -76,18 +84,20 @@ and do not upload the poem or results.
 
 In the app, use the workspace tabs across the top:
 
-1. **One poem** accepts pasted text or one `.txt` file and provides readable
+1. **One Poem** accepts pasted text or one `.txt` file and provides readable
    results plus the audit bundle.
-2. **Projects & corpus** creates persistent local projects, imports a folder of
-   `.txt` works, analyzes complete batches, compares collection views, records
-   quality-control notes, and exports Excel.
+2. **Projects & Corpus** creates persistent local projects, imports a folder of
+   `.txt` works, analyzes complete batches, compares collection and
+   part-of-speech views, records versioned review scenarios, and exports Excel.
 3. **Lexicon Explorer** looks up one word or phrase in every installed source
    while preserving original scales and match provenance.
 
 See the [beginner user guide](docs/user-guide.md) for interpretation and
 troubleshooting, or open the
 [comprehensive Word manual](docs/VerseVAD_User_Manual.docx) for every feature,
-term, output, and formula in one document.
+term, output, and formula in one document. The companion
+[values and terminology guide](docs/VerseVAD_Values_and_Terminology_Guide.docx)
+adds beginner-focused worked examples and reporting templates.
 
 ## Development-only inspection
 

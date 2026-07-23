@@ -92,22 +92,24 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
     workbook = load_workbook(BytesIO(content), data_only=False)
     assert workbook.sheetnames == [
         "START HERE",
-        "Corpus profiles",
+        "Corpus Profiles",
         "Work VAD",
-        "Cumulative load",
-        "Coverage and emotion",
+        "Cumulative Load",
+        "Coverage and Emotion",
         "Unmatched QC",
-        "Text metadata",
+        "Text Metadata",
     ]
     assert workbook["START HERE"]["A1"].value == "VerseVAD corpus workbook"
-    profile_headers = [cell.value for cell in workbook["Corpus profiles"][4]]
+    profile_headers = [cell.value for cell in workbook["Corpus Profiles"][4]]
     assert "Token-weighted volume mean" in profile_headers
     assert "Work-weighted volume mean" in profile_headers
-    assert workbook["Corpus profiles"]["I5"].value == 0.875
-    assert workbook["Corpus profiles"]["B5"].value == "All Matched"
-    assert workbook["Corpus profiles"]["I5"].value == 0.875
+    assert workbook["Corpus Profiles"]["I5"].value == 0.875
+    assert workbook["Corpus Profiles"]["B5"].value == "All Matched"
+    assert workbook["Corpus Profiles"]["I5"].value == 0.875
     assert workbook["Unmatched QC"]["K5"].value == "Review historical sense."
-    assert workbook["Text metadata"]["I5"].value == "abc123"
+    assert workbook["Text Metadata"]["I5"].value == "abc123"
+    coverage_headers = [cell.value for cell in workbook["Coverage and Emotion"][4]]
+    assert "Construct" in coverage_headers
 
     methodology_content = build_corpus_workbook(
         project,
@@ -115,7 +117,7 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
         metrics,
         unmatched,
         methodology={
-            "software_version": "0.5.0.dev0",
+            "software_version": "0.6.0.dev0",
             "scenario_id": "scenario-test",
             "phrase_policy": "phrase_preferred",
             "minimum_match_requirement": 1,
@@ -135,7 +137,7 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
         BytesIO(methodology_content),
         data_only=False,
     )
-    assert CORPUS_WORKBOOK_API_VERSION == 2
+    assert CORPUS_WORKBOOK_API_VERSION == 4
     assert methodology_workbook.sheetnames[-1] == "Methodology"
     methodology_rows = {
         row[0].value: row[1].value
@@ -144,3 +146,62 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
     }
     assert methodology_rows["Stopword source"] == "spaCy English STOP_WORDS"
     assert methodology_rows["Protected words"] == "not, never"
+
+    reviewed_content = build_corpus_workbook(
+        project,
+        (text,),
+        metrics,
+        unmatched,
+        methodology={
+            "scenario_id": "scenario-test",
+            "scenario_version_id": "scenario-version-2",
+            "review_decisions": ({"decision_revision_id": "revision-1"},),
+        },
+        review_decisions=(
+            {
+                "decision_id": "decision-1",
+                "decision_revision_id": "revision-1",
+                "action": "map",
+                "scope": "work",
+                "lexicon_id": "vad-test",
+                "source_form": "o'er",
+                "mapping_target": "over",
+                "project_id": project.project_id,
+                "text_id": text.text_id,
+                "text_version_id": text.text_version_id,
+                "token_position": None,
+                "risk_category": "unmatched",
+                "rationale": "Edition-level contraction mapping.",
+            },
+        ),
+    )
+    reviewed_workbook = load_workbook(BytesIO(reviewed_content), data_only=False)
+    assert "Review Decisions" in reviewed_workbook.sheetnames
+    assert reviewed_workbook["Review Decisions"]["F5"].value == "o'er"
+    assert reviewed_workbook["Review Decisions"]["G5"].value == "over"
+
+    pos_content = build_corpus_workbook(
+        project,
+        (text,),
+        metrics,
+        unmatched,
+        part_of_speech_rows=(
+            {
+                "Scope": "Work",
+                "Work": "Poem",
+                "Collection": "Volume",
+                "Universal POS tag": "ADJ",
+                "Part of speech": "Adjective",
+                "Token count": 1,
+                "Share of lexical tokens": 1.0,
+                "Unique normalized types": 1,
+                "Examples": "bright",
+                "Lexical-token denominator": 1,
+                "Model": "en_core_web_sm test",
+            },
+        ),
+    )
+    pos_workbook = load_workbook(BytesIO(pos_content), data_only=False)
+    assert "Part of Speech" in pos_workbook.sheetnames
+    assert pos_workbook["Part of Speech"]["E5"].value == "Adjective"
+    assert pos_workbook["Part of Speech"]["G5"].value == 1.0

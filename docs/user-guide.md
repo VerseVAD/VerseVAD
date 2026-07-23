@@ -2,10 +2,10 @@
 
 ## What is available now
 
-VerseVAD provides three local workspaces: **One poem**, **Projects & corpus**,
+VerseVAD provides three local workspaces: **One Poem**, **Projects & Corpus**,
 and **Lexicon Explorer**. One-poem analyses remain temporary unless downloaded.
 Corpus projects, preserved text versions, metadata, completed results, and
-unmatched-vocabulary notes persist in the local `projects` database.
+versioned review scenarios persist in the local `projects` database.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -42,7 +42,7 @@ reinstall dependencies or deliberately update the software.
 
 ## Analyze a poem
 
-1. Under **Add a poem**, either paste the text or click **Upload** and choose a
+1. Under **Add a Poem**, either paste the text or click **Upload** and choose a
    UTF-8 `.txt` file no larger than 5 MB. A chosen file fills the editable text
    box; VerseVAD preserves that string and its line breaks as the original.
 2. Enter a poem title or working label.
@@ -67,18 +67,23 @@ Use this order:
 1. **Overview** — check coverage and matched counts first. A mean based on only
    a few matched observations should be treated cautiously. The displayed 60%
    and 80% coverage bands are orientation aids, not universal scholarly rules.
-2. **VAD profile** — compare normative valence, arousal, and dominance ratings
+2. **Language Profile** — compare model-assigned part-of-speech counts and
+   relative shares across all eligible lexical tokens. This profile is
+   independent of affective-lexicon matching.
+3. **VAD Profile** — compare normative valence, arousal, and dominance ratings
    among matched observations. Definitions, interpretations, token/type
    weighting, cumulative loads, and top contributors appear beneath the
    derived 0-1 comparison chart.
-3. **Emotion profile** — read categorical associations and numeric intensities
-   as separate kinds of evidence.
-4. **Evidence** — inspect which surface forms, phrases, or lemmas contributed;
+4. **Emotion Profile** — read the eight emotion associations, positive/negative
+   sentiment associations, and numeric intensities as three separately labeled
+   kinds of evidence.
+5. **Evidence** — inspect which surface forms, phrases, lemmas, exclusions, or
+   approved mappings contributed;
    filter the table when a result needs explanation. Review unmatched
    vocabulary for coverage gaps and historically or poetically unusual words.
-5. **Downloads** — start with the friendly scholar summary. Use the full audit
+6. **Downloads** — start with the friendly scholar summary. Use the full audit
    ZIP when reproducing or closely reviewing the calculation.
-6. **How to read** — return here for definitions and a reminder of the intended
+7. **How to Read** — return here for definitions and a reminder of the intended
    scholarly language.
 
 ### Coverage
@@ -86,6 +91,18 @@ Use this order:
 Coverage is the number of eligible lexical token occurrences covered by an
 included match divided by all eligible lexical token occurrences. It is not an
 accuracy score. Different lexicons legitimately cover different vocabularies.
+
+### Part-of-speech profile
+
+The Language Profile counts all eligible lexical token occurrences by the
+installed model's universal part-of-speech tag and divides each count by the
+text's full lexical-token count. It also reports unique normalized types and
+example forms. Shares sum to 100% apart from display rounding.
+
+Part-of-speech labels are model-generated. Poetic syntax, fragments, archaic
+forms, and deliberate ambiguity can produce uncertain assignments. Inspect
+token evidence before making an argument that depends on a fine grammatical
+distinction.
 
 ### Comparing the three VAD scales
 
@@ -148,9 +165,12 @@ active list. Every exclusion and its surface/lemma reason remains visible under
 
 ### Associations versus intensity
 
-NRC Emotion associations are binary, multi-label categories. One occurrence
-may contribute to several categories, so percentages need not total 100%.
-Always read the labeled denominator.
+NRC Emotion associations are binary and multi-label. VerseVAD reports anger,
+anticipation, disgust, fear, joy, sadness, surprise, and trust in **Eight
+Emotion Associations**. It reports positive and negative separately under
+**Positive and Negative Sentiment Associations**. One occurrence may
+contribute to several categories, so percentages need not total 100%. Always
+read the labeled denominator.
 
 NRC Emotion Intensity supplies numeric ratings for particular word-emotion
 pairs. VerseVAD keeps prevalence separate from the mean rating among supplied
@@ -159,21 +179,27 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
 
 ## Build and compare a corpus
 
-1. Choose **Projects & corpus** in the workspace tabs across the top.
+1. Choose **Projects & Corpus** in the workspace tabs across the top.
 2. Create a project. It is stored in `projects/versevad.sqlite3` by default.
-3. Under **Works & metadata**, choose a folder containing UTF-8 `.txt` files.
+3. Under **Works & Metadata**, choose a folder containing UTF-8 `.txt` files.
    Each file is a separate work and subfolder paths are retained. Re-importing
    changed content creates a new preserved version under the same work ID.
 4. Edit author, collection, date label, genre, notes, or custom JSON metadata.
-5. Under **Analyze & compare**, select works and lexicons, then click **Analyze
-   selected works**. VerseVAD processes one work at a time and publishes the
-   dashboard only when the entire selected batch completes.
-6. Filter a completed comparison by collection, author, or genre.
-7. Use **Unmatched QC** to record review status, notes, or a possible mapping.
-   These notes document quality control and do not change completed scores.
-8. Download the Excel workbook under **Excel export**.
+5. Use **Language Profile** to compare part-of-speech count and relative share
+   in the combined project and work by work.
+6. Under **Analyze & Compare**, select works and lexicons, choose an unreviewed
+   baseline or exact scenario version, then click **Analyze selected works**.
+   VerseVAD processes one work at a time and publishes the dashboard only when
+   the entire selected batch completes.
+7. Filter a completed comparison by collection, author, or genre.
+8. Under **Review & Scenarios**, create a named scenario and record reversible,
+   versioned flags, exclusions, or mappings with a rationale and explicit
+   occurrence/work/project/global scope.
+9. Rerun with that scenario and compare the new immutable batch with the
+   unreviewed baseline.
+10. Download the Excel workbook under **Excel Export**.
 
-To delete a project, open **Project settings**, read the warning, and type the
+To delete a project, open **Project Settings**, read the warning, and type the
 project title exactly—including capitalization—before clicking **Delete this
 project**. This permanently removes only that project and its locally stored
 works, versions, analyses, and notes. Other projects and source lexicons are
@@ -192,6 +218,26 @@ Neither is the universally correct view; they answer different questions. The
 dashboard and Excel workbook show their signed difference. A divergence may be
 an important result. A work with no eligible score is reported as omitted and
 never assigned a neutral value.
+
+### Corpus part-of-speech views
+
+**All Works Combined** pools lexical-token occurrences, so longer works
+contribute more to the combined grammatical profile. **Work-by-Work
+Comparison** reports each work's count and within-work share separately. Use
+the latter when comparing relative grammatical composition across differently
+sized works. The Excel workbook includes the same rows in **Part of Speech**.
+
+### Review scenarios
+
+A **flag** records a concern without changing scores. An **exclude** decision
+keeps the candidate in the audit but omits it from that scenario's aggregates.
+A **map** decision links a form to a verified exact entry in one installed
+lexicon only after exact, apostrophe/possessive, and lemma candidates fail.
+
+Use the narrowest defensible scope and provide a scholarly rationale. Every
+change, revoke, restore, or restored snapshot creates a new append-only
+scenario version. Completed corpus batches stay linked to the exact scenario
+version and decision revisions used, so the baseline is never overwritten.
 
 ## Use Lexicon Explorer
 
@@ -212,12 +258,14 @@ derived value. Similar-word suggestions are never substituted automatically.
 
 An optional user mapping can display, for example, `o'er → over`, but it is a
 lookup-only fallback and does not alter poem or corpus analysis. Persistent,
-scenario-controlled analysis mappings remain a later review-system feature.
+scenario-controlled mappings are created separately under **Review &
+Scenarios**.
 
 ## Downloads and the audit bundle
 
-The easiest download has a filename ending in `_scholar_summary.csv`. It contains compact
-coverage, normalized VAD, emotion-association, and intensity rows with plain
+The easiest download has a filename ending in `_scholar_summary.csv`. It
+contains compact part-of-speech, coverage, normalized VAD,
+emotion-association, sentiment-association, and intensity rows with plain
 labels and denominator notes. `VerseVAD_CSV_reading_guide.csv` explains what
 each detailed file is for.
 
@@ -246,8 +294,9 @@ summary is the reading aid.
 
 ## Diagnostics and troubleshooting
 
-Click **Run self-test** in the app sidebar at any time. A healthy installation
-shows `11/11 checks passed`. You can also double-click `diagnose_windows.bat`.
+Under **Installation Check**, click **Run self-test** in the app sidebar at any
+time. A healthy installation shows `11/11 checks passed`. You can also
+double-click `diagnose_windows.bat`.
 
 If startup fails:
 
@@ -270,6 +319,8 @@ lemma fallback.
 VerseVAD describes lexical evidence. It does not resolve negation, irony,
 metaphor, voice, authorial intention, historical sense, or reader response.
 Those remain matters for contextual inspection and scholarly interpretation.
+The part-of-speech profile is model-generated grammatical evidence and can
+also require correction through close inspection.
 
 ## Older validation demonstrations
 

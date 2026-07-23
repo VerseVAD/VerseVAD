@@ -11,13 +11,21 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Iterator, Mapping
+from typing import Iterable, Iterator, Mapping, Sequence
 
 from versevad import __version__
 from versevad.application import WorkspaceAnalysis, unmatched_views, vad_cumulative_views
+from versevad.models import (
+    MatchMethod,
+    MatchSelection,
+    ReviewAction,
+    ReviewRule,
+    ReviewScope,
+)
+from versevad.normalization import normalize_lookup
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -115,6 +123,7 @@ class CorpusBatchRecord:
     protected_stopwords: tuple[str, ...]
     custom_stopword_additions: tuple[str, ...]
     custom_stopword_removals: tuple[str, ...]
+    scenario_version_id: str
     created_at: str
     completed_at: str | None
     error_message: str
@@ -139,6 +148,74 @@ class UnmatchedQcRecord:
     proposed_mapping: str
     note_id: str | None
     updated_at: str | None
+
+
+@dataclass(frozen=True)
+class ReviewScenarioRecord:
+    scenario_id: str
+    project_id: str
+    name: str
+    description: str
+    scenario_version_id: str
+    version_number: int
+    decision_count: int
+    created_at: str
+    version_created_at: str
+
+
+@dataclass(frozen=True)
+class ReviewScenarioVersionRecord:
+    scenario_version_id: str
+    scenario_id: str
+    version_number: int
+    decision_count: int
+    change_note: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ReviewDecisionRecord:
+    decision_revision_id: str
+    decision_id: str
+    scenario_id: str
+    revision_number: int
+    state: str
+    action: str
+    scope: str
+    project_id: str
+    text_id: str
+    text_version_id: str
+    lexicon_id: str
+    source_form: str
+    token_position: int | None
+    mapping_target: str
+    risk_category: str
+    rationale: str
+    supersedes_revision_id: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ReviewCandidateRecord:
+    run_id: str
+    project_id: str
+    text_id: str
+    text_version_id: str
+    text_title: str
+    lexicon_id: str
+    lexicon: str
+    match_id: str
+    token_position: int
+    line_number: int
+    surface_form: str
+    normalized_form: str
+    matched_term: str
+    method: str
+    selection: str
+    included: bool
+    risk_category: str
+    risk_reason: str
+    context: str
 
 
 _MIGRATION_1 = """
@@ -286,12 +363,126 @@ ALTER TABLE corpus_batches
 ADD COLUMN custom_stopword_removals_json TEXT NOT NULL DEFAULT '[]';
 """
 
+_MIGRATION_3 = """
+ALTER TABLE corpus_batches
+ADD COLUMN scenario_version_id TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE analysis_runs
+ADD COLUMN scenario_version_id TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE review_scenarios (
+    scenario_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    UNIQUE(project_id, name COLLATE NOCASE)
+);
+
+CREATE TABLE review_decisions (
+    decision_revision_id TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL,
+    scenario_id TEXT NOT NULL REFERENCES review_scenarios(scenario_id) ON DELETE CASCADE,
+    revision_number INTEGER NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('active', 'revoked')),
+    action TEXT NOT NULL CHECK(action IN ('flag', 'exclude', 'map')),
+    scope TEXT NOT NULL CHECK(scope IN ('occurrence', 'work', 'project', 'global')),
+    project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    text_id TEXT NOT NULL DEFAULT '',
+    text_version_id TEXT NOT NULL DEFAULT '',
+    lexicon_id TEXT NOT NULL,
+    source_form TEXT NOT NULL,
+    token_position INTEGER,
+    mapping_target TEXT NOT NULL DEFAULT '',
+    risk_category TEXT NOT NULL DEFAULT '',
+    rationale TEXT NOT NULL,
+    supersedes_revision_id TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    UNIQUE(decision_id, revision_number)
+);
+
+CREATE TABLE review_scenario_versions (
+    scenario_version_id TEXT PRIMARY KEY,
+    scenario_id TEXT NOT NULL REFERENCES review_scenarios(scenario_id) ON DELETE CASCADE,
+    version_number INTEGER NOT NULL,
+    decision_revision_ids_json TEXT NOT NULL,
+    change_note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    UNIQUE(scenario_id, version_number)
+);
+
+CREATE TABLE review_candidates (
+    candidate_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES analysis_runs(run_id) ON DELETE CASCADE,
+    project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    text_id TEXT NOT NULL REFERENCES texts(text_id) ON DELETE CASCADE,
+    text_version_id TEXT NOT NULL REFERENCES text_versions(text_version_id),
+    lexicon_id TEXT NOT NULL,
+    lexicon_display_name TEXT NOT NULL,
+    match_id TEXT NOT NULL,
+    token_position INTEGER NOT NULL,
+    line_number INTEGER NOT NULL,
+    surface_form TEXT NOT NULL,
+    normalized_form TEXT NOT NULL,
+    matched_term TEXT NOT NULL,
+    method TEXT NOT NULL,
+    selection TEXT NOT NULL,
+    included INTEGER NOT NULL,
+    risk_category TEXT NOT NULL,
+    risk_reason TEXT NOT NULL,
+    context TEXT NOT NULL,
+    UNIQUE(run_id, lexicon_id, match_id)
+);
+
+CREATE INDEX idx_review_scenarios_project
+ON review_scenarios(project_id, created_at);
+
+CREATE INDEX idx_review_decisions_scenario
+ON review_decisions(scenario_id, decision_id, revision_number);
+
+CREATE INDEX idx_review_versions_scenario
+ON review_scenario_versions(scenario_id, version_number);
+
+CREATE INDEX idx_review_candidates_run
+ON review_candidates(run_id, risk_category, text_id);
+"""
+
 
 class ProjectRepository:
     """Own the local SQLite database and its explicit migrations."""
 
     def __init__(self, database_path: Path | str | None = None) -> None:
         self.database_path = Path(database_path or default_database_path()).resolve()
+
+    def _backup_before_migration(
+        self,
+        connection: sqlite3.Connection,
+        current_version: int,
+    ) -> None:
+        """Create and verify one non-overwriting local backup before schema changes."""
+
+        if current_version <= 0 or current_version >= SCHEMA_VERSION:
+            return
+        backup_path = self.database_path.with_name(
+            f"{self.database_path.stem}.pre-v{SCHEMA_VERSION}.sqlite3"
+        )
+        if not backup_path.exists():
+            backup = sqlite3.connect(backup_path)
+            try:
+                connection.backup(backup)
+                backup.commit()
+            finally:
+                backup.close()
+        verification = sqlite3.connect(backup_path)
+        try:
+            integrity = verification.execute("PRAGMA integrity_check").fetchone()[0]
+        finally:
+            verification.close()
+        if integrity != "ok":
+            raise RuntimeError(
+                f"VerseVAD could not verify the pre-migration backup at {backup_path}. "
+                "The project database was not migrated."
+            )
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -320,6 +511,7 @@ class ProjectRepository:
                     "This project database was created by a newer VerseVAD version. "
                     "No data was changed."
                 )
+            self._backup_before_migration(connection, int(current))
             if current < 1:
                 connection.executescript(_MIGRATION_1)
                 connection.execute(
@@ -332,6 +524,13 @@ class ProjectRepository:
                 connection.execute(
                     "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
                     (2, _now()),
+                )
+                current = 2
+            if current < 3:
+                connection.executescript(_MIGRATION_3)
+                connection.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
+                    (3, _now()),
                 )
 
     def schema_version(self) -> int:
@@ -412,6 +611,542 @@ class ProjectRepository:
                 raise RuntimeError("VerseVAD could not delete the selected project.")
 
     @staticmethod
+    def _review_scenario(
+        connection: sqlite3.Connection,
+        scenario_id: str,
+    ) -> ReviewScenarioRecord:
+        row = connection.execute(
+            """
+            SELECT s.scenario_id, s.project_id, s.name, s.description, s.created_at,
+                   v.scenario_version_id, v.version_number,
+                   v.decision_revision_ids_json, v.created_at AS version_created_at
+            FROM review_scenarios s
+            JOIN review_scenario_versions v
+              ON v.scenario_id = s.scenario_id
+            WHERE s.scenario_id = ?
+            ORDER BY v.version_number DESC
+            LIMIT 1
+            """,
+            (scenario_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"Unknown review scenario: {scenario_id}")
+        values = dict(row)
+        decision_ids = json.loads(values.pop("decision_revision_ids_json"))
+        values["decision_count"] = len(decision_ids)
+        return ReviewScenarioRecord(**values)
+
+    @staticmethod
+    def _append_review_scenario_version(
+        connection: sqlite3.Connection,
+        scenario_id: str,
+        decision_revision_ids: Sequence[str],
+        *,
+        change_note: str,
+    ) -> str:
+        current = connection.execute(
+            """
+            SELECT COALESCE(MAX(version_number), 0)
+            FROM review_scenario_versions
+            WHERE scenario_id = ?
+            """,
+            (scenario_id,),
+        ).fetchone()[0]
+        scenario_version_id = _id("scenario-version")
+        connection.execute(
+            """
+            INSERT INTO review_scenario_versions(
+                scenario_version_id, scenario_id, version_number,
+                decision_revision_ids_json, change_note, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                scenario_version_id,
+                scenario_id,
+                int(current) + 1,
+                json.dumps(tuple(decision_revision_ids)),
+                change_note.strip(),
+                _now(),
+            ),
+        )
+        return scenario_version_id
+
+    def create_review_scenario(
+        self,
+        project_id: str,
+        name: str,
+        *,
+        description: str = "",
+    ) -> ReviewScenarioRecord:
+        """Create a named scenario with an immutable empty first version."""
+
+        name = name.strip()
+        if not name:
+            raise ValueError("Enter a scenario name.")
+        self.initialize()
+        scenario_id = _id("scenario")
+        now = _now()
+        with self._connect() as connection:
+            if connection.execute(
+                "SELECT 1 FROM projects WHERE project_id = ?",
+                (project_id,),
+            ).fetchone() is None:
+                raise KeyError(f"Unknown project: {project_id}")
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO review_scenarios(
+                        scenario_id, project_id, name, description, created_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (scenario_id, project_id, name, description.strip(), now),
+                )
+            except sqlite3.IntegrityError as error:
+                raise ValueError(
+                    "This project already has a review scenario with that name."
+                ) from error
+            self._append_review_scenario_version(
+                connection,
+                scenario_id,
+                (),
+                change_note="Scenario created with no active review decisions.",
+            )
+        return self.get_review_scenario(scenario_id)
+
+    def get_review_scenario(self, scenario_id: str) -> ReviewScenarioRecord:
+        self.initialize()
+        with self._connect() as connection:
+            return self._review_scenario(connection, scenario_id)
+
+    def get_review_scenario_version(
+        self,
+        scenario_version_id: str,
+    ) -> ReviewScenarioRecord:
+        self.initialize()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT s.scenario_id, s.project_id, s.name, s.description, s.created_at,
+                       v.scenario_version_id, v.version_number,
+                       v.decision_revision_ids_json,
+                       v.created_at AS version_created_at
+                FROM review_scenario_versions v
+                JOIN review_scenarios s ON s.scenario_id = v.scenario_id
+                WHERE v.scenario_version_id = ?
+                """,
+                (scenario_version_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(
+                    f"Unknown review scenario version: {scenario_version_id}"
+                )
+            values = dict(row)
+            decision_ids = json.loads(values.pop("decision_revision_ids_json"))
+            values["decision_count"] = len(decision_ids)
+            return ReviewScenarioRecord(**values)
+
+    def list_review_scenarios(
+        self,
+        project_id: str,
+    ) -> tuple[ReviewScenarioRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            ids = connection.execute(
+                """
+                SELECT scenario_id
+                FROM review_scenarios
+                WHERE project_id = ?
+                ORDER BY name COLLATE NOCASE, created_at
+                """,
+                (project_id,),
+            ).fetchall()
+            return tuple(
+                self._review_scenario(connection, row["scenario_id"])
+                for row in ids
+            )
+
+    def list_review_scenario_versions(
+        self,
+        scenario_id: str,
+    ) -> tuple[ReviewScenarioVersionRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            if connection.execute(
+                "SELECT 1 FROM review_scenarios WHERE scenario_id = ?",
+                (scenario_id,),
+            ).fetchone() is None:
+                raise KeyError(f"Unknown review scenario: {scenario_id}")
+            rows = connection.execute(
+                """
+                SELECT scenario_version_id, scenario_id, version_number,
+                       decision_revision_ids_json, change_note, created_at
+                FROM review_scenario_versions
+                WHERE scenario_id = ?
+                ORDER BY version_number DESC
+                """,
+                (scenario_id,),
+            ).fetchall()
+        return tuple(
+            ReviewScenarioVersionRecord(
+                scenario_version_id=row["scenario_version_id"],
+                scenario_id=row["scenario_id"],
+                version_number=row["version_number"],
+                decision_count=len(json.loads(row["decision_revision_ids_json"])),
+                change_note=row["change_note"],
+                created_at=row["created_at"],
+            )
+            for row in rows
+        )
+
+    @staticmethod
+    def _scenario_revision_ids(
+        connection: sqlite3.Connection,
+        scenario_version_id: str,
+    ) -> tuple[str, ...]:
+        row = connection.execute(
+            """
+            SELECT decision_revision_ids_json
+            FROM review_scenario_versions
+            WHERE scenario_version_id = ?
+            """,
+            (scenario_version_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"Unknown review scenario version: {scenario_version_id}")
+        return tuple(json.loads(row["decision_revision_ids_json"]))
+
+    @staticmethod
+    def _review_decision(row: sqlite3.Row) -> ReviewDecisionRecord:
+        return ReviewDecisionRecord(**dict(row))
+
+    def list_review_decisions(
+        self,
+        scenario_version_id: str,
+        *,
+        active_only: bool = False,
+    ) -> tuple[ReviewDecisionRecord, ...]:
+        """Return the exact pinned decision revisions for one scenario version."""
+
+        self.initialize()
+        with self._connect() as connection:
+            revision_ids = self._scenario_revision_ids(
+                connection,
+                scenario_version_id,
+            )
+            if not revision_ids:
+                return ()
+            placeholders = ",".join("?" for _ in revision_ids)
+            state_clause = " AND state = 'active'" if active_only else ""
+            rows = connection.execute(
+                f"""
+                SELECT decision_revision_id, decision_id, scenario_id,
+                       revision_number, state, action, scope, project_id, text_id,
+                       text_version_id, lexicon_id, source_form, token_position,
+                       mapping_target, risk_category, rationale,
+                       supersedes_revision_id, created_at
+                FROM review_decisions
+                WHERE decision_revision_id IN ({placeholders}){state_clause}
+                """,
+                revision_ids,
+            ).fetchall()
+            by_id = {
+                row["decision_revision_id"]: self._review_decision(row)
+                for row in rows
+            }
+        return tuple(
+            by_id[revision_id]
+            for revision_id in revision_ids
+            if revision_id in by_id
+        )
+
+    def create_review_decision(
+        self,
+        scenario_id: str,
+        *,
+        action: ReviewAction | str,
+        scope: ReviewScope | str,
+        lexicon_id: str,
+        source_form: str,
+        rationale: str,
+        mapping_target: str = "",
+        text_id: str = "",
+        text_version_id: str = "",
+        token_position: int | None = None,
+        risk_category: str = "",
+    ) -> ReviewScenarioRecord:
+        """Append a decision revision and a new immutable scenario snapshot."""
+
+        try:
+            selected_action = ReviewAction(action)
+            selected_scope = ReviewScope(scope)
+        except ValueError as error:
+            raise ValueError("Choose a supported review action and scope.") from error
+        normalized_source = normalize_lookup(source_form)
+        normalized_target = normalize_lookup(mapping_target) if mapping_target.strip() else ""
+        if not normalized_source:
+            raise ValueError("Choose a word or phrase to review.")
+        if not lexicon_id.strip():
+            raise ValueError("Choose a lexicon for this review decision.")
+        if not rationale.strip():
+            raise ValueError("Record a rationale so this decision remains auditable.")
+        if selected_action == ReviewAction.MAP:
+            if not normalized_target:
+                raise ValueError("A mapping decision needs an exact target lexicon entry.")
+            if " " in normalized_source or " " in normalized_target:
+                raise ValueError(
+                    "Review mappings currently operate on one token at a time. "
+                    "Phrase entries can be flagged or excluded."
+                )
+        else:
+            normalized_target = ""
+        self.initialize()
+        with self._connect() as connection:
+            scenario = self._review_scenario(connection, scenario_id)
+            if selected_scope in {ReviewScope.WORK, ReviewScope.OCCURRENCE}:
+                owner = connection.execute(
+                    """
+                    SELECT t.project_id, t.active_text_version_id
+                    FROM texts t WHERE t.text_id = ?
+                    """,
+                    (text_id,),
+                ).fetchone()
+                if owner is None or owner["project_id"] != scenario.project_id:
+                    raise ValueError(
+                        "The selected work does not belong to this scenario's project."
+                    )
+                if selected_scope == ReviewScope.OCCURRENCE:
+                    if (
+                        not text_version_id
+                        or text_version_id != owner["active_text_version_id"]
+                        or token_position is None
+                        or token_position < 0
+                    ):
+                        raise ValueError(
+                            "An occurrence decision needs the active text version "
+                            "and exact token position."
+                        )
+                else:
+                    text_version_id = ""
+                    token_position = None
+            else:
+                text_id = ""
+                text_version_id = ""
+                token_position = None
+
+            decision_id = _id("decision")
+            revision_id = _id("decision-revision")
+            connection.execute(
+                """
+                INSERT INTO review_decisions(
+                    decision_revision_id, decision_id, scenario_id, revision_number,
+                    state, action, scope, project_id, text_id, text_version_id,
+                    lexicon_id, source_form, token_position, mapping_target,
+                    risk_category, rationale, supersedes_revision_id, created_at
+                ) VALUES (?, ?, ?, 1, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)
+                """,
+                (
+                    revision_id,
+                    decision_id,
+                    scenario_id,
+                    selected_action.value,
+                    selected_scope.value,
+                    scenario.project_id,
+                    text_id,
+                    text_version_id,
+                    lexicon_id.strip(),
+                    normalized_source,
+                    token_position,
+                    normalized_target,
+                    risk_category.strip(),
+                    rationale.strip(),
+                    _now(),
+                ),
+            )
+            revision_ids = list(
+                self._scenario_revision_ids(
+                    connection,
+                    scenario.scenario_version_id,
+                )
+            )
+            revision_ids.append(revision_id)
+            self._append_review_scenario_version(
+                connection,
+                scenario_id,
+                revision_ids,
+                change_note=(
+                    f"Added {selected_action.value} decision for "
+                    f"{normalized_source} in {lexicon_id.strip()}."
+                ),
+            )
+        return self.get_review_scenario(scenario_id)
+
+    def set_review_decision_state(
+        self,
+        scenario_id: str,
+        decision_id: str,
+        *,
+        active: bool,
+        rationale: str,
+    ) -> ReviewScenarioRecord:
+        """Revoke or restore a decision by appending, never overwriting, a revision."""
+
+        if not rationale.strip():
+            raise ValueError("Record why this decision was changed.")
+        self.initialize()
+        with self._connect() as connection:
+            scenario = self._review_scenario(connection, scenario_id)
+            revision_ids = list(
+                self._scenario_revision_ids(
+                    connection,
+                    scenario.scenario_version_id,
+                )
+            )
+            if not revision_ids:
+                raise KeyError(f"Unknown review decision: {decision_id}")
+            placeholders = ",".join("?" for _ in revision_ids)
+            current = connection.execute(
+                f"""
+                SELECT decision_revision_id, decision_id, scenario_id,
+                       revision_number, state, action, scope, project_id, text_id,
+                       text_version_id, lexicon_id, source_form, token_position,
+                       mapping_target, risk_category, rationale,
+                       supersedes_revision_id, created_at
+                FROM review_decisions
+                WHERE decision_revision_id IN ({placeholders}) AND decision_id = ?
+                """,
+                (*revision_ids, decision_id),
+            ).fetchone()
+            if current is None:
+                raise KeyError(f"Unknown review decision: {decision_id}")
+            maximum = connection.execute(
+                """
+                SELECT COALESCE(MAX(revision_number), 0)
+                FROM review_decisions WHERE decision_id = ?
+                """,
+                (decision_id,),
+            ).fetchone()[0]
+            revision_id = _id("decision-revision")
+            new_state = "active" if active else "revoked"
+            connection.execute(
+                """
+                INSERT INTO review_decisions(
+                    decision_revision_id, decision_id, scenario_id, revision_number,
+                    state, action, scope, project_id, text_id, text_version_id,
+                    lexicon_id, source_form, token_position, mapping_target,
+                    risk_category, rationale, supersedes_revision_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    revision_id,
+                    decision_id,
+                    scenario_id,
+                    int(maximum) + 1,
+                    new_state,
+                    current["action"],
+                    current["scope"],
+                    current["project_id"],
+                    current["text_id"],
+                    current["text_version_id"],
+                    current["lexicon_id"],
+                    current["source_form"],
+                    current["token_position"],
+                    current["mapping_target"],
+                    current["risk_category"],
+                    rationale.strip(),
+                    current["decision_revision_id"],
+                    _now(),
+                ),
+            )
+            revision_ids[
+                revision_ids.index(current["decision_revision_id"])
+            ] = revision_id
+            self._append_review_scenario_version(
+                connection,
+                scenario_id,
+                revision_ids,
+                change_note=(
+                    f"{'Restored' if active else 'Revoked'} decision "
+                    f"{decision_id}: {rationale.strip()}"
+                ),
+            )
+        return self.get_review_scenario(scenario_id)
+
+    def restore_review_scenario_version(
+        self,
+        scenario_id: str,
+        source_version_id: str,
+        *,
+        rationale: str,
+    ) -> ReviewScenarioRecord:
+        """Append a new version whose pinned decision set matches an earlier version."""
+
+        if not rationale.strip():
+            raise ValueError("Record why this scenario version was restored.")
+        self.initialize()
+        with self._connect() as connection:
+            self._review_scenario(connection, scenario_id)
+            row = connection.execute(
+                """
+                SELECT decision_revision_ids_json
+                FROM review_scenario_versions
+                WHERE scenario_version_id = ? AND scenario_id = ?
+                """,
+                (source_version_id, scenario_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError(
+                    "The selected historical version does not belong to this scenario."
+                )
+            self._append_review_scenario_version(
+                connection,
+                scenario_id,
+                tuple(json.loads(row["decision_revision_ids_json"])),
+                change_note=f"Restored {source_version_id}: {rationale.strip()}",
+            )
+        return self.get_review_scenario(scenario_id)
+
+    def review_rules_for_text(
+        self,
+        scenario_version_id: str,
+        *,
+        text_id: str,
+        text_version_id: str,
+    ) -> tuple[ReviewRule, ...]:
+        """Resolve only rules eligible for this preserved work and scenario snapshot."""
+
+        decisions = self.list_review_decisions(
+            scenario_version_id,
+            active_only=True,
+        )
+        rules = []
+        for decision in decisions:
+            scope = ReviewScope(decision.scope)
+            if scope in {ReviewScope.WORK, ReviewScope.OCCURRENCE}:
+                if decision.text_id != text_id:
+                    continue
+            if scope == ReviewScope.OCCURRENCE:
+                if decision.text_version_id != text_version_id:
+                    continue
+            rules.append(
+                ReviewRule(
+                    decision_id=decision.decision_id,
+                    decision_revision_id=decision.decision_revision_id,
+                    action=ReviewAction(decision.action),
+                    scope=scope,
+                    lexicon_id=decision.lexicon_id,
+                    source_form=decision.source_form,
+                    mapping_target=decision.mapping_target,
+                    project_id=decision.project_id,
+                    text_id=decision.text_id,
+                    text_version_id=decision.text_version_id,
+                    token_position=decision.token_position,
+                    risk_category=decision.risk_category,
+                    rationale=decision.rationale,
+                )
+            )
+        return tuple(rules)
+
+    @staticmethod
     def _batch(row: sqlite3.Row) -> CorpusBatchRecord:
         values = dict(row)
         values["text_ids"] = tuple(json.loads(values.pop("text_ids_json")))
@@ -439,6 +1174,7 @@ class ProjectRepository:
         protected_stopwords: Iterable[str] = (),
         custom_stopword_additions: Iterable[str] = (),
         custom_stopword_removals: Iterable[str] = (),
+        scenario_version_id: str = "",
     ) -> CorpusBatchRecord:
         """Create a pending comparison batch; pending results stay off dashboards."""
 
@@ -462,6 +1198,20 @@ class ProjectRepository:
             ).fetchone()
             if project is None:
                 raise KeyError(f"Unknown project: {project_id}")
+            if scenario_version_id:
+                scenario = connection.execute(
+                    """
+                    SELECT s.project_id
+                    FROM review_scenario_versions v
+                    JOIN review_scenarios s ON s.scenario_id = v.scenario_id
+                    WHERE v.scenario_version_id = ?
+                    """,
+                    (scenario_version_id,),
+                ).fetchone()
+                if scenario is None or scenario["project_id"] != project_id:
+                    raise ValueError(
+                        "The selected review scenario version does not belong to this project."
+                    )
             placeholders = ",".join("?" for _ in selected_texts)
             found = connection.execute(
                 f"SELECT text_id FROM texts WHERE project_id = ? AND text_id IN ({placeholders})",
@@ -475,8 +1225,8 @@ class ProjectRepository:
                     batch_id, project_id, status, text_ids_json, lexicon_ids_json,
                     phrase_policy, minimum_match_requirement, stopword_mode,
                     protected_stopwords_json, custom_stopword_additions_json,
-                    custom_stopword_removals_json, created_at
-                ) VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    custom_stopword_removals_json, scenario_version_id, created_at
+                ) VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     batch_id,
@@ -489,6 +1239,7 @@ class ProjectRepository:
                     json.dumps(protected),
                     json.dumps(additions),
                     json.dumps(removals),
+                    scenario_version_id,
                     now,
                 ),
             )
@@ -502,7 +1253,8 @@ class ProjectRepository:
                 SELECT batch_id, project_id, status, text_ids_json, lexicon_ids_json,
                        phrase_policy, minimum_match_requirement, stopword_mode,
                        protected_stopwords_json, custom_stopword_additions_json,
-                       custom_stopword_removals_json, created_at, completed_at,
+                       custom_stopword_removals_json, scenario_version_id,
+                       created_at, completed_at,
                        error_message
                 FROM corpus_batches WHERE batch_id = ?
                 """,
@@ -716,6 +1468,10 @@ class ProjectRepository:
             "text_version_id": workspace.document.text_version_id,
             "text_sha256": workspace.document.text_sha256,
             "scenario_id": workspace.comparison.scenario_id,
+            "scenario_version_id": workspace.request.scenario_version_id,
+            "review_decisions": [
+                asdict(rule) for rule in workspace.request.review_rules
+            ],
             "phrase_policy": workspace.request.phrase_policy.value,
             "minimum_match_requirement": workspace.request.minimum_match_requirement,
             "stopword_policy": (
@@ -798,7 +1554,7 @@ class ProjectRepository:
                         "proportion",
                         (
                             f"{result.stopword_coverage.eligible_token_count} "
-                            "eligible non-stopword tokens"
+                            "eligible non-stopword, non-review-excluded tokens"
                         ),
                         filtered_coverage,
                         result.stopword_coverage.matched_token_count,
@@ -1047,6 +1803,75 @@ class ProjectRepository:
                 )
         return rows
 
+    @staticmethod
+    def _review_candidate_rows(workspace: WorkspaceAnalysis) -> list[tuple]:
+        """Retain occurrence-level evidence for semantic review without source text copies."""
+
+        rows: list[tuple] = []
+        for result in workspace.results:
+            tokens_by_id = {token.token_id: token for token in result.tokens}
+            for match in result.matches:
+                if match.selection in {
+                    MatchSelection.NOT_ELIGIBLE,
+                    MatchSelection.SUPPRESSED_COMPONENT,
+                    MatchSelection.SUPPRESSED_OVERLAP,
+                }:
+                    continue
+                tokens = tuple(
+                    tokens_by_id[token_id]
+                    for token_id in match.token_ids
+                    if token_id in tokens_by_id
+                )
+                if not tokens or not any(token.is_lexical for token in tokens):
+                    continue
+                if match.selection == MatchSelection.EXCLUDED_REVIEW:
+                    risk_category = "review_exclusion"
+                    risk_reason = "An active review decision excluded this candidate match."
+                elif "collision" in match.reason.casefold():
+                    risk_category = "source_collision"
+                    risk_reason = (
+                        "Capitalization did not resolve multiple source entries; no entry was guessed."
+                    )
+                elif match.method == MatchMethod.UNMATCHED:
+                    risk_category = "unmatched"
+                    risk_reason = "No published entry matched under the active policy."
+                elif match.method == MatchMethod.LEMMA:
+                    risk_category = "lemma_fallback"
+                    risk_reason = (
+                        "A POS-sensitive lemma supplied the match after the exact form failed."
+                    )
+                elif match.method == MatchMethod.POSSESSIVE:
+                    risk_category = "possessive_normalization"
+                    risk_reason = "Conservative possessive normalization supplied the match."
+                elif match.method == MatchMethod.PHRASE:
+                    risk_category = "multiword_phrase"
+                    risk_reason = "A source-supplied multiword entry supplied this match."
+                elif match.method == MatchMethod.USER_MAPPING:
+                    risk_category = "approved_mapping"
+                    risk_reason = "An explicit active review mapping supplied this match."
+                else:
+                    risk_category = "exact_match"
+                    risk_reason = "Direct published entry; available for optional contextual review."
+                rows.append(
+                    (
+                        result.lexicon_metadata.lexicon_id,
+                        result.lexicon_metadata.display_name,
+                        match.match_id,
+                        match.start_token_position,
+                        match.line_number,
+                        " ".join(token.surface_form for token in tokens),
+                        " ".join(token.normalized_form for token in tokens),
+                        match.matched_term or "",
+                        match.method.value,
+                        match.selection.value,
+                        int(match.included),
+                        risk_category,
+                        risk_reason,
+                        tokens[0].context,
+                    )
+                )
+        return rows
+
     def save_analysis(
         self,
         project_id: str,
@@ -1074,6 +1899,7 @@ class ProjectRepository:
         signature = hashlib.sha256(signature_source.encode("utf-8")).hexdigest()
         metric_rows = self._metric_rows(workspace)
         unmatched = unmatched_views(workspace)
+        review_candidates = self._review_candidate_rows(workspace)
         with self._connect() as connection:
             if batch_id is not None:
                 batch = connection.execute(
@@ -1088,9 +1914,9 @@ class ProjectRepository:
                 """
                 INSERT INTO analysis_runs(
                     run_id, project_id, text_id, text_version_id, batch_id, status, scenario_id,
-                    phrase_policy, minimum_match_requirement, lexicon_ids_json,
+                    scenario_version_id, phrase_policy, minimum_match_requirement, lexicon_ids_json,
                     software_version, run_signature, manifest_json, created_at, completed_at
-                ) VALUES (?, ?, ?, ?, ?, 'complete', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, 'complete', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
@@ -1099,6 +1925,7 @@ class ProjectRepository:
                     text.text_version_id,
                     batch_id,
                     workspace.comparison.scenario_id,
+                    workspace.request.scenario_version_id,
                     workspace.request.phrase_policy.value,
                     workspace.request.minimum_match_requirement,
                     json.dumps(workspace.request.lexicon_ids),
@@ -1143,6 +1970,26 @@ class ProjectRepository:
                         row.example_context,
                     )
                     for row in unmatched
+                ],
+            )
+            connection.executemany(
+                """
+                INSERT INTO review_candidates(
+                    run_id, project_id, text_id, text_version_id, lexicon_id,
+                    lexicon_display_name, match_id, token_position, line_number,
+                    surface_form, normalized_form, matched_term, method, selection,
+                    included, risk_category, risk_reason, context
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        run_id,
+                        project_id,
+                        text_id,
+                        text.text_version_id,
+                        *row,
+                    )
+                    for row in review_candidates
                 ],
             )
             connection.execute(
@@ -1196,25 +2043,90 @@ class ProjectRepository:
             run_ids = self._visible_run_ids(connection, project_id)
             if not run_ids:
                 return ()
-            placeholders = ",".join("?" for _ in run_ids)
-            rows = connection.execute(
-                f"""
-                SELECT r.run_id, r.text_id, r.text_version_id, t.title, t.author,
-                       t.collection_name AS collection, t.date_label, t.genre,
-                       m.lexicon_id, m.lexicon_display_name AS lexicon, m.value_kind,
-                       m.analysis_view, m.metric, m.dimension, m.category, m.weighting, m.scale,
-                       m.denominator, m.value, m.observations, m.matched_tokens, m.lexical_tokens,
-                       m.coverage, r.completed_at
-                FROM analysis_runs r
-                JOIN analysis_metrics m ON m.run_id = r.run_id
-                JOIN texts t ON t.text_id = r.text_id
-                WHERE r.run_id IN ({placeholders})
-                ORDER BY t.title COLLATE NOCASE, m.lexicon_display_name, m.metric,
-                         m.dimension, m.category, m.weighting, m.scale
-                """,
-                run_ids,
-            ).fetchall()
+            return self._metrics_for_run_ids(connection, run_ids)
+
+    @staticmethod
+    def _metrics_for_run_ids(
+        connection: sqlite3.Connection,
+        run_ids: Sequence[str],
+    ) -> tuple[CorpusMetricRecord, ...]:
+        if not run_ids:
+            return ()
+        placeholders = ",".join("?" for _ in run_ids)
+        rows = connection.execute(
+            f"""
+            SELECT r.run_id, r.text_id, r.text_version_id, t.title, t.author,
+                   t.collection_name AS collection, t.date_label, t.genre,
+                   m.lexicon_id, m.lexicon_display_name AS lexicon, m.value_kind,
+                   m.analysis_view, m.metric, m.dimension, m.category, m.weighting, m.scale,
+                   m.denominator, m.value, m.observations, m.matched_tokens, m.lexical_tokens,
+                   m.coverage, r.completed_at
+            FROM analysis_runs r
+            JOIN analysis_metrics m ON m.run_id = r.run_id
+            JOIN texts t ON t.text_id = r.text_id
+            WHERE r.run_id IN ({placeholders})
+            ORDER BY t.title COLLATE NOCASE, m.lexicon_display_name, m.metric,
+                     m.dimension, m.category, m.weighting, m.scale
+            """,
+            tuple(run_ids),
+        ).fetchall()
         return tuple(CorpusMetricRecord(**dict(row)) for row in rows)
+
+    def list_completed_batches(
+        self,
+        project_id: str,
+    ) -> tuple[CorpusBatchRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT batch_id, project_id, status, text_ids_json, lexicon_ids_json,
+                       phrase_policy, minimum_match_requirement, stopword_mode,
+                       protected_stopwords_json, custom_stopword_additions_json,
+                       custom_stopword_removals_json, scenario_version_id,
+                       created_at, completed_at, error_message
+                FROM corpus_batches
+                WHERE project_id = ? AND status = 'complete'
+                ORDER BY completed_at DESC, rowid DESC
+                """,
+                (project_id,),
+            ).fetchall()
+        return tuple(self._batch(row) for row in rows)
+
+    def list_metrics_for_batch(
+        self,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[CorpusMetricRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            batch = connection.execute(
+                """
+                SELECT project_id, status
+                FROM corpus_batches WHERE batch_id = ?
+                """,
+                (batch_id,),
+            ).fetchone()
+            if (
+                batch is None
+                or batch["project_id"] != project_id
+                or batch["status"] != "complete"
+            ):
+                raise ValueError(
+                    "Choose a completed corpus batch belonging to this project."
+                )
+            rows = connection.execute(
+                """
+                SELECT run_id FROM analysis_runs
+                WHERE batch_id = ? AND status = 'complete'
+                ORDER BY text_id, completed_at
+                """,
+                (batch_id,),
+            ).fetchall()
+            return self._metrics_for_run_ids(
+                connection,
+                tuple(row["run_id"] for row in rows),
+            )
 
     def latest_methodology(self, project_id: str) -> Mapping[str, object]:
         """Return one recorded manifest from the latest visible complete batch."""
@@ -1324,3 +2236,55 @@ class ProjectRepository:
                 run_ids,
             ).fetchall()
         return tuple(UnmatchedQcRecord(**dict(row)) for row in rows)
+
+    def list_review_candidates(
+        self,
+        project_id: str,
+        *,
+        include_exact: bool = False,
+    ) -> tuple[ReviewCandidateRecord, ...]:
+        """List occurrence-level evidence from the latest visible complete batch."""
+
+        self.initialize()
+        with self._connect() as connection:
+            run_ids = self._visible_run_ids(connection, project_id)
+            if not run_ids:
+                return ()
+            placeholders = ",".join("?" for _ in run_ids)
+            exact_clause = "" if include_exact else " AND c.risk_category != 'exact_match'"
+            rows = connection.execute(
+                f"""
+                SELECT c.run_id, c.project_id, c.text_id, c.text_version_id,
+                       t.title AS text_title, c.lexicon_id,
+                       c.lexicon_display_name AS lexicon, c.match_id,
+                       c.token_position, c.line_number, c.surface_form,
+                       c.normalized_form, c.matched_term, c.method, c.selection,
+                       c.included, c.risk_category, c.risk_reason, c.context
+                FROM review_candidates c
+                JOIN texts t ON t.text_id = c.text_id
+                WHERE c.run_id IN ({placeholders}){exact_clause}
+                ORDER BY
+                    CASE c.risk_category
+                        WHEN 'source_collision' THEN 0
+                        WHEN 'approved_mapping' THEN 1
+                        WHEN 'review_exclusion' THEN 2
+                        WHEN 'unmatched' THEN 3
+                        WHEN 'lemma_fallback' THEN 4
+                        WHEN 'possessive_normalization' THEN 5
+                        WHEN 'multiword_phrase' THEN 6
+                        ELSE 7
+                    END,
+                    t.title COLLATE NOCASE, c.lexicon_display_name,
+                    c.token_position
+                """,
+                run_ids,
+            ).fetchall()
+        return tuple(
+            ReviewCandidateRecord(
+                **{
+                    **dict(row),
+                    "included": bool(row["included"]),
+                }
+            )
+            for row in rows
+        )

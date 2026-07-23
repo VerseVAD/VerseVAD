@@ -12,6 +12,6 @@ def test_phase2_demo_runs_all_five_sources_and_exports_bundle(tmp_path) -> None:
     ) as source:
         rows = list(csv.DictReader(source))
     assert len(rows) == 5
-    assert {row["software_version"] for row in rows} == {"0.5.0.dev0"}
+    assert {row["software_version"] for row in rows} == {"0.6.0.dev0"}
     assert {row["phrase_policy"] for row in rows} == {"phrase_preferred"}
     assert all(row["source_loaded_at_utc"].endswith("+00:00") for row in rows)

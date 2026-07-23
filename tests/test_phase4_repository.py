@@ -54,7 +54,7 @@ def test_folder_decode_preserves_relative_paths_and_text() -> None:
 
 def test_sqlite_import_versions_and_metadata_are_preserved(tmp_path) -> None:
     repository = ProjectRepository(tmp_path / "versevad.sqlite3")
-    assert repository.schema_version() == 2
+    assert repository.schema_version() == 3
     project = repository.create_project("Jeffers test", researcher="Researcher")
     original = CorpusTextImport("Poem", "poem.txt", "book/poem.txt", "Bright.\n")
     first = repository.import_texts(project.project_id, (original,))[0]

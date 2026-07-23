@@ -18,8 +18,10 @@ from versevad.application import (
     emotion_intensity_views,
     match_views,
     overview_notes,
+    part_of_speech_views,
     run_workspace_analysis,
     scholar_summary_csv,
+    sentiment_association_views,
     unmatched_views,
     vad_views,
 )
@@ -118,9 +120,26 @@ def test_readable_views_keep_constructs_and_denominators_separate(
     assert vad[0].normalized_valence is not None
     assert vad[0].original_scale == "1 to 9"
     associations = emotion_association_views(synthetic_workspace)
+    assert {row.category for row in associations} <= {
+        "anger",
+        "anticipation",
+        "disgust",
+        "fear",
+        "joy",
+        "sadness",
+        "surprise",
+        "trust",
+    }
+    assert not {"positive", "negative"} & {row.category for row in associations}
     fear = next(row for row in associations if row.category == "fear")
     assert fear.token_count == 1
     assert fear.rate_per_lexical_token == pytest.approx(0.25)
+    sentiments = sentiment_association_views(synthetic_workspace)
+    assert {row.category for row in sentiments} == {"positive", "negative"}
+    pos_rows = part_of_speech_views(synthetic_workspace)
+    assert sum(row.token_count for row in pos_rows) == 4
+    assert sum(row.share_of_lexical_tokens for row in pos_rows) == pytest.approx(1.0)
+    assert all(row.lexical_token_denominator == 4 for row in pos_rows)
     intensities = emotion_intensity_views(synthetic_workspace)
     fear_intensity = next(row for row in intensities if row.category == "fear")
     assert fear_intensity.mean_matched_intensity == pytest.approx(0.6)
@@ -145,10 +164,12 @@ def test_scholar_summary_and_guide_are_excel_friendly(synthetic_workspace) -> No
     summary_rows = _csv_rows(summary)
     assert {row["section"] for row in summary_rows} >= {
         "Coverage",
+        "Part of speech",
         "Normalized VAD",
         "Cumulative normative lexical load",
         "Stopword sensitivity",
         "Emotion association",
+        "Sentiment association",
         "Emotion intensity",
     }
     vad_metrics = [

@@ -2,7 +2,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from versevad.db.repository import ProjectRepository
+from versevad.db.repository import CorpusTextImport, ProjectRepository
 
 
 APP_PATH = Path(__file__).parents[1] / "src" / "versevad" / "ui" / "app.py"
@@ -21,7 +21,7 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     ]
     navigation = app.get("button_group")[0]
     assert navigation.label == "Workspace"
-    assert navigation.value == "One poem"
+    assert navigation.value == "One Poem"
     assert "Poem title or working label" in [field.label for field in app.text_input]
     assert "Analyze this text" in [button.label for button in app.button]
     assert "Run self-test" in [button.label for button in app.button]
@@ -32,12 +32,48 @@ def test_interface_opens_persistent_corpus_workspace(tmp_path, monkeypatch) -> N
     monkeypatch.setenv("VERSEVAD_DATABASE_PATH", str(tmp_path / "versevad.sqlite3"))
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]
-    navigation.set_value("Projects & corpus")
+    navigation.set_value("Projects & Corpus")
     app.run(timeout=30)
     assert not app.exception
-    assert [title.value for title in app.title] == ["VerseVAD projects & corpus"]
+    assert [title.value for title in app.title] == ["VerseVAD Projects & Corpus"]
     assert "Project title" in [field.label for field in app.text_input]
     assert "Create project" in [button.label for button in app.button]
+
+
+def test_corpus_workspace_exposes_phase5_review_scenarios(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "versevad.sqlite3"
+    monkeypatch.setenv("VERSEVAD_DATABASE_PATH", str(database_path))
+    repository = ProjectRepository(database_path)
+    project = repository.create_project("Review interface project")
+    repository.import_texts(
+        project.project_id,
+        (CorpusTextImport("Poem", "poem.txt", "poem.txt", "Bright."),),
+    )
+    repository.create_review_scenario(
+        project.project_id,
+        "Conservative review",
+    )
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Projects & Corpus")
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert [tab.label for tab in app.tabs] == [
+        "Works & Metadata",
+        "Language Profile",
+        "Analyze & Compare",
+        "Review & Scenarios",
+        "Excel Export",
+        "Project Settings",
+    ]
+    assert "Review scenario" in [field.label for field in app.selectbox]
+    assert "Scenario to edit" in [field.label for field in app.selectbox]
+    assert "Create review scenario" in [button.label for button in app.button]
 
 
 def test_interface_deletes_only_exactly_confirmed_project(tmp_path, monkeypatch) -> None:
@@ -49,7 +85,7 @@ def test_interface_deletes_only_exactly_confirmed_project(tmp_path, monkeypatch)
 
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]
-    navigation.set_value("Projects & corpus")
+    navigation.set_value("Projects & Corpus")
     app.run(timeout=30)
     active_project = next(
         field for field in app.selectbox if field.label == "Active project"
@@ -117,11 +153,12 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert any("Analysis complete" in message.value for message in app.success)
     assert [tab.label for tab in app.tabs] == [
         "Overview",
-        "VAD profile",
-        "Emotion profile",
+        "Language Profile",
+        "VAD Profile",
+        "Emotion Profile",
         "Evidence",
         "Downloads",
-        "How to read",
+        "How to Read",
     ]
     assert ("Lexicons analyzed", "3") in [
         (metric.label, metric.value) for metric in app.metric
@@ -132,9 +169,14 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Download CSV reading guide",
         "Download full audit bundle",
     }
-    assert any("Parallel normalized VAD views" in heading.value for heading in app.subheader)
-    assert any("Stopword sensitivity" in heading.value for heading in app.subheader)
-    assert any("Categorical emotion associations" in heading.value for heading in app.subheader)
+    assert any("Parallel Normalized VAD Views" in heading.value for heading in app.subheader)
+    assert any("Stopword Sensitivity" in heading.value for heading in app.subheader)
+    assert any("Eight Emotion Associations" in heading.value for heading in app.subheader)
+    assert any(
+        "Positive and Negative Sentiment Associations" in heading.value
+        for heading in app.subheader
+    )
+    assert any("Part-of-Speech Profile" in heading.value for heading in app.subheader)
 
 
 def test_windows_helpers_are_local_and_telemetry_disabled() -> None:

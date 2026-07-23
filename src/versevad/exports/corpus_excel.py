@@ -29,11 +29,21 @@ PAPER = "FBF8F1"
 PALE = "EEF3EC"
 WHITE = "FFFFFF"
 
-CORPUS_WORKBOOK_API_VERSION = 2
+CORPUS_WORKBOOK_API_VERSION = 4
 
 
 def _label(name: str) -> str:
     return name.replace("_", " ").strip().title()
+
+
+def _construct_label(metric: str, category: str) -> str:
+    if metric == "association_rate":
+        if category in {"positive", "negative"}:
+            return "Sentiment Association"
+        return "Emotion Association"
+    if metric.startswith("intensity_"):
+        return "Emotion Intensity"
+    return "Coverage"
 
 
 def _write_sheet(
@@ -100,6 +110,8 @@ def build_corpus_workbook(
     metrics: Sequence[CorpusMetricRecord],
     unmatched: Sequence[UnmatchedQcRecord],
     methodology: Mapping[str, object] | None = None,
+    review_decisions: Sequence[Mapping[str, object]] = (),
+    part_of_speech_rows: Sequence[Mapping[str, object]] = (),
 ) -> bytes:
     """Return an in-memory `.xlsx`; no project text is sent elsewhere."""
 
@@ -112,7 +124,18 @@ def build_corpus_workbook(
     readme["A3"] = project.title
     readme["A3"].font = Font(name="Aptos Display", size=16, bold=True, color=RUST)
     guidance = (
-        ("Begin with", "Corpus profiles, then Work VAD and Coverage / emotion."),
+        (
+            "Begin with",
+            "Corpus Profiles, then Work VAD, Language Profile, and Coverage and Emotion.",
+        ),
+        (
+            "Part-of-speech profile",
+            "Counts and shares use all eligible lexical tokens and are independent of affective-lexicon coverage.",
+        ),
+        (
+            "Emotion and sentiment",
+            "Eight emotion associations, positive/negative sentiment, and supplied emotion intensity remain separately labeled constructs.",
+        ),
         (
             "Token-weighted volume profile",
             "Pools included matched observations. Long works contribute more because they contain more of the volume's words.",
@@ -191,7 +214,7 @@ def build_corpus_workbook(
     )
     _write_sheet(
         workbook,
-        title="Corpus profiles",
+        title="Corpus Profiles",
         purpose=(
             "Two collection views: pooled matched observations versus equal weight per eligible work. "
             "Their difference is analytically meaningful."
@@ -200,7 +223,7 @@ def build_corpus_workbook(
         rows=profile_rows,
         table_name="CorpusProfiles",
     )
-    profile_sheet = workbook["Corpus profiles"]
+    profile_sheet = workbook["Corpus Profiles"]
     if profiles:
         chart = BarChart()
         chart.type = "bar"
@@ -282,7 +305,7 @@ def build_corpus_workbook(
     load_metrics = [row for row in metrics if row.metric in cumulative_metric_names]
     _write_sheet(
         workbook,
-        title="Cumulative load",
+        title="Cumulative Load",
         purpose=(
             "Length-sensitive sums by work. Above/below/absolute loads use distance from the 0.5 midpoint; "
             "net load permits directional cancellation."
@@ -320,12 +343,13 @@ def build_corpus_workbook(
     other = [row for row in metrics if not row.metric.startswith("vad_")]
     _write_sheet(
         workbook,
-        title="Coverage and emotion",
+        title="Coverage and Emotion",
         purpose="Coverage, categorical association, and supplied emotion-intensity metrics remain separate constructs.",
         headers=(
             "Work",
             "Collection",
             "Lexicon",
+            "Construct",
             "Analysis view",
             "Metric",
             "Category",
@@ -343,6 +367,7 @@ def build_corpus_workbook(
                 row.title,
                 row.collection,
                 row.lexicon,
+                _construct_label(row.metric, row.category),
                 _label(row.analysis_view),
                 _label(row.metric),
                 row.category.title(),
@@ -359,6 +384,46 @@ def build_corpus_workbook(
         ),
         table_name="CoverageEmotion",
     )
+
+    if part_of_speech_rows:
+        _write_sheet(
+            workbook,
+            title="Part of Speech",
+            purpose=(
+                "Model-assigned universal part-of-speech counts and relative shares "
+                "use all eligible lexical tokens, independently of lexicon coverage."
+            ),
+            headers=(
+                "Scope",
+                "Work",
+                "Collection",
+                "Universal POS tag",
+                "Part of speech",
+                "Token count",
+                "Share of lexical tokens",
+                "Unique normalized types",
+                "Examples",
+                "Lexical-token denominator",
+                "Model",
+            ),
+            rows=(
+                (
+                    row.get("Scope", ""),
+                    row.get("Work", ""),
+                    row.get("Collection", ""),
+                    row.get("Universal POS tag", ""),
+                    row.get("Part of speech", ""),
+                    row.get("Token count", ""),
+                    row.get("Share of lexical tokens", ""),
+                    row.get("Unique normalized types", ""),
+                    row.get("Examples", ""),
+                    row.get("Lexical-token denominator", ""),
+                    row.get("Model", ""),
+                )
+                for row in part_of_speech_rows
+            ),
+            table_name="PartOfSpeech",
+        )
 
     _write_sheet(
         workbook,
@@ -398,6 +463,51 @@ def build_corpus_workbook(
         table_name="UnmatchedQc",
     )
 
+    if review_decisions:
+        _write_sheet(
+            workbook,
+            title="Review Decisions",
+            purpose=(
+                "Exact active decision revisions pinned to the exported scenario. "
+                "Flags do not change scores; exclusions and mappings apply only "
+                "within this recorded scenario version."
+            ),
+            headers=(
+                "Decision ID",
+                "Decision revision ID",
+                "Action",
+                "Scope",
+                "Lexicon ID",
+                "Source form",
+                "Mapping target",
+                "Project ID",
+                "Text ID",
+                "Text version ID",
+                "Token position",
+                "Risk category",
+                "Rationale",
+            ),
+            rows=(
+                (
+                    decision.get("decision_id", ""),
+                    decision.get("decision_revision_id", ""),
+                    _label(str(decision.get("action", ""))),
+                    _label(str(decision.get("scope", ""))),
+                    decision.get("lexicon_id", ""),
+                    decision.get("source_form", ""),
+                    decision.get("mapping_target", ""),
+                    decision.get("project_id", ""),
+                    decision.get("text_id", ""),
+                    decision.get("text_version_id", ""),
+                    decision.get("token_position", ""),
+                    _label(str(decision.get("risk_category", ""))),
+                    decision.get("rationale", ""),
+                )
+                for decision in review_decisions
+            ),
+            table_name="ReviewDecisions",
+        )
+
     metadata_headers = (
         "Text ID",
         "Text version ID",
@@ -414,7 +524,7 @@ def build_corpus_workbook(
     )
     _write_sheet(
         workbook,
-        title="Text metadata",
+        title="Text Metadata",
         purpose="Stable identities and source hashes for the active preserved text versions. Original text is not duplicated in this workbook.",
         headers=metadata_headers,
         rows=(
@@ -443,6 +553,14 @@ def build_corpus_workbook(
             methodology_rows = (
                 ("Software version", methodology.get("software_version", "")),
                 ("Scenario", methodology.get("scenario_id", "")),
+                (
+                    "Scenario version",
+                    methodology.get("scenario_version_id", ""),
+                ),
+                (
+                    "Active review decision revisions",
+                    len(methodology.get("review_decisions", ())),
+                ),
                 ("Phrase policy", methodology.get("phrase_policy", "")),
                 (
                     "Minimum match requirement",

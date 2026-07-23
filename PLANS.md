@@ -1,6 +1,6 @@
 # VerseVAD Implementation Plan
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 Status markers: `[x]` complete, `[ ]` pending, `[~]` in progress, `[?]` human
 review required.
@@ -201,13 +201,58 @@ review required.
 
 ## Phase 5 - Review system
 
-- [ ] Add reversible flags, exclusions, normalization mappings, and scenarios.
-- [ ] Add semantic-risk review and scoped, versioned decisions.
+- [x] Add named project review scenarios and immutable scenario-version
+  snapshots.
+- [x] Add append-only, reversible flag, exclusion, and approved-mapping
+  decision revisions with recorded rationales.
+- [x] Add occurrence, work, project, and global-within-scenario-use scopes and
+  reject conflicting same-scope mappings.
+- [x] Apply mappings only after exact, apostrophe/possessive, and lemma
+  candidates fail; verify every mapping target as an exact installed entry.
+- [x] Preserve review-excluded candidates in the audit while omitting them from
+  reviewed aggregates; keep flags non-scoring.
+- [x] Add semantic-risk review candidates, optional exact-match review, and
+  legacy unmatched-quality-control notes.
+- [x] Pin every reviewed batch and run to its exact scenario version and
+  decision revisions.
+- [x] Add baseline-versus-reviewed immutable batch comparison and review
+  decision provenance in CSV, JSON, ZIP, and Excel.
+- [x] Create and verify a non-overwriting backup before schema-3 migration.
+- [x] Separate positive/negative sentiment from the eight emotion categories.
+- [x] Add lexicon-independent part-of-speech quantity/share profiles for one
+  poem, combined corpus, work-level comparison, summaries, and Excel.
+- [x] Standardize visible headings and navigation in title case.
+- [x] Add a beginner-focused values/terminology Word guide and update the
+  comprehensive user manual, methodology, data model, and validation steps.
+
+### Phase 5 exit criteria
+
+- [x] A scholar can retain an unreviewed baseline, apply a named reviewed
+  scenario, compare immutable batches, and reproduce the exact active decision
+  revisions.
+- [x] Revoke, restore, and restore-snapshot operations append history rather
+  than rewriting completed decisions, scenario versions, or analysis runs.
+- [x] Flags do not change scores; exclusions and mappings change only the
+  explicitly selected scenario.
+- [x] Occurrence-scoped mappings affect only the pinned token position and
+  broader scopes remain explicit in the audit.
+- [x] Part-of-speech shares use all eligible lexical tokens independently of
+  affective-lexicon coverage and retain the model/version caution.
+- [x] Eight-emotion, positive/negative sentiment, and numeric intensity results
+  remain separately labeled constructs.
+- [x] All 98 automated tests, both synthetic validation demonstrations, the
+  11-check diagnostic, source checks, and lock-file check pass.
+- [x] Phase 5 documentation and beginner test steps match current behavior.
+- [x] Create the Phase 5 source-control checkpoint using the bundled Git
+  executable.
 
 ## Phase 6 - Scholarly diagnostics
 
-- [ ] Add contribution analysis, anomaly candidates, close-reading prompts,
-  sensitivity analysis, trends, and disagreement views.
+- [ ] Add anomaly candidates and structured close-reading prompts.
+- [ ] Add corpus trends, source-disagreement views, and optional descriptive
+  change-over-sequence views.
+- [ ] Add additional sensitivity views beyond the completed stopword,
+  weighting, phrase-policy, and review-scenario comparisons.
 
 ## Phase 7 - Publication support
 

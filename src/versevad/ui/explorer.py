@@ -17,7 +17,7 @@ def _render_vad(result: LexiconExplorerResult) -> None:
     vad = [row for row in result.entries if row.original_scores is not None]
     if not vad:
         return
-    st.subheader("Valence, arousal, and dominance")
+    st.subheader("Valence, Arousal, and Dominance")
     mode = st.radio(
         "Value display",
         options=["Original and normalized", "Original source values", "Normalized comparison"],
@@ -122,7 +122,7 @@ def _render_vad(result: LexiconExplorerResult) -> None:
             )
 
     if result.comparisons:
-        st.subheader("VerseVAD-derived cross-lexicon spread")
+        st.subheader("VerseVAD-Derived Cross-Lexicon Spread")
         spread = pd.DataFrame(
             [
                 {
@@ -148,12 +148,35 @@ def _render_vad(result: LexiconExplorerResult) -> None:
 
 
 def _render_emotion(result: LexiconExplorerResult) -> None:
-    associations = [
+    association_entries = [
         row for row in result.entries if row.value_kind == "categorical_association"
     ]
+    emotions = [
+        row
+        for row in association_entries
+        if any(
+            category
+            in {
+                "anger",
+                "anticipation",
+                "disgust",
+                "fear",
+                "joy",
+                "sadness",
+                "surprise",
+                "trust",
+            }
+            for category in row.associations
+        )
+    ]
+    sentiments = [
+        row
+        for row in association_entries
+        if any(category in {"positive", "negative"} for category in row.associations)
+    ]
     intensities = [row for row in result.entries if row.intensities]
-    if associations:
-        st.subheader("Categorical emotion associations")
+    if emotions:
+        st.subheader("Eight Emotion Associations")
         st.dataframe(
             pd.DataFrame(
                 [
@@ -162,19 +185,54 @@ def _render_emotion(result: LexiconExplorerResult) -> None:
                         "Matched entry": row.matched_term,
                         "Method": row.match_method,
                         "Source associations": (
-                            ", ".join(row.associations)
+                            ", ".join(
+                                category
+                                for category in row.associations
+                                if category
+                                in {
+                                    "anger",
+                                    "anticipation",
+                                    "disgust",
+                                    "fear",
+                                    "joy",
+                                    "sadness",
+                                    "surprise",
+                                    "trust",
+                                }
+                            )
                             if row.associations
                             else "No positive associations in the source entry"
                         ),
                     }
-                    for row in associations
+                    for row in emotions
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+    if sentiments:
+        st.subheader("Positive and Negative Sentiment Associations")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Lexicon": row.lexicon,
+                        "Matched entry": row.matched_term,
+                        "Method": row.match_method,
+                        "Source associations": ", ".join(
+                            category
+                            for category in row.associations
+                            if category in {"positive", "negative"}
+                        ),
+                    }
+                    for row in sentiments
                 ]
             ),
             hide_index=True,
             width="stretch",
         )
     if intensities:
-        st.subheader("Emotion intensity entries")
+        st.subheader("Emotion Intensity Entries")
         st.dataframe(
             pd.DataFrame(
                 [
@@ -197,7 +255,7 @@ def _render_emotion(result: LexiconExplorerResult) -> None:
 def _render_components(result: LexiconExplorerResult) -> None:
     if not result.component_averages:
         return
-    st.subheader("Derived component averages")
+    st.subheader("Derived Component Averages")
     st.warning(
         "No published phrase entry was found in these VAD sources. The rows below "
         "average exact component entries and are VerseVAD-derived—not published phrase ratings."

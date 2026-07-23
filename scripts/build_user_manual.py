@@ -439,7 +439,12 @@ def _configure_styles(document: Document) -> None:
     formula.paragraph_format.line_spacing = 1.1
 
 
-def _configure_page(document: Document, version: str) -> None:
+def _configure_page(
+    document: Document,
+    version: str,
+    *,
+    header_title: str = "VerseVAD User Manual",
+) -> None:
     section = document.sections[0]
     section.page_width = Inches(8.5)
     section.page_height = Inches(11)
@@ -455,7 +460,7 @@ def _configure_page(document: Document, version: str) -> None:
     paragraph = header.paragraphs[0]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
     _set_spacing(paragraph, after=0, line=1.0)
-    run = paragraph.add_run("VerseVAD User Manual")
+    run = paragraph.add_run(header_title)
     _set_run_font(run, size=9, color=MUTED, bold=True)
     run = paragraph.add_run(f"  |  {version}")
     _set_run_font(run, size=9, color=MUTED)
@@ -479,28 +484,34 @@ def _parse_table(lines: list[str]) -> list[list[str]]:
     return rows
 
 
-def build_manual() -> Path:
+def build_document_from_source(
+    *,
+    source: Path,
+    output: Path,
+    title: str,
+    subject: str,
+    header_title: str,
+    comments: str,
+) -> Path:
     project_data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     version = project_data["project"]["version"]
     try:
         updated = date.today().strftime("%B %-d, %Y")
     except ValueError:
         updated = date.today().strftime("%B %#d, %Y")
-    markdown = SOURCE.read_text(encoding="utf-8")
+    markdown = source.read_text(encoding="utf-8")
     markdown = markdown.replace("{{VERSION}}", version).replace("{{DATE}}", updated)
 
     document = Document()
     _configure_styles(document)
-    _configure_page(document, version)
-    document.core_properties.title = "VerseVAD User Manual"
-    document.core_properties.subject = "Local affective-lexicon analysis user manual"
+    _configure_page(document, version, header_title=header_title)
+    document.core_properties.title = title
+    document.core_properties.subject = subject
     document.core_properties.author = "VerseVAD"
     document.core_properties.keywords = (
         "VerseVAD, valence, arousal, dominance, affective lexicon, corpus"
     )
-    document.core_properties.comments = (
-        "Generated from docs/VerseVAD_User_Manual_Source.md"
-    )
+    document.core_properties.comments = comments
 
     bullet_num_id = _add_numbering_definition(document, bullet=True)
     numbered_num_id: int | None = None
@@ -619,9 +630,20 @@ def build_manual() -> Path:
         index += 1
 
     flush_paragraph()
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    document.save(OUTPUT)
-    return OUTPUT
+    output.parent.mkdir(parents=True, exist_ok=True)
+    document.save(output)
+    return output
+
+
+def build_manual() -> Path:
+    return build_document_from_source(
+        source=SOURCE,
+        output=OUTPUT,
+        title="VerseVAD User Manual",
+        subject="Local affective-lexicon analysis user manual",
+        header_title="VerseVAD User Manual",
+        comments="Generated from docs/VerseVAD_User_Manual_Source.md",
+    )
 
 
 if __name__ == "__main__":

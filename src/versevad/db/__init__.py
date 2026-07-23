@@ -8,6 +8,10 @@ from versevad.db.repository import (
     CorpusTextRecord,
     ProjectRecord,
     ProjectRepository,
+    ReviewCandidateRecord,
+    ReviewDecisionRecord,
+    ReviewScenarioRecord,
+    ReviewScenarioVersionRecord,
     UnmatchedQcRecord,
     default_database_path,
 )
@@ -20,6 +24,10 @@ __all__ = [
     "CorpusTextRecord",
     "ProjectRecord",
     "ProjectRepository",
+    "ReviewCandidateRecord",
+    "ReviewDecisionRecord",
+    "ReviewScenarioRecord",
+    "ReviewScenarioVersionRecord",
     "UnmatchedQcRecord",
     "default_database_path",
 ]

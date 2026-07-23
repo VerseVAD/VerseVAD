@@ -85,6 +85,23 @@ made a public release.
 - Header workspace tabs for One poem, Projects & corpus, and Lexicon Explorer.
 - Comprehensive Word user manual with a maintainable Markdown source and
   repeatable local build script.
+- Phase 5 schema-3 review system with named scenarios, immutable scenario
+  versions, append-only flag/exclude/map decision revisions, occurrence/work/
+  project/global scopes, rationales, and semantic-risk candidate evidence.
+- Verified non-overwriting pre-schema-3 database backups and exact
+  scenario-version links on immutable corpus batches and analysis runs.
+- Unreviewed-versus-reviewed batch comparison with like-for-like coverage and
+  VAD deltas, plus revoke, restore, and restore-snapshot workflows.
+- Review decisions and methodology provenance in CSV, JSON, ZIP, and optional
+  corpus Excel sheets.
+- Separate eight-emotion and positive/negative sentiment presentation in the
+  one-poem workspace, Lexicon Explorer, readable summary, and Excel construct
+  labels.
+- Lexicon-independent part-of-speech profiles with universal POS counts,
+  lexical-token shares, unique types, examples, one-poem visualization,
+  combined/work-level corpus comparison, and Excel export.
+- A dedicated beginner-focused Word values and terminology guide with formulas,
+  worked examples, interpretive cautions, and reporting templates.
 
 ### Changed
 
@@ -108,6 +125,10 @@ made a public release.
 - Contributor ranking now uses the signed midpoint-centered contribution
   `frequency × (normalized rating - 0.5)` while retaining the mean-change audit
   value.
+- Project development version advanced to `0.6.0.dev0`; corpus database schema
+  advanced to version 3 and corpus workbook API to version 4.
+- Visible navigation, tabs, sections, and workspace headings now use consistent
+  title case, including `Projects & Corpus` and `Installation Check`.
 
 ### Fixed
 
@@ -117,3 +138,5 @@ made a public release.
   application-model updates.
 - Prevented an already-open Streamlit process from pairing the updated corpus
   page with the older four-argument Excel exporter.
+- Prevented stale Streamlit state from pairing Phase 5 or part-of-speech UI
+  code with older application and workbook service APIs.

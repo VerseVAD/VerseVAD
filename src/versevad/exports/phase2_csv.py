@@ -18,6 +18,7 @@ from versevad.models import CrossLexiconComparison, Phase2AnalysisResult
 MATCH_FIELDS = [
     "analysis_id",
     "scenario_id",
+    "scenario_version_id",
     "phrase_policy",
     "text_id",
     "text_version_id",
@@ -102,6 +103,7 @@ def _match_rows(results: tuple[Phase2AnalysisResult, ...]) -> Iterable[dict[str,
             yield {
                 "analysis_id": result.analysis_id,
                 "scenario_id": result.scenario_id,
+                "scenario_version_id": result.scenario_version_id,
                 "phrase_policy": result.phrase_policy.value,
                 "text_id": result.document.text_id,
                 "text_version_id": result.document.text_version_id,
@@ -150,6 +152,7 @@ def _coverage_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, 
         common = {
             "analysis_id": result.analysis_id,
             "scenario_id": result.scenario_id,
+            "scenario_version_id": result.scenario_version_id,
             "phrase_policy": result.phrase_policy.value,
             "text_id": result.document.text_id,
             "text_version_id": result.document.text_version_id,
@@ -288,6 +291,18 @@ def _manifest_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, 
             "software_version": __version__,
             "analysis_id": result.analysis_id,
             "scenario_id": result.scenario_id,
+            "scenario_version_id": result.scenario_version_id,
+            "review_decision_revision_ids": json.dumps(
+                [
+                    rule.decision_revision_id
+                    for rule in result.review_rules
+                ]
+            ),
+            "review_decisions": json.dumps(
+                [asdict(rule) for rule in result.review_rules],
+                default=_json_default,
+                sort_keys=True,
+            ),
             "phrase_policy": result.phrase_policy.value,
             "text_id": result.document.text_id,
             "text_version_id": result.document.text_version_id,
