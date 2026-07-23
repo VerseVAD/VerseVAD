@@ -89,6 +89,21 @@ work's own denominator. Counts, shares, unique normalized types, examples,
 model name, and model version remain visible. These model-generated labels can
 be uncertain for poetic syntax, archaisms, fragments, and ambiguity.
 
+Two aggregations are reported from the same token records. The broad profile
+merges selected tags for readable description. The detailed profile preserves
+the model's individual Universal Dependencies tags, counts, and shares. Both
+use the same lexical-token denominator and each separately sums to one apart
+from display rounding.
+
+For the displayed quantity/share profile, VerseVAD merges source tags `NOUN`
+and `PROPN` into one **Noun** category. The original token tag remains in the
+audit. Source tag `ADP` is labeled **Preposition** in beginner-facing output;
+it remains distinct from `ADV` (**Adverb**).
+
+Source tags `VERB` and `AUX` are likewise merged into **Verb**. This retains
+forms of `be` and other auxiliary/copular uses in the broad verb quantity
+requested by the user while preserving their original tags in token evidence.
+
 ## Dual VAD reporting and stopword policy
 
 VerseVAD does not treat stopword removal as neutral preprocessing. Every VAD

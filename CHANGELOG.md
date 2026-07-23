@@ -129,6 +129,13 @@ made a public release.
   advanced to version 3 and corpus workbook API to version 4.
 - Visible navigation, tabs, sections, and workspace headings now use consistent
   title case, including `Projects & Corpus` and `Installation Check`.
+- Part-of-speech output merges source `NOUN` and `PROPN` tags into the single
+  beginner-facing category `Noun`, retains the original tags in evidence, and
+  labels `ADP` as `Preposition`. It also merges `VERB` and `AUX` into `Verb`,
+  so auxiliary and copular forms such as `was` remain in the broad verb count.
+- Part-of-speech output now pairs the broad reader-facing profile with a
+  detailed Universal Dependencies tag breakdown, preserving separate
+  NOUN/PROPN and VERB/AUX counts and shares for methodological audit.
 
 ### Fixed
 

@@ -391,13 +391,16 @@ def build_corpus_workbook(
             title="Part of Speech",
             purpose=(
                 "Model-assigned universal part-of-speech counts and relative shares "
-                "use all eligible lexical tokens, independently of lexicon coverage."
+                "use all eligible lexical tokens, independently of lexicon coverage. "
+                "Noun combines source NOUN and PROPN tags; Verb combines VERB "
+                "and AUX tags."
             ),
             headers=(
                 "Scope",
+                "Profile Level",
                 "Work",
                 "Collection",
-                "Universal POS tag",
+                "Source POS tag(s)",
                 "Part of speech",
                 "Token count",
                 "Share of lexical tokens",
@@ -409,9 +412,10 @@ def build_corpus_workbook(
             rows=(
                 (
                     row.get("Scope", ""),
+                    row.get("Profile Level", ""),
                     row.get("Work", ""),
                     row.get("Collection", ""),
-                    row.get("Universal POS tag", ""),
+                    row.get("Source POS tag(s)", ""),
                     row.get("Part of speech", ""),
                     row.get("Token count", ""),
                     row.get("Share of lexical tokens", ""),

@@ -22,8 +22,9 @@ equal-work-weighted profile so long poems do not determine the only result.
 
 The new Language Profile reports model-assigned part-of-speech counts and
 relative shares independently of affective-lexicon coverage, both for one poem
-and for combined/work-by-work corpus views. Positive/negative sentiment is
-presented separately from the eight emotion associations.
+and for combined/work-by-work corpus views. It pairs a broad readable profile
+with a detailed Universal Dependencies tag breakdown. Positive/negative
+sentiment is presented separately from the eight emotion associations.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,

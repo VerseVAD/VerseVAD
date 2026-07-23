@@ -49,6 +49,7 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Positive and negative sentiment associations",
             "Installation Check",
             "Part-of-speech profile",
+            "Detailed Model-Tag Breakdown",
         ):
             assert required in text
 
@@ -108,6 +109,7 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Stopwords and the Two VAD Views",
             "Token-Weighted and Type-Weighted Statistics",
             "Part-of-Speech Profiles",
+            "Detailed Model Tags",
             "Dispersion of Matched Ratings",
             "Stopword Sensitivity",
             "Cumulative Normative Lexical Load",

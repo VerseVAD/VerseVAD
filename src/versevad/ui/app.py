@@ -30,6 +30,7 @@ _application_was_reloaded = (
             "vad_contributor_views",
             "vad_sensitivity_views",
             "part_of_speech_views",
+            "detailed_part_of_speech_views",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -76,6 +77,7 @@ from versevad.application import (
     csv_reading_guide,
     decode_uploaded_text,
     detailed_export_zip,
+    detailed_part_of_speech_views,
     emotion_association_views,
     emotion_intensity_views,
     match_views,
@@ -123,7 +125,7 @@ if _explorer_was_reloaded:
 # Corpus Excel gained a methodology argument after the persistent workspace
 # first shipped. An already-open Streamlit process can otherwise retain the
 # four-argument exporter while loading the newer five-argument corpus page.
-_CORPUS_RUNTIME_REVISION = "2026-07-23-phase5-review-pos-2"
+_CORPUS_RUNTIME_REVISION = "2026-07-23-phase5-review-pos-3"
 import versevad.exports.corpus_excel as _corpus_excel_services
 
 _corpus_was_reloaded = (
@@ -581,14 +583,16 @@ if workspace_page == "One Poem":
             "This is a grammatical profile of all eligible lexical token occurrences, "
             "independent of affective-lexicon coverage. The count is the number of "
             "occurrences assigned to a category; the share divides that count by all "
-            "eligible lexical tokens in this text."
+            "eligible lexical tokens in this text. The displayed Noun category combines "
+            "the model's common-noun (NOUN) and proper-noun (PROPN) tags; Verb "
+            "combines main-verb (VERB) and auxiliary/copular (AUX) tags."
         )
         pos_rows = part_of_speech_views(workspace)
         if pos_rows:
             pos_frame = _frame(
                 pos_rows,
                 {
-                    "tag": "Universal POS tag",
+                    "tag": "Source POS tag(s)",
                     "category": "Part of speech",
                     "token_count": "Token count",
                     "share_of_lexical_tokens": "Share of lexical tokens",
@@ -603,6 +607,31 @@ if workspace_page == "One Poem":
             )
             st.dataframe(
                 pos_frame.style.format(
+                    {"Share of lexical tokens": lambda value: _percentage(value)}
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            st.subheader("Detailed Model-Tag Breakdown")
+            st.write(
+                "This second table preserves the installed model's Universal "
+                "Dependencies distinctions. Use it to audit how the broad Noun and "
+                "Verb rows were composed."
+            )
+            detailed_pos_frame = _frame(
+                detailed_part_of_speech_views(workspace),
+                {
+                    "tag": "Universal POS tag",
+                    "category": "Detailed category",
+                    "token_count": "Token count",
+                    "share_of_lexical_tokens": "Share of lexical tokens",
+                    "unique_type_count": "Unique normalized types",
+                    "example_forms": "Examples",
+                    "lexical_token_denominator": "Lexical-token denominator",
+                },
+            )
+            st.dataframe(
+                detailed_pos_frame.style.format(
                     {"Share of lexical tokens": lambda value: _percentage(value)}
                 ),
                 hide_index=True,

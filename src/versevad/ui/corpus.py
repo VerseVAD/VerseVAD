@@ -14,6 +14,7 @@ from versevad.application import (
     LEXICON_SPECS,
     TextImportError,
     WorkspaceAnalysisError,
+    detailed_part_of_speech_views_for_tokens,
     load_lexicon,
     part_of_speech_views_for_tokens,
 )
@@ -50,6 +51,7 @@ def _corpus_part_of_speech_rows(
     texts = repository.list_texts(project_id)
     metadata = preprocessor.metadata
     signature = (
+        "versevad-pos-profile-v2",
         project_id,
         metadata.recipe_id,
         metadata.pipeline_name,
@@ -81,13 +83,47 @@ def _corpus_part_of_speech_rows(
         )
         tokens = preprocessor.process(document)
         all_tokens.extend(tokens)
-        for view in part_of_speech_views_for_tokens(tokens):
+        for profile_level, views in (
+            ("Broad Categories", part_of_speech_views_for_tokens(tokens)),
+            (
+                "Detailed Model Tags",
+                detailed_part_of_speech_views_for_tokens(tokens),
+            ),
+        ):
+            for view in views:
+                rows.append(
+                    {
+                        "Scope": "Work",
+                        "Profile Level": profile_level,
+                        "Work": text.title,
+                        "Collection": text.collection,
+                        "Source POS tag(s)": view.tag,
+                        "Part of speech": view.category,
+                        "Token count": view.token_count,
+                        "Share of lexical tokens": view.share_of_lexical_tokens,
+                        "Unique normalized types": view.unique_type_count,
+                        "Examples": view.example_forms,
+                        "Lexical-token denominator": view.lexical_token_denominator,
+                        "Model": (
+                            f"{metadata.pipeline_name} {metadata.pipeline_version}"
+                        ),
+                    }
+                )
+    for profile_level, views in (
+        ("Broad Categories", part_of_speech_views_for_tokens(all_tokens)),
+        (
+            "Detailed Model Tags",
+            detailed_part_of_speech_views_for_tokens(all_tokens),
+        ),
+    ):
+        for view in views:
             rows.append(
                 {
-                    "Scope": "Work",
-                    "Work": text.title,
-                    "Collection": text.collection,
-                    "Universal POS tag": view.tag,
+                    "Scope": "All Works Combined",
+                    "Profile Level": profile_level,
+                    "Work": "All Works Combined",
+                    "Collection": "",
+                    "Source POS tag(s)": view.tag,
                     "Part of speech": view.category,
                     "Token count": view.token_count,
                     "Share of lexical tokens": view.share_of_lexical_tokens,
@@ -99,22 +135,6 @@ def _corpus_part_of_speech_rows(
                     ),
                 }
             )
-    for view in part_of_speech_views_for_tokens(all_tokens):
-        rows.append(
-            {
-                "Scope": "All Works Combined",
-                "Work": "All Works Combined",
-                "Collection": "",
-                "Universal POS tag": view.tag,
-                "Part of speech": view.category,
-                "Token count": view.token_count,
-                "Share of lexical tokens": view.share_of_lexical_tokens,
-                "Unique normalized types": view.unique_type_count,
-                "Examples": view.example_forms,
-                "Lexical-token denominator": view.lexical_token_denominator,
-                "Model": f"{metadata.pipeline_name} {metadata.pipeline_version}",
-            }
-        )
     materialized = tuple(rows)
     st.session_state[cache_key] = {"signature": signature, "rows": materialized}
     return materialized
@@ -1252,14 +1272,18 @@ def _render_part_of_speech_tab(
         "Counts and shares use every eligible lexical token in the current preserved "
         "version of each work, independent of affective-lexicon matches. The combined "
         "profile pools token occurrences across all works, so longer works contribute "
-        "more to that specific view."
+        "more to that specific view. Noun combines source NOUN and PROPN tags; "
+        "Verb combines source VERB and AUX tags."
     )
     rows = _corpus_part_of_speech_rows(repository, project_id, preprocessor)
     if not rows:
         st.info("Import at least one work to build a part-of-speech profile.")
         return
     frame = pd.DataFrame(rows)
-    combined = frame[frame["Scope"] == "All Works Combined"].copy()
+    combined = frame[
+        (frame["Scope"] == "All Works Combined")
+        & (frame["Profile Level"] == "Broad Categories")
+    ].copy()
     st.markdown("**All Works Combined**")
     st.bar_chart(
         combined.set_index("Part of speech")[["Share of lexical tokens"]],
@@ -1268,7 +1292,7 @@ def _render_part_of_speech_tab(
     st.dataframe(
         combined[
             [
-                "Universal POS tag",
+                "Source POS tag(s)",
                 "Part of speech",
                 "Token count",
                 "Share of lexical tokens",
@@ -1282,7 +1306,32 @@ def _render_part_of_speech_tab(
         hide_index=True,
         width="stretch",
     )
-    work_rows = frame[frame["Scope"] == "Work"].copy()
+    detailed_combined = frame[
+        (frame["Scope"] == "All Works Combined")
+        & (frame["Profile Level"] == "Detailed Model Tags")
+    ].copy()
+    st.markdown("**Detailed Combined Model-Tag Breakdown**")
+    st.dataframe(
+        detailed_combined[
+            [
+                "Source POS tag(s)",
+                "Part of speech",
+                "Token count",
+                "Share of lexical tokens",
+                "Unique normalized types",
+                "Examples",
+                "Lexical-token denominator",
+            ]
+        ].style.format(
+            {"Share of lexical tokens": lambda value: f"{value:.1%}"}
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    work_rows = frame[
+        (frame["Scope"] == "Work")
+        & (frame["Profile Level"] == "Broad Categories")
+    ].copy()
     if not work_rows.empty:
         st.markdown("**Work-by-Work Comparison**")
         st.dataframe(
@@ -1291,7 +1340,7 @@ def _render_part_of_speech_tab(
                     "Work",
                     "Collection",
                     "Part of speech",
-                    "Universal POS tag",
+                    "Source POS tag(s)",
                     "Token count",
                     "Share of lexical tokens",
                     "Unique normalized types",
@@ -1305,6 +1354,31 @@ def _render_part_of_speech_tab(
             width="stretch",
             height=420,
         )
+        with st.expander("Detailed Work-by-Work Model Tags"):
+            detailed_work_rows = frame[
+                (frame["Scope"] == "Work")
+                & (frame["Profile Level"] == "Detailed Model Tags")
+            ].copy()
+            st.dataframe(
+                detailed_work_rows[
+                    [
+                        "Work",
+                        "Collection",
+                        "Part of speech",
+                        "Source POS tag(s)",
+                        "Token count",
+                        "Share of lexical tokens",
+                        "Unique normalized types",
+                        "Examples",
+                        "Lexical-token denominator",
+                    ]
+                ].style.format(
+                    {"Share of lexical tokens": lambda value: f"{value:.1%}"}
+                ),
+                hide_index=True,
+                width="stretch",
+                height=420,
+            )
     st.warning(
         "These grammatical labels are generated by the installed English model. "
         "Poetic syntax, fragments, archaic forms, and ambiguity can produce uncertain "

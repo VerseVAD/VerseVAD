@@ -221,6 +221,12 @@ review required.
 - [x] Separate positive/negative sentiment from the eight emotion categories.
 - [x] Add lexicon-independent part-of-speech quantity/share profiles for one
   poem, combined corpus, work-level comparison, summaries, and Excel.
+- [x] Merge common/proper noun tags into one displayed Noun category and label
+  English `ADP` output as Preposition while retaining source tags in evidence.
+- [x] Merge main-verb and auxiliary/copular tags into one displayed Verb
+  category while retaining original `VERB`/`AUX` tags in token evidence.
+- [x] Pair broad POS families with a detailed Universal Dependencies tag
+  breakdown so every merge remains quantitatively auditable.
 - [x] Standardize visible headings and navigation in title case.
 - [x] Add a beginner-focused values/terminology Word guide and update the
   comprehensive user manual, methodology, data model, and validation steps.
@@ -240,7 +246,7 @@ review required.
   affective-lexicon coverage and retain the model/version caution.
 - [x] Eight-emotion, positive/negative sentiment, and numeric intensity results
   remain separately labeled constructs.
-- [x] All 98 automated tests, both synthetic validation demonstrations, the
+- [x] All 100 automated tests, both synthetic validation demonstrations, the
   11-check diagnostic, source checks, and lock-file check pass.
 - [x] Phase 5 documentation and beginner test steps match current behavior.
 - [x] Create the Phase 5 source-control checkpoint using the bundled Git

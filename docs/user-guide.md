@@ -99,10 +99,23 @@ installed model's universal part-of-speech tag and divides each count by the
 text's full lexical-token count. It also reports unique normalized types and
 example forms. Shares sum to 100% apart from display rounding.
 
+The main chart uses broad categories. **Detailed Model-Tag Breakdown** then
+reports the unmerged Universal Dependencies tags with their own counts and
+shares. These are two views of the same tokens, so do not add them together.
+
 Part-of-speech labels are model-generated. Poetic syntax, fragments, archaic
 forms, and deliberate ambiguity can produce uncertain assignments. Inspect
 token evidence before making an argument that depends on a fine grammatical
 distinction.
+
+VerseVAD combines common-noun (`NOUN`) and proper-noun (`PROPN`) model tags
+into the single displayed category **Noun**. Original token tags remain in the
+detailed table and evidence/audit data. The `ADP` tag is displayed as
+**Preposition**; an adverb is a different category.
+
+It also combines main-verb (`VERB`) and auxiliary/copular (`AUX`) tags into
+**Verb**. Thus `was` is counted as a verb even when the model uses `AUX` for
+its grammatical role.
 
 ### Comparing the three VAD scales
 
@@ -225,7 +238,9 @@ never assigned a neutral value.
 contribute more to the combined grammatical profile. **Work-by-Work
 Comparison** reports each work's count and within-work share separately. Use
 the latter when comparing relative grammatical composition across differently
-sized works. The Excel workbook includes the same rows in **Part of Speech**.
+sized works. Broad and detailed profile levels are both available. The Excel
+workbook includes the same rows and a **Profile Level** field in **Part of
+Speech**.
 
 ### Review scenarios
 

@@ -156,20 +156,22 @@ class CoverageView:
 
 PART_OF_SPEECH_LABELS = {
     "ADJ": "Adjective",
-    "ADP": "Adposition",
+    "ADP": "Preposition",
     "ADV": "Adverb",
-    "AUX": "Auxiliary",
     "CCONJ": "Coordinating Conjunction",
     "DET": "Determiner",
     "INTJ": "Interjection",
-    "NOUN": "Noun",
+    "NOUN": "Common Noun",
+    "NOUN + PROPN": "Noun",
     "NUM": "Numeral",
     "PART": "Particle",
     "PRON": "Pronoun",
     "PROPN": "Proper Noun",
     "SCONJ": "Subordinating Conjunction",
     "SYM": "Symbol",
-    "VERB": "Verb",
+    "VERB": "Main Verb",
+    "AUX": "Auxiliary or Copular Verb",
+    "VERB + AUX": "Verb",
     "X": "Other or Uncertain",
 }
 
@@ -224,15 +226,37 @@ VAD_DEFINITIONS = {
 def part_of_speech_views_for_tokens(
     tokens: Sequence[TokenRecord],
 ) -> tuple[PartOfSpeechView, ...]:
-    """Summarize model-assigned universal POS labels over lexical tokens."""
+    """Summarize broad, reader-facing POS families over lexical tokens."""
 
+    return _part_of_speech_views_for_tokens(tokens, merge_broad_categories=True)
+
+
+def detailed_part_of_speech_views_for_tokens(
+    tokens: Sequence[TokenRecord],
+) -> tuple[PartOfSpeechView, ...]:
+    """Preserve the model's universal POS tags as a separate audit view."""
+
+    return _part_of_speech_views_for_tokens(tokens, merge_broad_categories=False)
+
+
+def _part_of_speech_views_for_tokens(
+    tokens: Sequence[TokenRecord],
+    *,
+    merge_broad_categories: bool,
+) -> tuple[PartOfSpeechView, ...]:
     lexical_tokens = tuple(token for token in tokens if token.is_lexical)
     denominator = len(lexical_tokens)
     if not denominator:
         return ()
     by_tag: dict[str, list[TokenRecord]] = {}
     for token in lexical_tokens:
-        tag = token.part_of_speech or "X"
+        source_tag = token.part_of_speech or "X"
+        if merge_broad_categories and source_tag in {"NOUN", "PROPN"}:
+            tag = "NOUN + PROPN"
+        elif merge_broad_categories and source_tag in {"VERB", "AUX"}:
+            tag = "VERB + AUX"
+        else:
+            tag = source_tag
         by_tag.setdefault(tag, []).append(token)
     rows = []
     for tag, tagged_tokens in by_tag.items():
@@ -274,6 +298,16 @@ def part_of_speech_views(
     if not workspace.results:
         return ()
     return part_of_speech_views_for_tokens(workspace.results[0].tokens)
+
+
+def detailed_part_of_speech_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[PartOfSpeechView, ...]:
+    """Return the unmerged universal-tag profile for one analyzed text."""
+
+    if not workspace.results:
+        return ()
+    return detailed_part_of_speech_views_for_tokens(workspace.results[0].tokens)
 
 
 @dataclass(frozen=True)
@@ -1149,7 +1183,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     "lexical token occurrences"
                 ),
                 "plain_language_note": (
-                    f"Universal POS tag {pos.tag}; {pos.unique_type_count} unique "
+                    f"Source POS tag(s) {pos.tag}; {pos.unique_type_count} unique "
                     f"normalized type(s). Examples: {pos.example_forms or 'none'}. "
                     "Labels are model-generated and may be uncertain in poetic syntax."
                 ),

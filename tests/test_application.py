@@ -1,6 +1,7 @@
 import csv
 import io
 import zipfile
+from dataclasses import replace
 
 import pytest
 
@@ -14,11 +15,13 @@ from versevad.application import (
     csv_reading_guide,
     decode_uploaded_text,
     detailed_export_zip,
+    detailed_part_of_speech_views_for_tokens,
     emotion_association_views,
     emotion_intensity_views,
     match_views,
     overview_notes,
     part_of_speech_views,
+    part_of_speech_views_for_tokens,
     run_workspace_analysis,
     scholar_summary_csv,
     sentiment_association_views,
@@ -140,10 +143,69 @@ def test_readable_views_keep_constructs_and_denominators_separate(
     assert sum(row.token_count for row in pos_rows) == 4
     assert sum(row.share_of_lexical_tokens for row in pos_rows) == pytest.approx(1.0)
     assert all(row.lexical_token_denominator == 4 for row in pos_rows)
+    assert all(row.category != "Proper Noun" for row in pos_rows)
     intensities = emotion_intensity_views(synthetic_workspace)
     fear_intensity = next(row for row in intensities if row.category == "fear")
     assert fear_intensity.mean_matched_intensity == pytest.approx(0.6)
     assert any("not expected to sum" in note for note in overview_notes(synthetic_workspace))
+
+
+def test_part_of_speech_profile_merges_common_and_proper_nouns(
+    synthetic_workspace,
+) -> None:
+    source_tokens = synthetic_workspace.results[0].tokens[:2]
+    tokens = (
+        replace(
+            source_tokens[0],
+            part_of_speech="NOUN",
+            normalized_form="river",
+        ),
+        replace(
+            source_tokens[1],
+            part_of_speech="PROPN",
+            normalized_form="raven",
+        ),
+    )
+    rows = part_of_speech_views_for_tokens(tokens)
+    assert len(rows) == 1
+    assert rows[0].tag == "NOUN + PROPN"
+    assert rows[0].category == "Noun"
+    assert rows[0].token_count == 2
+    assert rows[0].share_of_lexical_tokens == 1.0
+    assert rows[0].unique_type_count == 2
+    detailed = detailed_part_of_speech_views_for_tokens(tokens)
+    assert {row.tag for row in detailed} == {"NOUN", "PROPN"}
+    assert {row.category for row in detailed} == {"Common Noun", "Proper Noun"}
+
+
+def test_part_of_speech_profile_merges_main_and_auxiliary_verbs(
+    synthetic_workspace,
+) -> None:
+    source_tokens = synthetic_workspace.results[0].tokens[:2]
+    tokens = (
+        replace(
+            source_tokens[0],
+            part_of_speech="VERB",
+            normalized_form="sing",
+        ),
+        replace(
+            source_tokens[1],
+            part_of_speech="AUX",
+            normalized_form="be",
+        ),
+    )
+    rows = part_of_speech_views_for_tokens(tokens)
+    assert len(rows) == 1
+    assert rows[0].tag == "VERB + AUX"
+    assert rows[0].category == "Verb"
+    assert rows[0].token_count == 2
+    assert rows[0].share_of_lexical_tokens == 1.0
+    detailed = detailed_part_of_speech_views_for_tokens(tokens)
+    assert {row.tag for row in detailed} == {"VERB", "AUX"}
+    assert {row.category for row in detailed} == {
+        "Main Verb",
+        "Auxiliary or Copular Verb",
+    }
 
 
 def test_match_and_unmatched_views_are_plain_language_drilldowns(synthetic_workspace) -> None:

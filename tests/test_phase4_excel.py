@@ -188,9 +188,10 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
         part_of_speech_rows=(
             {
                 "Scope": "Work",
+                "Profile Level": "Broad Categories",
                 "Work": "Poem",
                 "Collection": "Volume",
-                "Universal POS tag": "ADJ",
+                "Source POS tag(s)": "ADJ",
                 "Part of speech": "Adjective",
                 "Token count": 1,
                 "Share of lexical tokens": 1.0,
@@ -203,5 +204,5 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
     )
     pos_workbook = load_workbook(BytesIO(pos_content), data_only=False)
     assert "Part of Speech" in pos_workbook.sheetnames
-    assert pos_workbook["Part of Speech"]["E5"].value == "Adjective"
-    assert pos_workbook["Part of Speech"]["G5"].value == 1.0
+    assert pos_workbook["Part of Speech"]["F5"].value == "Adjective"
+    assert pos_workbook["Part of Speech"]["H5"].value == 1.0

@@ -137,7 +137,7 @@ former inactive-entry caution is absent, and that both a synthetic phrase
 fixture and the locally supplied `alarm clock` entry follow exact,
 longest-first phrase matching with auditable component suppression.
 
-Phase 5 brings the full suite to 98 passing tests. The added coverage verifies
+Phase 5 brings the full suite to 100 passing tests. The added coverage verifies
 schema-2-to-3 migration with a verified non-overwriting backup; named review
 scenarios and immutable versions; append-only flag, exclude, map, revoke,
 restore, and restored-snapshot revisions; occurrence/work/project/global
@@ -147,6 +147,9 @@ batches; baseline-versus-reviewed deltas; real-source end-to-end mapping;
 separate emotion and sentiment presentation; universal part-of-speech counts
 and lexical-token shares; workbook construct/POS/review sheets; title-case
 interface navigation; and structural/content validation for both Word guides.
+The final POS cases verify that the broad Noun category merges `NOUN`/`PROPN`,
+the broad Verb category merges `VERB`/`AUX`, and the detailed view retains all
+four source tags as separately countable evidence.
 
 The full suite passes with:
 

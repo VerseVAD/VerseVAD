@@ -28,13 +28,22 @@ and beginner documentation. It uses only invented text.
 7. Open **Language Profile**. Confirm that **Part-of-Speech Profile** shows a
    token count and percentage for each displayed category and that the shares
    total approximately 100% apart from rounding.
-8. Confirm that the table states the lexical-token denominator, universal POS
-   tag, unique normalized types, and examples.
-9. Read the model-warning text. Treat surprising labels as candidates for
+8. Confirm that the table states the lexical-token denominator, source POS
+   tag(s), unique normalized types, and examples.
+9. Confirm that common and proper nouns appear together as **Noun**, with
+   source tags shown as `NOUN + PROPN`, and that `ADP` is labeled
+   **Preposition** rather than Adverb.
+10. Confirm that main and auxiliary/copular verbs appear together as **Verb**,
+    with source tags shown as `VERB + AUX`; a form such as `was` should not
+    appear in a separate displayed AUX category.
+11. Under **Detailed Model-Tag Breakdown**, confirm that `NOUN`, `PROPN`,
+    `VERB`, and `AUX` remain separately countable when they occur. Confirm that
+    the detailed shares separately total approximately 100%.
+12. Read the model-warning text. Treat surprising labels as candidates for
    token-level inspection rather than ground truth.
-10. Open **Emotion Profile**. Confirm that **Eight Emotion Associations** and
+13. Open **Emotion Profile**. Confirm that **Eight Emotion Associations** and
     **Positive and Negative Sentiment Associations** are separate sections.
-11. Confirm that **Emotion Intensity Among Supplied Matches** remains separate
+14. Confirm that **Emotion Intensity Among Supplied Matches** remains separate
     from both association sections.
 
 Expected result: no exception appears; grammatical, VAD, emotion, sentiment,
@@ -161,7 +170,8 @@ reviewed scenario.
    source form, target, risk label, and rationale.
 4. In **Methodology**, confirm the scenario version and software version.
 5. In **Part of Speech**, confirm combined and work-level counts, shares,
-   denominators, and model.
+   denominators, model, and separate Broad Categories/Detailed Model Tags
+   profile levels.
 
 Expected result: the workbook is a readable derived report. The SQLite project
 database remains authoritative.
