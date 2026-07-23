@@ -1,7 +1,7 @@
 # Architecture Decision: Local Modular Python Application
 
-Status: accepted; the Phase 5 local review and reporting workspace has been
-validated.
+Status: accepted; the Phase 5 local workspace and Poetic Fingerprint expansion
+Stage 0 modular foundation have been validated.
 
 Date: 2026-07-23
 
@@ -53,6 +53,20 @@ named/versioned review scenarios, append-only decisions, occurrence evidence,
 baseline-versus-reviewed batch comparison, a separate sentiment presentation,
 and lexicon-independent part-of-speech profiles.
 
+The Poetic Fingerprint expansion Stage 0 adds a framework-independent common
+module contract under `versevad.core` and a read-only local resource manager.
+It is additive: the validated VAD engine and schema version 3 remain unchanged.
+Future modules will return immutable common result envelopes containing
+explicit observation/calculation/interpretation layers, coverage, warnings, and
+reproducibility provenance. See
+[`poetic-fingerprint-stage0.md`](poetic-fingerprint-stage0.md).
+
+The future lexical-frequency module will use one explicitly versioned local
+SUBTLEX-US source. It will not use `wordfreq` as a fallback. The formal
+centroid/region emotional-profile classifier is also deferred; the existing
+Emotion Profile workspace must not be represented as though it already
+implements that model.
+
 ## Why this fits VerseVAD
 
 Streamlit supplies accessible tables, controls, progress feedback, downloads,
@@ -89,6 +103,7 @@ counts and shares without treating them as affective-lexicon metrics.
 
 ```text
 src/versevad/
+  core/           common module and local-resource contracts
   adapters/       source-specific parsing and validation
   analysis/       matching, coverage, summaries, comparisons
   db/             schema, repositories, transactions, migrations
@@ -127,6 +142,11 @@ Original and normalized scores are separate fields. For example:
 These formulas are tested adapter metadata. They never overwrite source values.
 The Phase 3 comparison view uses only the separately derived values and labels
 the original scales and formulas alongside them.
+
+Future non-affective datasets will be installed locally under an ignored
+`resources/` tree or another explicitly configured local root. The common
+resource manager records file presence, size, checksum, and support status but
+does not replace resource-specific adapter validation.
 
 ## Local privacy and networking
 

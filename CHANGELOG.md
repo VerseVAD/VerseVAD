@@ -102,6 +102,16 @@ made a public release.
   combined/work-level corpus comparison, and Excel export.
 - A dedicated beginner-focused Word values and terminology guide with formulas,
   worked examples, interpretive cautions, and reporting templates.
+- Framework-independent Poetic Fingerprint module contracts for immutable
+  inputs, metrics, coverage, warnings, provenance, and results.
+- A read-only local resource manager with root-path containment, SHA-256
+  recording, and distinct available, missing, malformed, and unsupported-version
+  states.
+- A tracked local-resource instruction file while all installed research data
+  beneath `resources/` remain excluded from source control.
+- Expansion Stage 0 reconciliation documentation covering the current
+  architecture, the additive Stage 1 document model, and a future schema-4
+  module-result persistence design.
 
 ### Changed
 
@@ -136,6 +146,11 @@ made a public release.
 - Part-of-speech output now pairs the broad reader-facing profile with a
   detailed Universal Dependencies tag breakdown, preserving separate
   NOUN/PROPN and VERB/AUX counts and shares for methodological audit.
+- The Poetic Fingerprint plan now names a versioned local SUBTLEX-US source as
+  the sole frequency source and excludes `wordfreq` as an alternate or
+  fallback.
+- A formal centroid/region emotional-profile classifier is explicitly deferred;
+  the existing Emotion Profile workspace is not described as that model.
 
 ### Fixed
 

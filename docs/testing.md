@@ -151,6 +151,19 @@ The final POS cases verify that the broad Noun category merges `NOUN`/`PROPN`,
 the broad Verb category merges `VERB`/`AUX`, and the detailed view retains all
 four source tags as separately countable evidence.
 
+Poetic Fingerprint expansion Stage 0 brings the full suite to 115 passing
+tests. Its 15 tests cover the common framework-independent module protocol,
+immutable metrics/coverage/warnings/provenance/results, structural metric
+identity, missing denominators, invalid counts and checksums, read-only resource
+hashing, missing/malformed/unsupported resource states, configured-root path
+containment, deterministic validation order, and refusal to publish unavailable
+resources as completed provenance.
+
+Both hand-calculated demonstrations and all 11 local diagnostics were rerun
+after Stage 0. See
+[`poetic-fingerprint-stage0-validation.md`](poetic-fingerprint-stage0-validation.md)
+for results, limitations, and exact beginner steps.
+
 The full suite passes with:
 
 ```powershell

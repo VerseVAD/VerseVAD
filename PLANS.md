@@ -252,6 +252,46 @@ review required.
 - [x] Create the Phase 5 source-control checkpoint using the bundled Git
   executable.
 
+## Poetic Fingerprint expansion - Stage 0 reconciliation
+
+- [x] Audit the expansion brief against the implemented Phase 5 architecture,
+  data models, tests, exports, and local resources.
+- [x] Record that the current Emotion Profile workspace is not a formal
+  centroid/region classifier and defer that classifier until its scholarly
+  specification is complete.
+- [x] Select an explicitly versioned local SUBTLEX-US resource as the sole
+  planned frequency source; do not use `wordfreq` as an alternate or fallback.
+- [x] Add a framework-independent `AnalysisModule` protocol and immutable common
+  module input, metric, coverage, warning, provenance, and result records.
+- [x] Add a centralized read-only local resource manager with path containment,
+  SHA-256 recording, and available/missing/malformed/unsupported-version states.
+- [x] Protect future locally installed research resources from source control
+  and document their expected local layout.
+- [x] Document the additive Stage 1 `PoemDocument`/structural-unit design and a
+  future schema-4 module-result migration without changing schema 3.
+- [x] Add synthetic tests for module contracts, missing-value behavior,
+  immutability, resource checksums, unsupported versions, malformed data, and
+  path containment.
+- [x] Run the complete automated suite, both synthetic demonstrations, and all
+  local diagnostics; verify documentation and report beginner test steps.
+- [x] Create the expansion Stage 0 source-control checkpoint when Git is
+  available.
+
+### Expansion Stage 0 exit criteria
+
+- [x] Existing VAD, emotion, corpus, review, interface, and export behavior is
+  unchanged.
+- [x] Unmatched resource observations remain missing and no generic contract
+  requires a neutral numeric fallback.
+- [x] New module code is independent of Streamlit and the existing affective
+  engine.
+- [x] No source lexicon or private literary text is copied, changed, or added to
+  source control.
+- [x] All automated and local validation checks pass.
+- [x] The contract, migration design, plans, changelog, and user-facing project
+  status agree.
+- [x] Create the expansion Stage 0 source-control checkpoint.
+
 ## Phase 6 - Scholarly diagnostics
 
 - [ ] Add anomaly candidates and structured close-reading prompts.

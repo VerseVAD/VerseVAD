@@ -62,6 +62,44 @@ Lexicon Explorer exposes exact source rows, source values, optional Warriner
 standard-deviation/rater fields, normalization formulas, and provenance without
 creating a second authoritative copy.
 
+## Poetic Fingerprint expansion Stage 0
+
+Stage 0 adds an immutable, framework-independent common envelope for future
+optional modules:
+
+```text
+ModuleInput
+  TextDocument
+  TokenRecord[]
+  PreprocessingMetadata
+
+ModuleResult
+  module/result/text identities
+  ModuleMetric[]
+  ModuleCoverage[]
+  ModuleWarning[]
+  ModuleProvenance
+    resource provenance[]
+```
+
+Metrics distinguish direct observations, computed summaries, and
+interpretations. Coverage records carry eligible, matched, and unmatched counts
+and keep empty denominators missing. Module provenance records the source-text
+hash, software, preprocessing recipe, pipeline, configuration, scenario, and
+explicit lookup and inclusion policies plus exact resource checksums.
+
+This contract does not replace `AnalysisResult`, `Phase2AnalysisResult`, or
+`WorkspaceAnalysis` in Stage 0. Existing completed runs remain authoritative.
+A later read-time compatibility adapter may expose an existing VAD result
+through the common envelope without rewriting it.
+
+The current `TextDocument` and `TokenRecord` representation preserves source
+text and structural coordinates, but explicit `StructuralUnit`,
+`SentenceUnit`, `DependencyRecord`, and optional `EntityRecord` models are
+deferred to shared-processing Stage 1. The approved additive design and
+possible future schema-4 tables are recorded in
+[`poetic-fingerprint-stage0.md`](poetic-fingerprint-stage0.md).
+
 ## Identity and versioning
 
 All primary entities use stable opaque IDs. Human-readable titles and filenames

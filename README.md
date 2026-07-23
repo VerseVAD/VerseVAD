@@ -26,6 +26,13 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
+The Poetic Fingerprint expansion Stage 0 is also complete. It adds tested,
+framework-independent common contracts for optional analysis modules and
+read-only local resource validation while leaving current VAD behavior and
+database schema 3 unchanged. The planned lexical-frequency module will use
+SUBTLEX-US only; `wordfreq` is not a planned fallback. A formal
+centroid/region-based emotional-profile classifier remains explicitly deferred.
+
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
 versioned English list, protects meaning-changing terms such as `not`, `never`,
@@ -44,6 +51,8 @@ See:
 
 - [Implementation plan](PLANS.md)
 - [Architecture decision](docs/architecture.md)
+- [Poetic Fingerprint Stage 0 reconciliation](docs/poetic-fingerprint-stage0.md)
+- [Poetic Fingerprint Stage 0 validation](docs/poetic-fingerprint-stage0-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

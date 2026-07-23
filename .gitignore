@@ -1,5 +1,7 @@
 # Licensed or restricted source data
 /source_lexicons/
+/resources/**
+!/resources/README.md
 
 # Private literary texts and runtime data
 /corpora/
