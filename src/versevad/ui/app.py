@@ -13,19 +13,25 @@ import pandas as pd
 import streamlit as st
 
 import versevad.application as _application_services
+import versevad.adapters.nrc_vad as _nrc_vad_services
 
 # Codex may update the local source while a Streamlit server is still open.
 # Streamlit reruns this page but Python normally retains already imported
 # service modules, which can momentarily pair a new interface with an older
-# application API. Reload only when the required Phase 4 API is absent.
-_application_was_reloaded = not all(
-    hasattr(_application_services, name)
-    for name in (
-        "VAD_DEFINITIONS",
-        "vad_cumulative_views",
-        "vad_contributor_views",
-        "vad_sensitivity_views",
+# application API or adapter policy. Reload only when a required revision is
+# absent so an already-open local session activates NRC VAD v1 phrases too.
+_application_was_reloaded = (
+    not all(
+        hasattr(_application_services, name)
+        for name in (
+            "VAD_DEFINITIONS",
+            "vad_cumulative_views",
+            "vad_contributor_views",
+            "vad_sensitivity_views",
+        )
     )
+    or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
+    or not _nrc_vad_services.NrcVadV1Adapter.configuration.phrase_support
 )
 if _application_was_reloaded:
     # Reload the framework-independent dependency graph in type-definition

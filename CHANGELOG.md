@@ -98,6 +98,9 @@ made a public release.
 - Warriner's 102 whitespace-containing entries now participate as exact,
   longest-first phrase candidates under the selected policy; the inactive-entry
   warning was removed without changing the source file.
+- NRC VAD v1's 132 whitespace-containing entries now participate as exact,
+  longest-first phrase candidates under the selected policy; its inactive-entry
+  caution was removed without changing the source file.
 - The visible interface now uses VerseVAD navigation and a minimal toolbar while
   retaining Streamlit only as the internal local UI framework.
 - Corpus database schema version 2 records the stopword methodology and an

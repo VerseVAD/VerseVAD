@@ -132,11 +132,11 @@ User mappings are reviewed, scoped, reversible, and versioned.
 
 ### Phrase overlap
 
-NRC VAD v2.1 contains 10,073 whitespace-containing entries, and the Phase 4
-local policy also activates Warriner's 102 whitespace-containing entries. The
-matching engine uses deterministic longest-first candidate generation and an
-explicit overlap policy. Phrase and suppressed component candidates remain
-auditable.
+NRC VAD v2.1 contains 10,073 whitespace-containing entries. The local policy
+also activates Warriner's 102 and NRC VAD v1's 132 whitespace-containing
+entries. The matching engine uses deterministic longest-first candidate
+generation and an explicit overlap policy. Phrase and suppressed component
+candidates remain auditable.
 
 ### Reruns and changing judgments
 

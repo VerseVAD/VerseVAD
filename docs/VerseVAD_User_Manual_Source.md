@@ -106,7 +106,7 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 | VerseVAD source | What it supplies | Original scale | Derived comparison |
 |---|---|---|---|
 | Warriner VAD 2013 | Valence, arousal, dominance; standard deviations and rater counts | 1 to 9 | `(x - 1) / 8` |
-| NRC VAD v1 | Valence, arousal, dominance | 0 to 1 | `x` |
+| NRC VAD v1 | Valence, arousal, dominance; words and 132 activated whitespace entries | 0 to 1 | `x` |
 | NRC VAD v2.1 | Valence, arousal, dominance; unigrams and multiword expressions | -1 to 1 | `(x + 1) / 2` |
 | NRC Emotion v0.92 | Eight emotion associations plus positive and negative sentiment | Binary 0 or 1 | Not normalized into VAD |
 | NRC Emotion Intensity v1 | Numeric intensity for supplied word-emotion pairs | 0 to 1 | Retained on its own scale |
@@ -129,7 +129,7 @@ NRC VAD v1 and NRC VAD v2.1 are versions of the same lexicon family, not indepen
 
 ## Phrase coverage
 
-NRC VAD v2.1 explicitly contains multiword expressions. VerseVAD also activates the 102 whitespace-containing rows in the local Warriner source as exact, auditable phrase candidates at the user's request. NRC VAD v1 remains word-level under its conservative default.
+NRC VAD v2.1 explicitly contains multiword expressions. VerseVAD also activates the 102 whitespace-containing rows in the local Warriner source and the 132 whitespace-containing rows in NRC VAD v1 as exact, auditable phrase candidates at the user's request. This is a declared processing choice and does not claim that Warriner or NRC VAD v1 supplied a separate phrase-specific validation study.
 
 # 5. How text becomes auditable matches
 

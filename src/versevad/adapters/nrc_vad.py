@@ -37,7 +37,7 @@ class _NrcVadConfiguration:
 
 
 class _NrcVadAdapter:
-    adapter_version = "0.2.0"
+    adapter_version = "0.3.0"
     configuration: _NrcVadConfiguration
 
     @property
@@ -72,8 +72,10 @@ class _NrcVadAdapter:
                 ("dominance", "dominance"),
             ),
             preprocessing_assumptions=(
-                "NRC VAD v2.1 multiword entries use exact longest-first phrase "
-                "matching. Earlier-version whitespace entries remain inactive."
+                "Whitespace-containing source entries use exact longest-first "
+                "phrase matching under the selected phrase policy."
+                if config.phrase_support
+                else "Whitespace-containing source entries remain inactive."
             ),
         )
 
@@ -203,12 +205,15 @@ class NrcVadV1Adapter(_NrcVadAdapter):
         source_maximum=1.0,
         normalization_formula="normalized = original (identity)",
         has_header=False,
-        phrase_support=False,
+        phrase_support=True,
         citation=(
             "Mohammad, S. M. (2018). Obtaining Reliable Human Ratings of "
             "Valence, Arousal, and Dominance for 20,000 English Words. ACL 2018."
         ),
-        unit_of_analysis="word-level entries; whitespace entries retained but inactive",
+        unit_of_analysis=(
+            "English words plus source-supplied whitespace-containing entries "
+            "available as exact phrase candidates"
+        ),
     )
 
 

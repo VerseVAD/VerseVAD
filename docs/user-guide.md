@@ -102,6 +102,11 @@ families still differ. NRC VAD v1 and v2.1 are versions of one family, not two
 independent replications. VerseVAD therefore shows separate rows and creates no
 default consensus score.
 
+NRC VAD v1's 132 whitespace-containing source entries participate as exact,
+longest-first phrase candidates under the selected phrase policy, just as
+Warriner's 102 activated whitespace entries do. This preserves source entries
+without claiming a separate phrase-specific validation methodology.
+
 Higher normalized valence, arousal, or dominance means a higher mean normative
 rating for the matched lexical observations on that dimension. It does not mean
 that the poem, speaker, author, or reader has "more emotion."

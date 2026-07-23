@@ -53,6 +53,16 @@ warning saying Warriner's 102 whitespace entries cannot contribute should not
 appear. `source_lexicons` must remain unchanged and the self-test must still
 verify the known SHA-256 hash.
 
+## Beginner test 2A: NRC VAD v1 phrases
+
+1. In **One poem**, paste `The alarm clock sounded.`
+2. Select NRC VAD v1 and keep **Prefer the longest phrase** selected.
+3. Analyze, then open **Evidence**.
+
+Confirm that `alarm clock` is one included `exact_phrase`, its component words
+are visible as suppressed components, and the old caution about 132 inactive
+whitespace entries does not appear. The source checksum must remain unchanged.
+
 ## Beginner test 3: import and compare a folder
 
 1. Create a small test folder outside `source_lexicons` with two UTF-8 files:

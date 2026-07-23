@@ -40,6 +40,7 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Midpoint-centered contribution",
             "Delete a project",
             "phase2_results.json",
+            "132 whitespace-containing rows in NRC VAD v1",
         ):
             assert required in text
 

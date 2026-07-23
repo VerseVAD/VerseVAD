@@ -83,11 +83,13 @@ counts.
   Linguistics*.
 - **SHA-256:**
   `fd49023f760155c8377424d96ca18d57c6685891d78ba381e47af6f4a1b148a7`
-- **Phrase decision:** the 132 whitespace-containing entries remain retained but
-  inactive under the conservative word-level default. A later sensitivity
-  scenario can revisit this without changing the source or default analysis.
-- **Adapter status:** implemented and contract-tested in Phase 2. Source values
-  and normalized values are identical on the 0–1 scale.
+- **Phrase decision:** the 132 whitespace-containing entries participate as
+  exact, longest-first phrase candidates under the selected phrase policy. This
+  is a declared VerseVAD processing choice; it does not claim a separate
+  phrase-specific validation study.
+- **Adapter status:** implemented and contract-tested. Source values and
+  normalized values are identical on the 0–1 scale. Exact phrase matches,
+  suppressed components, and overlap decisions remain visible in the audit.
 
 ## 3. NRC VAD Lexicon v2.1
 

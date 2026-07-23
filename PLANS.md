@@ -189,6 +189,16 @@ review required.
 - [x] Full automated, synthetic, diagnostic, and live browser validation.
 - [x] Create a source-control checkpoint using the bundled Git executable.
 
+## Phase 4.2 - NRC VAD v1 phrase activation
+
+- [x] Activate all 132 source-supplied whitespace-containing NRC VAD v1 entries
+  as exact, longest-first phrase candidates.
+- [x] Keep line/punctuation boundaries, phrase policies, suppressed components,
+  source ratings, stopword decisions, and match provenance fully auditable.
+- [x] Remove the inactive-entry caution without modifying the source lexicon.
+- [x] Update the complete documentation/manual, run full validation, and create
+  a source-control checkpoint.
+
 ## Phase 5 - Review system
 
 - [ ] Add reversible flags, exclusions, normalization mappings, and scenarios.
@@ -222,9 +232,9 @@ review required.
 - [?] Confirm the provenance and original documentation of the locally supplied
   Warriner data. The package is a secondary XANEW distribution and does not
   include the original Warriner paper or an independent license file.
-- [x] Phase 4 activates Warriner's 102 whitespace-containing rows as exact,
-  longest-first phrase candidates at the user's request. NRC VAD v1 remains
-  word-level by default; NRC VAD v2.1 explicitly supports multiword expressions.
+- [x] VerseVAD activates Warriner's 102 and NRC VAD v1's 132
+  whitespace-containing rows as exact, longest-first phrase candidates at the
+  user's request. NRC VAD v2.1 explicitly supports multiword expressions.
 - [x] Publication years, approximate dates, and date ranges can be recorded as a
   free text date label at import/edit time; structured date inference is not
   performed.

@@ -131,6 +131,12 @@ migration; exact-confirmation project deletion; top workspace tabs; stale
 Explorer recovery; and the comprehensive Word manual's package structure,
 required content, page geometry, real numbering, and fixed-DXA table geometry.
 
+Phase 4.2 brings the full suite to 89 passing tests. The two added tests verify
+that NRC VAD v1's 132 source-supplied whitespace entries are active, that the
+former inactive-entry caution is absent, and that both a synthetic phrase
+fixture and the locally supplied `alarm clock` entry follow exact,
+longest-first phrase matching with auditable component suppression.
+
 The full suite passes with:
 
 ```powershell

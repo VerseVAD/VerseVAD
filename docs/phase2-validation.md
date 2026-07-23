@@ -117,15 +117,17 @@ To reverse the test, delete only `phase2_demo_output`; the runner recreates it.
 
 ## Known Phase 2 limitations
 
-This section records the historical Phase 2 state. Phase 4 subsequently added
-the graphical corpus workflow and activated Warriner whitespace entries as
-exact phrase candidates; see `phase4-validation.md` for current behavior.
+This section records the historical Phase 2 state. Later updates added the
+graphical corpus workflow and activated Warriner and NRC VAD v1 whitespace
+entries as exact phrase candidates; see `phase4-validation.md` for current
+behavior.
 
 - There is no graphical interface or ordinary user-text import yet.
 - Phrase matching is exact, line-bounded, and punctuation-bounded; lemma-based
   phrase matching and cross-line phrases are not inferred.
-- Older Warriner and NRC VAD v1 whitespace entries are inactive under the
-  conservative default.
+- At the historical Phase 2 checkpoint, older Warriner and NRC VAD v1
+  whitespace entries were inactive. Current VerseVAD activates both sets under
+  the selected phrase policy.
 - Reviewed mappings, compounds, exclusions, stopword sensitivity, negation
   flags, semantic-risk decisions, and alternative persistent scenarios remain
   later work.

@@ -9,6 +9,9 @@ from versevad.adapters import (
     NrcVadV1Adapter,
     NrcVadV21Adapter,
 )
+from versevad.analysis.phase2 import analyze_lexicon
+from versevad.models import MatchSelection, PhrasePolicy
+from versevad.preprocessing import create_text_document
 
 
 SOURCE_ROOT = Path(__file__).parents[1] / "source_lexicons"
@@ -65,7 +68,61 @@ def test_nrc_vad_v1_contract_and_identity_normalization(nrc_vad_v1) -> None:
     assert entry is not None
     assert entry.original.valence == pytest.approx(0.385)
     assert entry.normalized == entry.original
-    assert not nrc_vad_v1.metadata.phrase_support
+    assert nrc_vad_v1.metadata.phrase_support
+    assert not nrc_vad_v1.validation.warnings
+
+
+def test_nrc_vad_v1_whitespace_entries_are_exact_phrase_candidates(
+    tmp_path: Path,
+    preprocessor,
+) -> None:
+    source = tmp_path / "vad-v1-phrases.tsv"
+    source.write_text(
+        "alarm clock\t0.6\t0.7\t0.5\n"
+        "alarm\t0.2\t0.8\t0.3\n"
+        "clock\t0.5\t0.4\t0.6\n",
+        encoding="utf-8",
+    )
+    lexicon = NrcVadV1Adapter().load(source)
+    result = analyze_lexicon(
+        create_text_document("nrc-v1-phrase", "Phrase", "Alarm clock."),
+        lexicon,
+        preprocessor,
+        phrase_policy=PhrasePolicy.PHRASE_PREFERRED,
+    )
+    included = [match for match in result.matches if match.included]
+    suppressed = [
+        match
+        for match in result.matches
+        if match.selection == MatchSelection.SUPPRESSED_COMPONENT
+    ]
+    assert [match.matched_term for match in included] == ["alarm clock"]
+    assert len(suppressed) == 2
+    assert result.coverage.phrase_match_count == 1
+    assert not any("does not activate" in warning for warning in result.warnings)
+
+
+def test_nrc_vad_v1_local_phrase_entry_matches_exactly(
+    nrc_vad_v1,
+    preprocessor,
+) -> None:
+    result = analyze_lexicon(
+        create_text_document(
+            "nrc-v1-local-phrase",
+            "Local phrase",
+            "The alarm clock sounded.",
+        ),
+        nrc_vad_v1,
+        preprocessor,
+        phrase_policy=PhrasePolicy.PHRASE_PREFERRED,
+    )
+    phrase = next(
+        match
+        for match in result.matches
+        if match.included and match.matched_term == "alarm clock"
+    )
+    assert phrase.method.value == "exact_phrase"
+    assert phrase.token_ids
 
 
 def test_nrc_vad_v21_contract_and_linear_normalization(nrc_vad_v21) -> None:

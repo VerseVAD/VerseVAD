@@ -165,12 +165,12 @@ occurrences covered by included records, so exploratory double-counting does
 not inflate the matched-token numerator. A selected phrase contributes one VAD
 observation even when it covers multiple tokens.
 
-The Phase 4 local policy activates Warriner's 102 whitespace-containing source
-rows as exact phrase candidates at the user's request. They use the same
-longest-first selection and visible suppression records as NRC VAD v2.1. This
-is a declared VerseVAD processing policy; it does not claim that the Warriner
-publication separately validated phrase norms. NRC VAD v1 whitespace entries
-remain preserved but inactive under its word-level default.
+The local policy activates Warriner's 102 and NRC VAD v1's 132
+whitespace-containing source rows as exact phrase candidates at the user's
+request. They use the same longest-first selection and visible suppression
+records as NRC VAD v2.1. This is a declared VerseVAD processing policy; it does
+not claim that either source separately validated these entries under a
+phrase-specific rating methodology.
 
 ## Cumulative VAD totals
 

@@ -29,8 +29,9 @@ tokens.
 Lexicon Explorer searches all five installed sources for exact entries,
 phrases, explicitly labeled lemma-derived or user-mapped lookups, emotion
 associations/intensities, Warriner uncertainty fields, source provenance, and
-derived normalized comparisons. Warriner's 102 whitespace-containing source
-entries now participate as exact phrase candidates under the selected policy.
+derived normalized comparisons. Warriner's 102 and NRC VAD v1's 132
+whitespace-containing source entries now participate as exact phrase candidates
+under the selected policy.
 
 See:
 
