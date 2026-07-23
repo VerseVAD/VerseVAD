@@ -29,10 +29,11 @@ coverage, VAD, emotion-association, emotion-intensity, match, and unmatched view
 records. They are framework-independent application models used by both tests
 and the Streamlit page. The workspace contains the preserved `TextDocument`,
 selected source-specific results, comparison record, recipe choices, and
-request signature. The one-poem workspace remains temporary and in memory; it
-does not pretend to be a persistent Phase 4 `Project` or `AnalysisRun`. Download manifests
-still carry the stable text version, analysis, scenario, adapter, recipe,
-software, source-hash, and inclusion metadata produced by the engine.
+request signature. Expansion Stage 1 adds the shared `PoemDocument` to that
+workspace. The one-poem workspace remains temporary and in memory; it does not
+pretend to be a persistent Phase 4 `Project` or `AnalysisRun`. Download
+manifests still carry the stable text version, analysis, scenario, adapter,
+recipe, software, source-hash, and inclusion metadata produced by the engine.
 
 Phase 3.1 adds VAD definition, interpretation, contributor, and cumulative-load
 view records. The framework-independent application layer also exposes a
@@ -62,7 +63,7 @@ Lexicon Explorer exposes exact source rows, source values, optional Warriner
 standard-deviation/rater fields, normalization formulas, and provenance without
 creating a second authoritative copy.
 
-## Poetic Fingerprint expansion Stage 0
+## Poetic Fingerprint expansion Stages 0 and 1
 
 Stage 0 adds an immutable, framework-independent common envelope for future
 optional modules:
@@ -72,6 +73,7 @@ ModuleInput
   TextDocument
   TokenRecord[]
   PreprocessingMetadata
+  optional PoemDocument (materialized in Stage 1)
 
 ModuleResult
   module/result/text identities
@@ -93,12 +95,48 @@ This contract does not replace `AnalysisResult`, `Phase2AnalysisResult`, or
 A later read-time compatibility adapter may expose an existing VAD result
 through the common envelope without rewriting it.
 
-The current `TextDocument` and `TokenRecord` representation preserves source
-text and structural coordinates, but explicit `StructuralUnit`,
-`SentenceUnit`, `DependencyRecord`, and optional `EntityRecord` models are
-deferred to shared-processing Stage 1. The approved additive design and
-possible future schema-4 tables are recorded in
-[`poetic-fingerprint-stage0.md`](poetic-fingerprint-stage0.md).
+Stage 1 materializes the additive design:
+
+```text
+PoemDocument
+  source: TextDocument
+  configuration: PreprocessingConfiguration
+  preprocessing: PreprocessingMetadata
+  structural_units: StructuralUnit[] (section, stanza, physical line)
+  sentences: SentenceUnit[]
+  tokens: TokenRecord[]
+  dependencies: DependencyRecord[]
+  entities: EntityRecord[] (optional; disabled by default)
+  orthographic_spans: OrthographicSpan[]
+  token_classifications: TokenClassification[]
+  coverage: ProcessingCoverage
+  warnings: DocumentWarning[]
+```
+
+The single section and all physical-line records point to exact substrings of
+the original, and the lines must reconstruct it exactly. Lookup normalization,
+lemma, POS, morphology, sentence, dependency, and optional entity values remain
+separate model-derived fields. Orthographic spans expose hyphenated
+expressions, contractions, and apostrophe forms without replacing their token
+components. Token classifications retain content/function/other/non-lexical
+roles, proper-noun evidence through the source POS tag, and model-vocabulary
+availability.
+
+Processing coverage validates all count/rate pairs. Model OOV count/rate must
+remain missing when the installed model has no usable vector vocabulary.
+Dependency confidence likewise remains missing because the pipeline does not
+provide calibrated per-edge confidence.
+
+`WorkspaceAnalysis` now carries the common document, and
+`ModuleInput.from_poem_document` supplies the exact same source, tokens, and
+preprocessing provenance to later optional modules. `poem_document.json`
+exports this record in the local one-poem audit bundle.
+
+These records remain in memory and in the derived JSON export. Stage 1 does not
+add schema-3 database tables. The approved possible schema-4 tables remain
+documented in
+[`poetic-fingerprint-stage0.md`](poetic-fingerprint-stage0.md); any migration
+still requires tested transactional backup and compatibility behavior.
 
 ## Identity and versioning
 

@@ -177,6 +177,9 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         for heading in app.subheader
     )
     assert any("Part-of-Speech Profile" in heading.value for heading in app.subheader)
+    assert any(
+        "Shared Processing Record" in heading.value for heading in app.subheader
+    )
 
 
 def test_windows_helpers_are_local_and_telemetry_disabled() -> None:

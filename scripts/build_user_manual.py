@@ -170,6 +170,13 @@ def _repeat_header(row) -> None:
     tr_pr.append(marker)
 
 
+def _prevent_row_split(row) -> None:
+    tr_pr = row._tr.get_or_add_trPr()
+    marker = OxmlElement("w:cantSplit")
+    marker.set(qn("w:val"), "true")
+    tr_pr.append(marker)
+
+
 def _column_widths(rows: list[list[str]]) -> list[int]:
     columns = len(rows[0])
     if columns == 1:
@@ -195,11 +202,14 @@ def _add_table(document: Document, rows: list[list[str]]) -> None:
     _set_table_geometry(table, _column_widths(rows))
     _set_table_borders(table)
     for row_index, values in enumerate(rows):
+        _prevent_row_split(table.rows[row_index])
         for column_index, value in enumerate(values):
             cell = table.cell(row_index, column_index)
             cell.text = ""
             paragraph = cell.paragraphs[0]
             _set_spacing(paragraph, after=0, line=1.05)
+            if row_index == 0:
+                paragraph.paragraph_format.keep_with_next = True
             _add_inline(paragraph, value, table_text=True)
             if row_index == 0:
                 _shade_cell(cell, LIGHT_BLUE)

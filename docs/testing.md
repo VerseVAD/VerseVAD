@@ -164,6 +164,23 @@ after Stage 0. See
 [`poetic-fingerprint-stage0-validation.md`](poetic-fingerprint-stage0-validation.md)
 for results, limitations, and exact beginner steps.
 
+Poetic Fingerprint expansion Stage 1 brings the full suite to 129 passing
+tests. Its added coverage verifies exact source reconstruction from section,
+stanza, and physical-line records; `CRLF`, indentation, blank separators,
+model sentences/dependencies across poetic lines, em dashes, Unicode
+normalization separation, apostrophes, contractions, hyphenated expressions,
+content/function classifications, capitalization, one-word and
+punctuation-free lines, archaic forms, repeated refrains, NER disabled by
+default and explicitly enabled, missing small-model OOV coverage, empty and
+deterministic documents, immutable module-input integration, invalid
+configuration/coverage refusal, one preprocessing pass across multiple
+lexicons, the audit JSON, and the visible Shared Processing Record.
+
+The completion suite passed `129 passed` on 2026-07-23. Both hand-calculated
+demonstrations, all 11 diagnostics, and the rendered Word-manual inspection are
+recorded in
+[`poetic-fingerprint-stage1-validation.md`](poetic-fingerprint-stage1-validation.md).
+
 The full suite passes with:
 
 ```powershell

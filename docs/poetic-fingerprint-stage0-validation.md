@@ -2,6 +2,11 @@
 
 Date validated: 2026-07-23
 
+Historical note: this file records the Stage 0 checkpoint. Stage 1 now
+implements the `PoemDocument` and shared processing export that were still
+deferred here; see
+[`poetic-fingerprint-stage1-validation.md`](poetic-fingerprint-stage1-validation.md).
+
 Stage 0 is an additive software foundation. It does not add a new analysis
 button or change current VAD results.
 

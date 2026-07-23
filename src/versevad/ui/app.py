@@ -578,6 +578,54 @@ if workspace_page == "One Poem":
                     st.warning(f"{lexicon}: {warning}")
 
     with language_tab:
+        poem_document = workspace.poem_document
+        if poem_document is not None:
+            st.subheader("Shared Processing Record")
+            st.write(
+                "This is the reusable structural and linguistic representation "
+                "created once for the text and shared by the selected analyses. "
+                "The original text remains unchanged; normalized lookup forms and "
+                "model annotations are stored separately."
+            )
+            structure_columns = st.columns(5)
+            structure_columns[0].metric("Stanzas", len(poem_document.stanzas))
+            structure_columns[1].metric("Physical lines", len(poem_document.lines))
+            structure_columns[2].metric(
+                "Model sentences", poem_document.coverage.sentence_count
+            )
+            structure_columns[3].metric(
+                "Tokens", poem_document.coverage.total_token_count
+            )
+            structure_columns[4].metric(
+                "Lexical tokens", poem_document.coverage.lexical_token_count
+            )
+            st.write(
+                f"**Processing recipe:** `{poem_document.configuration.recipe_id}` "
+                f"| **configuration:** "
+                f"`{poem_document.configuration.configuration_id}` "
+                f"| **pipeline:** `{poem_document.preprocessing.pipeline_name}` "
+                f"{poem_document.preprocessing.pipeline_version} "
+                f"| **dependency coverage:** "
+                f"{_percentage(poem_document.coverage.dependency_annotation_rate)} "
+                f"| **NER:** "
+                f"{'enabled' if poem_document.configuration.enable_ner else 'disabled'}"
+            )
+            if not poem_document.coverage.model_vocabulary_available:
+                st.info(
+                    "Model-vocabulary OOV reporting is unavailable because the "
+                    "installed small English model has no static vectors. This does "
+                    "not affect named-resource coverage: each lexicon or later "
+                    "research dataset reports its own unmatched terms separately."
+                )
+            with st.expander(
+                f"Processing warnings and cautions ({len(poem_document.warnings)})"
+            ):
+                for warning in poem_document.warnings:
+                    if warning.severity.value == "information":
+                        st.info(warning.message)
+                    else:
+                        st.warning(warning.message)
+
         st.subheader("Part-of-Speech Profile")
         st.write(
             "This is a grammatical profile of all eligible lexical token occurrences, "

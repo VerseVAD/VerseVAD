@@ -5,6 +5,12 @@ unchanged.
 
 Date: 2026-07-23
 
+Current-status note: Stage 1 now materializes the shared `PoemDocument`
+designed here. See
+[`poetic-fingerprint-stage1.md`](poetic-fingerprint-stage1.md). Statements
+below about what did not yet exist describe the completed Stage 0 checkpoint,
+not current software behavior.
+
 ## Purpose
 
 This Stage 0 reconciles the Poetic Fingerprint expansion brief with the

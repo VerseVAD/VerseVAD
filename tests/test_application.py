@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 import zipfile
 from dataclasses import replace
 
@@ -34,7 +35,11 @@ from versevad.phase2_validation import (
     phase2_synthetic_intensity_lexicon,
     phase2_synthetic_vad_lexicon,
 )
-from versevad.preprocessing import create_text_document
+from versevad.preprocessing import (
+    PreparedPoemPreprocessor,
+    SpacyEnglishPreprocessor,
+    create_text_document,
+)
 
 
 @pytest.fixture
@@ -42,10 +47,12 @@ def synthetic_workspace(preprocessor) -> WorkspaceAnalysis:
     document = create_text_document(
         "friendly-summary", "Friendly summary", "Fear joy dark night."
     )
+    poem_document = preprocessor.process_document(document)
+    prepared = PreparedPoemPreprocessor(poem_document)
     results = (
-        analyze_lexicon(document, phase2_synthetic_vad_lexicon(), preprocessor),
-        analyze_lexicon(document, phase2_synthetic_emotion_lexicon(), preprocessor),
-        analyze_lexicon(document, phase2_synthetic_intensity_lexicon(), preprocessor),
+        analyze_lexicon(document, phase2_synthetic_vad_lexicon(), prepared),
+        analyze_lexicon(document, phase2_synthetic_emotion_lexicon(), prepared),
+        analyze_lexicon(document, phase2_synthetic_intensity_lexicon(), prepared),
     )
     request = AnalysisRequest(
         project_name="Test workspace",
@@ -53,7 +60,13 @@ def synthetic_workspace(preprocessor) -> WorkspaceAnalysis:
         original_text=document.original_text,
         lexicon_ids=tuple(result.lexicon_metadata.lexicon_id for result in results),
     )
-    return WorkspaceAnalysis(request, document, results, compare_lexicons(results))
+    return WorkspaceAnalysis(
+        request,
+        document,
+        results,
+        compare_lexicons(results),
+        poem_document,
+    )
 
 
 def _csv_rows(content: bytes) -> list[dict[str, str]]:
@@ -85,9 +98,50 @@ def test_workspace_analysis_preserves_text_and_runs_selected_real_source(preproc
     )
     workspace = run_workspace_analysis(request, preprocessor=preprocessor)
     assert workspace.document.original_text == original
+    assert workspace.poem_document is not None
+    assert workspace.poem_document.source is workspace.document
+    assert workspace.poem_document.tokens == workspace.results[0].tokens
     assert len(workspace.results) == 1
     assert workspace.results[0].lexicon_validation.source_sha256.startswith("42c71881")
     assert workspace.results[0].coverage.phrase_match_count >= 1
+
+
+def test_workspace_preprocesses_once_for_multiple_lexicons() -> None:
+    class CountingPreprocessor:
+        def __init__(self) -> None:
+            self.delegate = SpacyEnglishPreprocessor()
+            self.document_calls = 0
+            self.token_calls = 0
+
+        @property
+        def metadata(self):
+            return self.delegate.metadata
+
+        def process_document(self, document):
+            self.document_calls += 1
+            return self.delegate.process_document(document)
+
+        def process(self, document):
+            self.token_calls += 1
+            return self.delegate.process(document)
+
+    processor = CountingPreprocessor()
+    request = AnalysisRequest(
+        project_name="Shared processing",
+        title="One representation",
+        original_text="Bright night.",
+        lexicon_ids=("nrc_vad_v1", "nrc_emotion_v0_92"),
+    )
+
+    workspace = run_workspace_analysis(request, preprocessor=processor)
+
+    assert processor.document_calls == 1
+    assert processor.token_calls == 0
+    assert workspace.poem_document is not None
+    assert all(
+        result.tokens == workspace.poem_document.tokens
+        for result in workspace.results
+    )
 
 
 def test_workspace_requires_title_text_and_lexicon(preprocessor) -> None:
@@ -256,5 +310,15 @@ def test_detailed_download_starts_with_friendly_files_and_retains_audit(
         assert "phase2_match_audit.csv" in names
         assert "phase2_manifest.csv" in names
         assert "phase2_results.json" in names
+        assert "poem_document.json" in names
+        poem_document = json.loads(bundle.read("poem_document.json"))
+        assert poem_document["source"]["original_text"] == "Fear joy dark night."
+        assert poem_document["configuration"]["preserve_original_text"] is True
+        assert poem_document["coverage"]["total_token_count"] > 0
+        assert any(
+            unit["kind"] == "line"
+            for unit in poem_document["structural_units"]
+        )
         start_here = bundle.read("START_HERE.txt").decode("utf-8")
         assert "lexical evidence" in start_here
+        assert "poem_document.json" in start_here

@@ -67,9 +67,10 @@ Use this order:
 1. **Overview** — check coverage and matched counts first. A mean based on only
    a few matched observations should be treated cautiously. The displayed 60%
    and 80% coverage bands are orientation aids, not universal scholarly rules.
-2. **Language Profile** — compare model-assigned part-of-speech counts and
-   relative shares across all eligible lexical tokens. This profile is
-   independent of affective-lexicon matching.
+2. **Language Profile** — inspect the shared poetry-preserving processing
+   record, then compare model-assigned part-of-speech counts and relative
+   shares across all eligible lexical tokens. This profile is independent of
+   affective-lexicon matching.
 3. **VAD Profile** — compare normative valence, arousal, and dominance ratings
    among matched observations. Definitions, interpretations, token/type
    weighting, cumulative loads, and top contributors appear beneath the
@@ -93,6 +94,19 @@ included match divided by all eligible lexical token occurrences. It is not an
 accuracy score. Different lexicons legitimately cover different vocabularies.
 
 ### Part-of-speech profile
+
+The **Shared Processing Record** at the top of Language Profile reports stanza,
+physical-line, model-sentence, total-token, and lexical-token counts; recipe
+and configuration IDs; the model pipeline; dependency coverage; named-entity
+recognition status; and processing cautions. Poetic lines/stanzas and model
+sentences are separate layers, so their boundaries can disagree without either
+being discarded.
+
+VerseVAD creates this shared record once and reuses the same token sequence for
+every selected lexicon. Original text, capitalization, punctuation, blank
+lines, and line endings remain preserved. Normalized forms, lemmas, POS,
+morphology, sentences, dependencies, and optional named entities are separate
+model-assisted fields and may be uncertain for poetic or historical language.
 
 The Language Profile counts all eligible lexical token occurrences by the
 installed model's universal part-of-speech tag and divides each count by the
@@ -302,10 +316,15 @@ files plus:
   inclusion decisions, and other reproducibility metadata.
 - `phase2_results.json` — the structured analysis result, including the complete
   stopword policy and both VAD views, for machine-readable reuse.
+- `poem_document.json` — exact original text, stanza/line and model-sentence
+  structure, shared tokens and annotations, orthographic spans, processing
+  configuration/provenance, coverage, and warnings.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
-open them correctly. The full ZIP is the reproducibility record; the friendly
-summary is the reading aid.
+open them correctly. Both JSON files are local machine-readable records.
+`poem_document.json` contains the original text, so protect it as research
+material. The full ZIP is the reproducibility record; the friendly summary is
+the reading aid.
 
 ## Diagnostics and troubleshooting
 

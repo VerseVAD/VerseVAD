@@ -1,7 +1,7 @@
 # Architecture Decision: Local Modular Python Application
 
 Status: accepted; the Phase 5 local workspace and Poetic Fingerprint expansion
-Stage 0 modular foundation have been validated.
+Stage 1 shared-processing layer have been validated.
 
 Date: 2026-07-23
 
@@ -61,6 +61,17 @@ explicit observation/calculation/interpretation layers, coverage, warnings, and
 reproducibility provenance. See
 [`poetic-fingerprint-stage0.md`](poetic-fingerprint-stage0.md).
 
+Expansion Stage 1 advances the development package to `0.7.0.dev0` and
+materializes the planned immutable `PoemDocument`. It retains exact
+section/stanza/physical-line structure, separate model sentences, shared
+tokens, morphology and dependency annotations, optional entities,
+orthographic spans, configuration, coverage, and warnings. A one-poem request
+is processed once and the same tokens are reused across all selected lexicons.
+The common document is available to Stage 0 module inputs and is exported
+locally as `poem_document.json`. Stage 1 does not change database schema 3 or
+existing affective calculations. See
+[`poetic-fingerprint-stage1.md`](poetic-fingerprint-stage1.md).
+
 The future lexical-frequency module will use one explicitly versioned local
 SUBTLEX-US source. It will not use `wordfreq` as a fallback. The formal
 centroid/region emotional-profile classifier is also deferred; the existing
@@ -81,7 +92,9 @@ Streamlit UI / CLI
         |
 Application services
         |
-Analysis engine ---- Scenario and recipe models
+Shared PoemDocument ---- Scenario and recipe models
+        |
+Analysis engine ---- Optional analysis modules
         |
 Matching engine ---- Lexicon adapter interface
         |                      |
@@ -98,6 +111,11 @@ application services. The corpus UI derives project/work profiles from current
 preserved text versions using the pinned preprocessor, caches the exact
 version/model signature for the active session, and exports the resulting
 counts and shares without treating them as affective-lexicon metrics.
+
+For the temporary one-poem path, application services create one
+`PoemDocument` and pass a prepared read-only view to every selected lexicon.
+Structural, sentence, token, dependency, entity, and coverage records therefore
+cannot drift between source-specific analyses in the same request.
 
 ## Planned package boundaries
 
@@ -122,6 +140,7 @@ Every completed run will be immutable. A run signature will include:
 - lexicon file checksum and source metadata;
 - linguistic pipeline and model version;
 - preprocessing recipe version;
+- shared preprocessing configuration ID;
 - analysis scenario version;
 - phrase, stopword, negation, matching, and exclusion policies.
 

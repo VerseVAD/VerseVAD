@@ -292,6 +292,53 @@ review required.
   status agree.
 - [x] Create the expansion Stage 0 source-control checkpoint.
 
+## Poetic Fingerprint expansion - Stage 1 shared processing
+
+- [x] Add an immutable, framework-independent `PoemDocument` that retains the
+  exact `TextDocument`, processing configuration, preprocessing provenance,
+  structural units, sentences, tokens, dependencies, optional entities,
+  orthographic spans, token classifications, coverage, and warnings.
+- [x] Parse one exact section plus stanza and physical-line records without
+  changing original characters, indentation, blank lines, or line endings.
+- [x] Keep NFC lookup normalization separate from source text while preserving
+  punctuation, capitalization, token surface forms, lemmas, part-of-speech
+  tags, morphological features, and character offsets.
+- [x] Record content/function/other/non-lexical roles, proper-noun evidence,
+  hyphenated expressions, contractions, apostrophe forms, and model-vocabulary
+  availability without inventing missing values.
+- [x] Make named-entity recognition an explicit disabled-by-default
+  configuration choice and retain sentence/dependency boundary crossings.
+- [x] Process each one-poem request once, reuse the exact shared token records
+  across all selected lexicons, and make the common document available to
+  future `AnalysisModule` implementations.
+- [x] Add `poem_document.json` to the full local audit ZIP and show shared
+  processing coverage, configuration, provenance, and cautions in Language
+  Profile.
+- [x] Verify current behavior, methodology, limitations, exports, and
+  beginner-friendly Stage 1 test steps in all maintained documentation and the
+  rendered Word manual.
+- [x] Run the complete automated suite, both synthetic demonstrations, all
+  local diagnostics, and the required document render review.
+- [x] Create the expansion Stage 1 source-control checkpoint.
+
+### Expansion Stage 1 exit criteria
+
+- [x] Blank stanza separators, em dashes, apostrophes, contractions,
+  hyphenated compounds, unusual capitalization, one-word lines,
+  punctuation-free poems, archaic forms, and repeated refrains have synthetic
+  regression coverage.
+- [x] Original source substrings reconstruct exactly from structural records;
+  normalized/model-derived forms never overwrite them.
+- [x] Unmatched lexicon observations remain missing, and unavailable
+  small-model vocabulary coverage remains missing rather than becoming zero.
+- [x] POS, lemma, morphology, sentence, dependency, and optional entity records
+  are labeled as model outputs, not corrected literary facts.
+- [x] Existing exact-first matching, calculations, database schema 3, source
+  lexicons, and private literary data remain unchanged.
+- [x] All automated and local validation checks pass and the manual render has
+  no clipped, overlapping, or broken content.
+- [x] Create the expansion Stage 1 source-control checkpoint.
+
 ## Phase 6 - Scholarly diagnostics
 
 - [ ] Add anomaly candidates and structured close-reading prompts.

@@ -21,7 +21,9 @@ from versevad.adapters import (
     WarrinerVadAdapter,
 )
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
+from versevad.core.documents import PoemDocument
 from versevad.exports.phase2_csv import export_phase2_csv
+from versevad.exports.poem_document_json import export_poem_document_json
 from versevad.models import (
     CrossLexiconComparison,
     MatchSelection,
@@ -32,7 +34,12 @@ from versevad.models import (
     TextDocument,
     TokenRecord,
 )
-from versevad.preprocessing import SpacyEnglishPreprocessor, TextPreprocessor, create_text_document
+from versevad.preprocessing import (
+    PreparedPoemPreprocessor,
+    SpacyEnglishPreprocessor,
+    TextPreprocessor,
+    create_text_document,
+)
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
 
 
@@ -136,6 +143,7 @@ class WorkspaceAnalysis:
     document: TextDocument
     results: tuple[Phase2AnalysisResult, ...]
     comparison: CrossLexiconComparison
+    poem_document: PoemDocument | None = None
 
 
 @dataclass(frozen=True)
@@ -517,11 +525,13 @@ def run_workspace_analysis(
         )
     except ValueError as error:
         raise WorkspaceAnalysisError(str(error)) from error
+    poem_document = processor.process_document(document)
+    prepared_processor = PreparedPoemPreprocessor(poem_document)
     results = tuple(
         analyze_lexicon(
             document,
             load_lexicon(lexicon_id, str(source_root.resolve())),
-            processor,
+            prepared_processor,
             phrase_policy=request.phrase_policy,
             minimum_match_requirement=request.minimum_match_requirement,
             stopword_policy=stopword_policy,
@@ -531,7 +541,13 @@ def run_workspace_analysis(
         )
         for lexicon_id in request.lexicon_ids
     )
-    return WorkspaceAnalysis(request, document, results, compare_lexicons(results))
+    return WorkspaceAnalysis(
+        request,
+        document,
+        results,
+        compare_lexicons(results),
+        poem_document,
+    )
 
 
 def coverage_views(workspace: WorkspaceAnalysis) -> tuple[CoverageView, ...]:
@@ -1414,6 +1430,12 @@ def csv_reading_guide() -> bytes:
             "start_with": "results, comparison, review_rules, stopword_policy, stopword_coverage, and vad_summary.",
             "important_caution": "All-matched and stopword-excluded fields are separate views of the same audited matches.",
         },
+        {
+            "file": "poem_document.json",
+            "what_it_answers": "What exact structure and linguistic processing representation supported this run?",
+            "start_with": "source, configuration, preprocessing, structural_units, coverage, and warnings.",
+            "important_caution": "POS, lemma, sentence, dependency, and optional entity records are model outputs, not corrected ground truth.",
+        },
     ]
     return _csv_bytes(fields, rows)
 
@@ -1428,12 +1450,20 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
         with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
             for path in paths:
                 bundle.write(path, arcname=path.name)
+            if workspace.poem_document is not None:
+                bundle.writestr(
+                    "poem_document.json",
+                    export_poem_document_json(workspace.poem_document),
+                )
             bundle.writestr("scholar_summary.csv", scholar_summary_csv(workspace))
             bundle.writestr("csv_reading_guide.csv", csv_reading_guide())
             bundle.writestr(
                 "START_HERE.txt",
                 "Start with scholar_summary.csv and csv_reading_guide.csv.\n"
                 "The remaining files preserve the detailed audit trail.\n"
+                "poem_document.json preserves the exact text, poetic structure, "
+                "shared processing configuration, model annotations, coverage, "
+                "and warnings used by every selected lexicon.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

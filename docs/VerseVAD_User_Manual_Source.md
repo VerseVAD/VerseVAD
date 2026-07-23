@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, then **VAD Profile**, then inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read **VAD Profile** and **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -139,6 +139,23 @@ NRC VAD v2.1 explicitly contains multiword expressions. VerseVAD also activates 
 ## Preserved original and processing representation
 
 VerseVAD preserves the supplied text exactly, including line and stanza breaks. Normalization happens in a separate processing representation. The original text is never silently rewritten.
+
+## Shared poem document
+
+For one-poem analysis, VerseVAD creates one immutable shared document and reuses its exact token sequence for every selected lexicon. It contains:
+
+- the exact original text;
+- stanza and physical-line records, including blank separators and line endings;
+- separate model sentence records, including line/stanza-crossing flags;
+- surface, normalized, lemma, POS, morphology, and character-offset token fields;
+- dependency records and optional named-entity records;
+- exact spans for hyphenated expressions, contractions, and apostrophe forms;
+- content/function/other/non-lexical classifications; and
+- processing configuration, provenance, coverage, and warnings.
+
+Poetic lines/stanzas and model sentences are distinct layers. VerseVAD retains both when they disagree. Lemma, POS, morphology, sentence, dependency, and optional named-entity values are statistical-model output, not corrected literary facts.
+
+Named-entity recognition is disabled by default. The installed small English model has no usable vector vocabulary, so model out-of-vocabulary counts remain missing instead of becoming zero or classifying every lexical token as OOV. This model status is separate from affective-lexicon coverage and future SUBTLEX-US coverage.
 
 ## Main matching order
 
@@ -351,7 +368,9 @@ Read coverage before means. The tab shows ordinary and content-focused coverage,
 
 ## Language Profile tab
 
-This tab reports part-of-speech counts and relative shares for all eligible lexical tokens, independently of lexicon coverage. It also shows unique normalized types and example forms. The denominator is displayed, and a caution explains that the labels are model-generated.
+The **Shared Processing Record** first reports stanzas, physical lines, model sentences, total and lexical tokens, recipe/configuration IDs, model pipeline, dependency coverage, named-entity status, and processing cautions. It is the common local representation used by every selected lexicon.
+
+The tab then reports part-of-speech counts and relative shares for all eligible lexical tokens, independently of lexicon coverage. It also shows unique normalized types and example forms. The denominator is displayed, and a caution explains that the labels are model-generated.
 
 ## VAD Profile tab
 
@@ -582,8 +601,9 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `phase2_cross_lexicon_comparison.csv` | Source-specific metrics placed side by side without a consensus score |
 | `phase2_manifest.csv` | Software, source hashes, adapters, recipe, scenario, stopword policy, and inclusion metadata |
 | `phase2_results.json` | Complete structured analysis result for machine-readable reuse |
+| `poem_document.json` | Exact original text, poetic/model structure, shared tokens and annotations, orthographic spans, processing configuration/provenance, coverage, and warnings |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON file is the most complete structured representation; the scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The two JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, while `poem_document.json` contains its shared processing representation. The latter includes the original text, so protect it as research material. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -807,13 +827,15 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - Coverage is not accuracy.
 - Descriptive agreement labels are not inferential reliability tests.
 - Part-of-speech labels are model-generated and may be uncertain for poetic or historical language.
+- Sentence boundaries, dependency labels, and optional named entities are model-generated and may cross or disagree with poetic lines and stanzas.
+- Dependency confidence and small-model OOV rates remain missing when the installed model does not supply defensible values.
 - Current corpus comparisons are descriptive and do not provide confidence intervals or hypothesis tests.
 - Review mappings are scholar-authored scenario decisions, not source-published equivalences.
 - Broad project or global review scopes require extra caution; prefer the narrowest defensible scope.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon, source checksum, adapter version, software version, preprocessing recipe, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions.
+Every analysis should retain the active lexicon, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions.
 
 The companion definitions guide is maintained from:
 

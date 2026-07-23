@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol, runtime_checkable
 
+from versevad.core.documents import PoemDocument
 from versevad.core.resources import ResourceProvenance, ResourceStatus
 from versevad.models import PreprocessingMetadata, TextDocument, TokenRecord
 
@@ -35,6 +36,16 @@ class ModuleInput:
     document: TextDocument
     tokens: tuple[TokenRecord, ...]
     preprocessing: PreprocessingMetadata
+    poem_document: PoemDocument | None = None
+
+    @classmethod
+    def from_poem_document(cls, poem_document: PoemDocument) -> ModuleInput:
+        return cls(
+            document=poem_document.source,
+            tokens=poem_document.tokens,
+            preprocessing=poem_document.preprocessing,
+            poem_document=poem_document,
+        )
 
     def __post_init__(self) -> None:
         mismatched = [
@@ -46,6 +57,15 @@ class ModuleInput:
         if mismatched:
             raise ValueError(
                 "Every module-input token must belong to the supplied text version."
+            )
+        if self.poem_document is not None and (
+            self.poem_document.source != self.document
+            or self.poem_document.tokens != self.tokens
+            or self.poem_document.preprocessing != self.preprocessing
+        ):
+            raise ValueError(
+                "A module input's poem document, source, tokens, and preprocessing "
+                "metadata must describe the same processing representation."
             )
 
 

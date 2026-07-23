@@ -112,6 +112,20 @@ made a public release.
 - Expansion Stage 0 reconciliation documentation covering the current
   architecture, the additive Stage 1 document model, and a future schema-4
   module-result persistence design.
+- Expansion Stage 1 immutable `PoemDocument` records for exact section,
+  stanza, physical-line, model-sentence, token, dependency, optional entity,
+  and orthographic-span structure.
+- Explicit shared preprocessing configuration IDs, content/function/other
+  token roles, model-vocabulary availability, processing coverage, and
+  plain-language warnings.
+- One-pass one-poem preprocessing reused across every selected lexicon and
+  exposed to future modules through `ModuleInput.from_poem_document`.
+- A visible Shared Processing Record in Language Profile and a complete local
+  `poem_document.json` in the full audit ZIP.
+- Synthetic shared-processing regression cases for exact line endings and
+  stanza separators, em dashes, apostrophes, contractions, hyphenated forms,
+  capitalization, one-word and punctuation-free lines, archaisms, repeated
+  refrains, optional NER, unavailable OOV coverage, and multi-lexicon reuse.
 
 ### Changed
 
@@ -151,6 +165,11 @@ made a public release.
   fallback.
 - A formal centroid/region emotional-profile classifier is explicitly deferred;
   the existing Emotion Profile workspace is not described as that model.
+- Project development version advanced to `0.7.0.dev0`; database schema 3 and
+  existing affective calculations remain unchanged.
+- One-poem analysis now creates the shared processing representation once
+  instead of invoking the statistical pipeline separately for each selected
+  lexicon.
 
 ### Fixed
 

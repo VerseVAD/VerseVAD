@@ -48,6 +48,40 @@ The default recipe for implementation and testing is:
 This recipe will be versioned. Changes create new analyses rather than altering
 completed results.
 
+## Shared poetry-preserving processing
+
+The one-poem workspace creates one immutable `PoemDocument` and reuses its
+exact token records for every selected lexicon. This prevents source-specific
+analyses in one request from drifting because of repeated tokenization or
+model processing.
+
+The shared representation retains two distinct structural layers:
+
+- an exact section, physical lines, and stanza groupings derived from preserved
+  characters, blank lines, indentation, and line endings; and
+- model sentence and dependency structures, including flags when they cross a
+  poetic line or stanza boundary.
+
+Neither layer overwrites the other. NFC normalization is used only for the
+separate lookup representation. Original capitalization and punctuation stay
+in source/token audit fields. Lemma, part of speech, morphological features,
+sentence boundaries, dependencies, and optional named entities remain
+model-generated proposals that can be uncertain for poetic, historical,
+dialectal, fragmented, or ambiguous language.
+
+The configuration explicitly groups POS tags as content, function, other, or
+non-lexical and records hyphenated expressions, contractions, and apostrophe
+forms as exact spans over their retained token components. Named-entity
+recognition is disabled by default; enabling it changes the configuration
+identity.
+
+Processing coverage is separate from affective-lexicon or other research-
+resource coverage. The pinned small English model has no usable vector
+vocabulary, so its model-OOV count and rate remain missing. This does not make
+tokens neutral and does not say whether they match a lexicon or the planned
+local SUBTLEX-US frequency resource. Dependency confidence also remains
+missing because the pipeline does not provide a calibrated per-edge value.
+
 ## VAD summaries
 
 Token-weighted summaries count every included occurrence. Type-weighted

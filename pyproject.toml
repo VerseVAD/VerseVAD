@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "versevad"
-version = "0.6.0.dev0"
+version = "0.7.0.dev0"
 description = "Transparent local affective lexicon analysis for literary texts"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
