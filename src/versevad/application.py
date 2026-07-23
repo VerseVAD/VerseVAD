@@ -6,7 +6,7 @@ import csv
 import hashlib
 import io
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -26,9 +26,11 @@ from versevad.models import (
     MatchSelection,
     Phase2AnalysisResult,
     PhrasePolicy,
+    StopwordMode,
     TextDocument,
 )
 from versevad.preprocessing import SpacyEnglishPreprocessor, TextPreprocessor, create_text_document
+from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -59,7 +61,7 @@ LEXICON_SPECS = (
         "Warriner VAD",
         Path("XANEW-master/XANEW-master/Ratings_Warriner_et_al.csv"),
         "78ac8107c78e116bb96538fae4faa47281a155f5f8fe39f30bbc6ea3db05b446",
-        "Normative valence, arousal, and dominance on the original 1-9 scale.",
+        "Normative valence, arousal, and dominance on the original 1-9 scale, including exact multiword entries.",
     ),
     LexiconSpec(
         "nrc_vad_v1",
@@ -114,6 +116,12 @@ class AnalysisRequest:
     lexicon_ids: tuple[str, ...]
     phrase_policy: PhrasePolicy = PhrasePolicy.PHRASE_PREFERRED
     minimum_match_requirement: int = 3
+    text_id: str | None = None
+    text_version_id: str | None = None
+    stopword_mode: StopwordMode = StopwordMode.STANDARD
+    protected_stopwords: tuple[str, ...] = DEFAULT_PROTECTED_WORDS
+    custom_stopword_additions: tuple[str, ...] = ()
+    custom_stopword_removals: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -144,7 +152,10 @@ class CoverageView:
 class VadView:
     lexicon_id: str
     lexicon: str
+    analysis_view: str
     matched_observations: int
+    matched_types: int
+    eligible_tokens: int
     lexical_coverage: float | None
     normalized_valence: float | None
     normalized_arousal: float | None
@@ -154,6 +165,88 @@ class VadView:
     type_dominance: float | None
     original_scale: str
     normalization_formula: str
+
+
+VAD_DEFINITIONS = {
+    "valence": (
+        "Normative pleasantness: lower ratings are associated with more unpleasant "
+        "vocabulary and higher ratings with more pleasant vocabulary."
+    ),
+    "arousal": (
+        "Normative activation or energy—not specifically sexual arousal. Lower "
+        "ratings are calmer or more subdued; higher ratings are more activated, "
+        "alert, excited, or agitated."
+    ),
+    "dominance": (
+        "Normative power, control, or agency. Lower ratings are associated with "
+        "constraint or vulnerability; higher ratings with greater control or power."
+    ),
+}
+
+
+@dataclass(frozen=True)
+class VadInterpretationView:
+    lexicon_id: str
+    lexicon: str
+    analysis_view: str
+    dimension: str
+    mean: float
+    matched_observations: int
+    lexical_coverage: float | None
+    relation_to_midpoint: str
+    explanation: str
+
+
+@dataclass(frozen=True)
+class VadContributorView:
+    lexicon_id: str
+    lexicon: str
+    analysis_view: str
+    dimension: str
+    term: str
+    surface_forms: str
+    observations: int
+    normalized_rating: float
+    original_rating: float
+    midpoint_deviation_per_occurrence: float
+    signed_contribution: float
+    absolute_contribution: float
+    effect_on_mean: float | None
+    direction: str
+    stopword_status: str
+    example_surface: str
+    example_line: int
+    example_context: str
+    match_method: str
+
+
+@dataclass(frozen=True)
+class VadCumulativeView:
+    """Length-sensitive token totals on the derived 0-1 VAD scale."""
+
+    lexicon_id: str
+    lexicon: str
+    analysis_view: str
+    dimension: str
+    matched_observations: int
+    lexical_tokens: int
+    lexical_coverage: float | None
+    rating_total: float
+    above_midpoint_deviation: float
+    below_midpoint_deviation: float
+    net_midpoint_deviation: float
+    absolute_midpoint_deviation: float
+
+
+@dataclass(frozen=True)
+class VadSensitivityView:
+    lexicon_id: str
+    lexicon: str
+    weighting: str
+    dimension: str
+    all_matched_mean: float | None
+    stopwords_excluded_mean: float | None
+    difference: float | None
 
 
 @dataclass(frozen=True)
@@ -180,8 +273,10 @@ class EmotionIntensityView:
 
 @dataclass(frozen=True)
 class MatchView:
+    lexicon_id: str
     lexicon: str
     surface: str
+    normalized: str
     line: int
     stanza: int
     pos: str
@@ -192,12 +287,18 @@ class MatchView:
     value: str
     context: str
     explanation: str
+    stopword_status: str
+    included_in_full: bool
+    included_in_filtered: bool
+    stopword_exclusion_reason: str
 
 
 @dataclass(frozen=True)
 class UnmatchedView:
+    lexicon_id: str
     lexicon: str
     surface: str
+    normalized_form: str
     frequency: int
     pos: str
     proposed_lemma: str
@@ -274,11 +375,22 @@ def run_workspace_analysis(
         f"{request.project_name}|{request.title}".encode("utf-8")
     ).hexdigest()[:16]
     document = create_text_document(
-        text_id=f"workspace-{identity}",
+        text_id=request.text_id or f"workspace-{identity}",
         title=request.title.strip(),
         original_text=request.original_text,
     )
+    if request.text_version_id is not None:
+        document = replace(document, text_version_id=request.text_version_id)
     processor = preprocessor or SpacyEnglishPreprocessor()
+    try:
+        stopword_policy = build_stopword_policy(
+            mode=request.stopword_mode,
+            protected_words=request.protected_stopwords,
+            custom_additions=request.custom_stopword_additions,
+            custom_removals=request.custom_stopword_removals,
+        )
+    except ValueError as error:
+        raise WorkspaceAnalysisError(str(error)) from error
     results = tuple(
         analyze_lexicon(
             document,
@@ -286,6 +398,7 @@ def run_workspace_analysis(
             processor,
             phrase_policy=request.phrase_policy,
             minimum_match_requirement=request.minimum_match_requirement,
+            stopword_policy=stopword_policy,
         )
         for lexicon_id in request.lexicon_ids
     )
@@ -329,25 +442,366 @@ def vad_views(workspace: WorkspaceAnalysis) -> tuple[VadView, ...]:
         summary = result.vad_summary
         if summary is None:
             continue
-        token = summary.token_weighted_normalized
-        kind = summary.type_weighted_normalized
         metadata = result.lexicon_metadata
-        rows.append(
-            VadView(
-                lexicon_id=metadata.lexicon_id,
-                lexicon=metadata.display_name,
-                matched_observations=token.valence.count,
-                lexical_coverage=result.coverage.lexical_token_coverage,
-                normalized_valence=token.valence.mean,
-                normalized_arousal=token.arousal.mean,
-                normalized_dominance=token.dominance.mean,
-                type_valence=kind.valence.mean,
-                type_arousal=kind.arousal.mean,
-                type_dominance=kind.dominance.mean,
-                original_scale=f"{metadata.source_scale_min:g} to {metadata.source_scale_max:g}",
-                normalization_formula=metadata.normalization_formula,
+        filtered_token = summary.stopword_excluded_token_weighted_normalized
+        filtered_type = summary.stopword_excluded_type_weighted_normalized
+        view_groups = [
+            (
+                "All matched tokens",
+                summary.token_weighted_normalized,
+                summary.type_weighted_normalized,
+                result.coverage.matched_type_count,
+                result.coverage.total_lexical_tokens,
+                result.coverage.lexical_token_coverage,
             )
+        ]
+        if (
+            filtered_token is not None
+            and filtered_type is not None
+            and result.stopword_coverage is not None
+        ):
+            view_groups.append(
+                (
+                    "Stopwords excluded",
+                    filtered_token,
+                    filtered_type,
+                    result.stopword_coverage.matched_type_count,
+                    result.stopword_coverage.eligible_token_count,
+                    result.stopword_coverage.lexical_token_coverage,
+                )
+            )
+        for (
+            analysis_view,
+            token,
+            kind,
+            matched_types,
+            eligible_tokens,
+            coverage,
+        ) in view_groups:
+            rows.append(
+                VadView(
+                    lexicon_id=metadata.lexicon_id,
+                    lexicon=metadata.display_name,
+                    analysis_view=analysis_view,
+                    matched_observations=token.valence.count,
+                    matched_types=matched_types,
+                    eligible_tokens=eligible_tokens,
+                    lexical_coverage=coverage,
+                    normalized_valence=token.valence.mean,
+                    normalized_arousal=token.arousal.mean,
+                    normalized_dominance=token.dominance.mean,
+                    type_valence=kind.valence.mean,
+                    type_arousal=kind.arousal.mean,
+                    type_dominance=kind.dominance.mean,
+                    original_scale=(
+                        f"{metadata.source_scale_min:g} to "
+                        f"{metadata.source_scale_max:g}"
+                    ),
+                    normalization_formula=metadata.normalization_formula,
+                )
+            )
+    return tuple(rows)
+
+
+def vad_interpretation_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[VadInterpretationView, ...]:
+    """Explain normalized VAD means without making contextual emotion claims."""
+
+    rows = []
+    for view in vad_views(workspace):
+        values = {
+            "valence": view.normalized_valence,
+            "arousal": view.normalized_arousal,
+            "dominance": view.normalized_dominance,
+        }
+        for dimension, value in values.items():
+            if value is None:
+                continue
+            if value > 0.5:
+                relation = "above"
+            elif value < 0.5:
+                relation = "below"
+            else:
+                relation = "at"
+            coverage_text = (
+                "Coverage was unavailable"
+                if view.lexical_coverage is None
+                else f"Lexical-token coverage was {view.lexical_coverage:.1%}"
+            )
+            rows.append(
+                VadInterpretationView(
+                    lexicon_id=view.lexicon_id,
+                    lexicon=view.lexicon,
+                    analysis_view=view.analysis_view,
+                    dimension=dimension,
+                    mean=value,
+                    matched_observations=view.matched_observations,
+                    lexical_coverage=view.lexical_coverage,
+                    relation_to_midpoint=relation,
+                    explanation=(
+                        f"{view.analysis_view}: mean normative {dimension} among "
+                        f"{view.matched_observations} "
+                        f"included matched observations was {value:.3f}, {relation} "
+                        f"the 0.5 midpoint of the derived display scale. {coverage_text}. "
+                        "This describes matched lexical ratings, not the poem or speaker."
+                    ),
+                )
+            )
+    return tuple(rows)
+
+
+def vad_sensitivity_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[VadSensitivityView, ...]:
+    """Compare filtered minus full means without preferring either view."""
+
+    rows: list[VadSensitivityView] = []
+    for result in workspace.results:
+        summary = result.vad_summary
+        if summary is None:
+            continue
+        groups = (
+            (
+                "token",
+                summary.token_weighted_normalized,
+                summary.stopword_excluded_token_weighted_normalized,
+            ),
+            (
+                "type",
+                summary.type_weighted_normalized,
+                summary.stopword_excluded_type_weighted_normalized,
+            ),
         )
+        for weighting, all_group, filtered_group in groups:
+            if filtered_group is None:
+                continue
+            for dimension in ("valence", "arousal", "dominance"):
+                all_mean = getattr(all_group, dimension).mean
+                filtered_mean = getattr(filtered_group, dimension).mean
+                difference = (
+                    filtered_mean - all_mean
+                    if all_mean is not None and filtered_mean is not None
+                    else None
+                )
+                rows.append(
+                    VadSensitivityView(
+                        lexicon_id=result.lexicon_metadata.lexicon_id,
+                        lexicon=result.lexicon_metadata.display_name,
+                        weighting=weighting,
+                        dimension=dimension,
+                        all_matched_mean=all_mean,
+                        stopwords_excluded_mean=filtered_mean,
+                        difference=difference,
+                    )
+                )
+    return tuple(rows)
+
+
+def vad_contributor_views(
+    workspace: WorkspaceAnalysis,
+    *,
+    per_direction: int = 5,
+) -> tuple[VadContributorView, ...]:
+    """Return midpoint-centered term contributions for both VAD views."""
+
+    if per_direction < 1:
+        raise ValueError("per_direction must be at least 1")
+    rows: list[VadContributorView] = []
+    for result in workspace.results:
+        summary = result.vad_summary
+        if summary is None:
+            continue
+        all_included = tuple(
+            match
+            for match in result.matches
+            if match.included
+            and match.normalized_scores is not None
+            and match.original_scores is not None
+            and match.matched_term is not None
+        )
+        if not all_included:
+            continue
+        token_map = {token.token_id: token for token in result.tokens}
+        analysis_groups = (
+            (
+                "All matched tokens",
+                all_included,
+                summary.token_weighted_normalized,
+            ),
+            (
+                "Stopwords excluded",
+                tuple(
+                    match for match in all_included if match.included_in_stopword_view
+                ),
+                summary.stopword_excluded_token_weighted_normalized,
+            ),
+        )
+        for analysis_view, included, statistics_group in analysis_groups:
+            if not included or statistics_group is None:
+                continue
+            means = {
+                dimension: statistics.mean
+                for dimension, statistics in statistics_group.by_dimension().items()
+            }
+            for dimension, mean in means.items():
+                if mean is None:
+                    continue
+                grouped: dict[str, list] = {}
+                for match in included:
+                    grouped.setdefault(match.matched_term or "", []).append(match)
+                dimension_rows = []
+                total = len(included)
+                for term, matches in grouped.items():
+                    first_match = matches[0]
+                    normalized_rating = getattr(first_match.normalized_scores, dimension)
+                    original_rating = getattr(first_match.original_scores, dimension)
+                    count = len(matches)
+                    midpoint_deviation = normalized_rating - 0.5
+                    signed_contribution = count * midpoint_deviation
+                    effect = None
+                    if total > count:
+                        mean_without = (
+                            mean * total - normalized_rating * count
+                        ) / (total - count)
+                        effect = mean - mean_without
+                    if signed_contribution > 0:
+                        direction = "above-midpoint weighted deviation"
+                    elif signed_contribution < 0:
+                        direction = "below-midpoint weighted deviation"
+                    else:
+                        direction = "at midpoint"
+                    first_tokens = tuple(
+                        token_map[token_id] for token_id in first_match.token_ids
+                    )
+                    surface_forms = sorted(
+                        {
+                            " ".join(
+                                token_map[token_id].surface_form
+                                for token_id in match.token_ids
+                            )
+                            for match in matches
+                        },
+                        key=str.casefold,
+                    )
+                    dimension_rows.append(
+                        VadContributorView(
+                            lexicon_id=result.lexicon_metadata.lexicon_id,
+                            lexicon=result.lexicon_metadata.display_name,
+                            analysis_view=analysis_view,
+                            dimension=dimension,
+                            term=term,
+                            surface_forms=", ".join(surface_forms),
+                            observations=count,
+                            normalized_rating=normalized_rating,
+                            original_rating=original_rating,
+                            midpoint_deviation_per_occurrence=midpoint_deviation,
+                            signed_contribution=signed_contribution,
+                            absolute_contribution=abs(signed_contribution),
+                            effect_on_mean=effect,
+                            direction=direction,
+                            stopword_status=", ".join(
+                                sorted(
+                                    {match.stopword_status for match in matches},
+                                    key=str.casefold,
+                                )
+                            ),
+                            example_surface=" ".join(
+                                token.surface_form for token in first_tokens
+                            ),
+                            example_line=first_match.line_number,
+                            example_context=first_tokens[0].context,
+                            match_method=first_match.method.value,
+                        )
+                    )
+                positive = sorted(
+                    (row for row in dimension_rows if row.signed_contribution > 0),
+                    key=lambda row: (
+                        -row.signed_contribution,
+                        row.term.casefold(),
+                    ),
+                )[:per_direction]
+                negative = sorted(
+                    (row for row in dimension_rows if row.signed_contribution < 0),
+                    key=lambda row: (
+                        row.signed_contribution,
+                        row.term.casefold(),
+                    ),
+                )[:per_direction]
+                neutral = [
+                    row for row in dimension_rows if row.signed_contribution == 0
+                ][:per_direction]
+                rows.extend((*positive, *negative, *neutral))
+    return tuple(rows)
+
+
+def vad_cumulative_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[VadCumulativeView, ...]:
+    """Return length-sensitive token totals without claiming reader response.
+
+    Each included match contributes once. For an activated multiword expression,
+    the phrase is one matched observation, consistent with the analysis policy.
+    Unmatched tokens remain missing and contribute neither a score nor a zero.
+    """
+
+    rows: list[VadCumulativeView] = []
+    for result in workspace.results:
+        if result.vad_summary is None:
+            continue
+        all_included = tuple(
+            match
+            for match in result.matches
+            if match.included and match.normalized_scores is not None
+        )
+        analysis_groups = [
+            (
+                "All matched tokens",
+                all_included,
+                result.coverage.total_lexical_tokens,
+                result.coverage.lexical_token_coverage,
+            )
+        ]
+        if result.stopword_coverage is not None:
+            analysis_groups.append(
+                (
+                    "Stopwords excluded",
+                    tuple(
+                        match
+                        for match in all_included
+                        if match.included_in_stopword_view
+                    ),
+                    result.stopword_coverage.eligible_token_count,
+                    result.stopword_coverage.lexical_token_coverage,
+                )
+            )
+        for analysis_view, included, lexical_tokens, lexical_coverage in analysis_groups:
+            for dimension in ("valence", "arousal", "dominance"):
+                values = [
+                    float(getattr(match.normalized_scores, dimension))
+                    for match in included
+                    if match.normalized_scores is not None
+                ]
+                if not values:
+                    continue
+                above = sum(max(value - 0.5, 0.0) for value in values)
+                below = sum(max(0.5 - value, 0.0) for value in values)
+                rows.append(
+                    VadCumulativeView(
+                        lexicon_id=result.lexicon_metadata.lexicon_id,
+                        lexicon=result.lexicon_metadata.display_name,
+                        analysis_view=analysis_view,
+                        dimension=dimension,
+                        matched_observations=len(values),
+                        lexical_tokens=lexical_tokens,
+                        lexical_coverage=lexical_coverage,
+                        rating_total=sum(values),
+                        above_midpoint_deviation=above,
+                        below_midpoint_deviation=below,
+                        net_midpoint_deviation=above - below,
+                        absolute_midpoint_deviation=above + below,
+                    )
+                )
     return tuple(rows)
 
 
@@ -413,8 +867,10 @@ def match_views(workspace: WorkspaceAnalysis) -> tuple[MatchView, ...]:
             first = tokens[0]
             rows.append(
                 MatchView(
+                    lexicon_id=result.lexicon_metadata.lexicon_id,
                     lexicon=result.lexicon_metadata.display_name,
                     surface=" ".join(token.surface_form for token in tokens),
+                    normalized=" ".join(token.normalized_form for token in tokens),
                     line=match.line_number,
                     stanza=match.stanza_number,
                     pos=" + ".join(token.part_of_speech for token in tokens),
@@ -425,13 +881,17 @@ def match_views(workspace: WorkspaceAnalysis) -> tuple[MatchView, ...]:
                     value=_match_value(match),
                     context=first.context,
                     explanation=match.reason,
+                    stopword_status=match.stopword_status,
+                    included_in_full=match.included,
+                    included_in_filtered=match.included_in_stopword_view,
+                    stopword_exclusion_reason=match.stopword_exclusion_reason,
                 )
             )
     return tuple(rows)
 
 
 def unmatched_views(workspace: WorkspaceAnalysis) -> tuple[UnmatchedView, ...]:
-    grouped: dict[tuple[str, str, str, str], list[tuple[int, str]]] = {}
+    grouped: dict[tuple[str, str, str, str, str], list[tuple[int, str]]] = {}
     display_names = {
         result.lexicon_metadata.lexicon_id: result.lexicon_metadata.display_name
         for result in workspace.results
@@ -447,16 +907,19 @@ def unmatched_views(workspace: WorkspaceAnalysis) -> tuple[UnmatchedView, ...]:
             key = (
                 match.lexicon_id,
                 token.surface_form,
+                token.normalized_form,
                 token.part_of_speech,
                 token.lemma,
             )
             grouped.setdefault(key, []).append((token.line_number, token.context))
     rows = []
-    for (lexicon_id, surface, pos, lemma), examples in grouped.items():
+    for (lexicon_id, surface, normalized_form, pos, lemma), examples in grouped.items():
         rows.append(
             UnmatchedView(
+                lexicon_id=lexicon_id,
                 lexicon=display_names[lexicon_id],
                 surface=surface,
+                normalized_form=normalized_form,
                 frequency=len(examples),
                 pos=pos,
                 proposed_lemma=lemma,
@@ -500,6 +963,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
     fields = [
         "section",
         "lexicon",
+        "analysis_view",
         "metric",
         "value",
         "unit_or_scale",
@@ -512,6 +976,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
             {
                 "section": "Coverage",
                 "lexicon": coverage.lexicon,
+                "analysis_view": "All matched tokens",
                 "metric": "Lexical-token coverage",
                 "value": coverage.coverage if coverage.coverage is not None else "",
                 "unit_or_scale": "proportion",
@@ -519,28 +984,116 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 "plain_language_note": coverage.note,
             }
         )
+    for result in workspace.results:
+        if result.stopword_coverage is None:
+            continue
+        coverage = result.stopword_coverage
+        rows.append(
+            {
+                "section": "Coverage",
+                "lexicon": result.lexicon_metadata.display_name,
+                "analysis_view": "Stopwords excluded",
+                "metric": "Content-focused lexical coverage",
+                "value": (
+                    coverage.lexical_token_coverage
+                    if coverage.lexical_token_coverage is not None
+                    else ""
+                ),
+                "unit_or_scale": "proportion",
+                "denominator": (
+                    f"{coverage.eligible_token_count} eligible non-stopword tokens"
+                ),
+                "plain_language_note": (
+                    "Intentionally excluded stopwords are removed from this denominator."
+                ),
+            }
+        )
+    contributors = vad_contributor_views(workspace, per_direction=3)
     for row in vad_views(workspace):
+        dimensions = (
+            ("valence", row.normalized_valence, row.type_valence),
+            ("arousal", row.normalized_arousal, row.type_arousal),
+            ("dominance", row.normalized_dominance, row.type_dominance),
+        )
+        for dimension, token_value, type_value in dimensions:
+            terms = [
+                item
+                for item in contributors
+                if item.lexicon_id == row.lexicon_id
+                and item.analysis_view == row.analysis_view
+                and item.dimension == dimension
+            ]
+            contributor_note = "; ".join(
+                f"{item.term} ({item.signed_contribution:+.3f} weighted deviation)"
+                for item in terms
+            )
+            for weighting, value in (("token", token_value), ("type", type_value)):
+                rows.append(
+                    {
+                        "section": "Normalized VAD",
+                        "lexicon": row.lexicon,
+                        "analysis_view": row.analysis_view,
+                        "metric": f"Mean normative {dimension} ({weighting}-weighted)",
+                        "value": value if value is not None else "",
+                        "unit_or_scale": "derived 0-1",
+                        "denominator": (
+                            f"{row.matched_observations} included matched observations"
+                            if weighting == "token"
+                            else "distinct matched lexicon entries"
+                        ),
+                        "plain_language_note": (
+                            f"Top token-mean contributors: {contributor_note or 'not available'}. "
+                            "Original values and formula remain in the detailed audit."
+                        ),
+                    }
+                )
+    for row in vad_cumulative_views(workspace):
         for label, value in (
-            ("Mean normative valence", row.normalized_valence),
-            ("Mean normative arousal", row.normalized_arousal),
-            ("Mean normative dominance", row.normalized_dominance),
+            ("Rating total", row.rating_total),
+            ("Above-midpoint load", row.above_midpoint_deviation),
+            ("Below-midpoint load", row.below_midpoint_deviation),
+            ("Net midpoint load", row.net_midpoint_deviation),
+            ("Absolute midpoint load", row.absolute_midpoint_deviation),
         ):
             rows.append(
                 {
-                    "section": "Normalized VAD",
+                    "section": "Cumulative normative lexical load",
                     "lexicon": row.lexicon,
-                    "metric": label,
-                    "value": value if value is not None else "",
-                    "unit_or_scale": "derived 0-1",
+                    "analysis_view": row.analysis_view,
+                    "metric": f"{row.dimension.title()} — {label}",
+                    "value": value,
+                    "unit_or_scale": "length-sensitive token sum on derived 0-1 scale",
                     "denominator": f"{row.matched_observations} included matched observations",
-                    "plain_language_note": "Original values and formula remain in the detailed audit.",
+                    "plain_language_note": (
+                        "Describes cumulative lexical evidence, not a measured effect on a reader."
+                    ),
                 }
             )
+    for row in vad_sensitivity_views(workspace):
+        rows.append(
+            {
+                "section": "Stopword sensitivity",
+                "lexicon": row.lexicon,
+                "analysis_view": "Filtered minus full",
+                "metric": (
+                    f"Mean normative {row.dimension} difference "
+                    f"({row.weighting}-weighted)"
+                ),
+                "value": row.difference if row.difference is not None else "",
+                "unit_or_scale": "derived 0-1 difference",
+                "denominator": "stopword-excluded mean minus all-matched mean",
+                "plain_language_note": (
+                    "A larger absolute difference indicates greater sensitivity to "
+                    "common grammatical words; neither view is labeled more accurate."
+                ),
+            }
+        )
     for row in emotion_association_views(workspace):
         rows.append(
             {
                 "section": "Emotion association",
                 "lexicon": "NRC Emotion",
+                "analysis_view": "All matched tokens",
                 "metric": f"{row.category} association rate",
                 "value": row.rate_per_lexical_token if row.rate_per_lexical_token is not None else "",
                 "unit_or_scale": "proportion",
@@ -553,6 +1106,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
             {
                 "section": "Emotion intensity",
                 "lexicon": "NRC Emotion Intensity",
+                "analysis_view": "All matched tokens",
                 "metric": f"Mean matched {row.category} intensity",
                 "value": row.mean_matched_intensity if row.mean_matched_intensity is not None else "",
                 "unit_or_scale": "source 0-1",
@@ -569,7 +1123,7 @@ def csv_reading_guide() -> bytes:
         {
             "file": "scholar_summary.csv",
             "what_it_answers": "What are the principal readable results?",
-            "start_with": "Coverage, normalized VAD means, association rates, and matched intensity means.",
+            "start_with": "Coverage, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
             "important_caution": "Read every metric with its denominator and plain-language note.",
         },
         {
@@ -611,8 +1165,14 @@ def csv_reading_guide() -> bytes:
         {
             "file": "phase2_manifest.csv",
             "what_it_answers": "Can this analysis be reproduced?",
-            "start_with": "text/source hashes, versions, model, scenario, and phrase policy.",
+            "start_with": "text/source hashes, versions, model, scenario, phrase policy, and stopword-list metadata.",
             "important_caution": "This is provenance rather than a results table.",
+        },
+        {
+            "file": "phase2_results.json",
+            "what_it_answers": "Can software read the complete nested result and methodology?",
+            "start_with": "results, comparison, stopword_policy, stopword_coverage, and vad_summary.",
+            "important_caution": "All-matched and stopword-excluded fields are separate views of the same audited matches.",
         },
     ]
     return _csv_bytes(fields, rows)

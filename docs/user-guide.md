@@ -2,13 +2,10 @@
 
 ## What is available now
 
-Phase 3 provides a local graphical workspace for one poem at a time. You can
-paste a poem or choose a UTF-8 `.txt` file, analyze it with any of the five
-supplied lexicons, read a guided result, inspect individual matches, and
-download both a friendly summary and the complete audit data.
-
-The workspace lasts only while the app is open. Persistent projects and corpus
-work arrive in Phase 4, so download anything you want to retain before closing.
+VerseVAD provides three local workspaces: **One poem**, **Projects & corpus**,
+and **Lexicon Explorer**. One-poem analyses remain temporary unless downloaded.
+Corpus projects, preserved text versions, metadata, completed results, and
+unmatched-vocabulary notes persist in the local `projects` database.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -39,6 +36,10 @@ folders in this project.
 Ordinary startup is offline. The `127.0.0.1` address means the app is running
 on this computer, not on a public website.
 
+The installed app has no ChatGPT or OpenAI API dependency. It remains usable if
+you cancel a ChatGPT subscription. Internet access is needed only if you later
+reinstall dependencies or deliberately update the software.
+
 ## Analyze a poem
 
 1. Under **Add a poem**, either paste the text or click **Upload** and choose a
@@ -48,8 +49,9 @@ on this computer, not on a public website.
 3. Leave all five lexicons selected for a broad first look, or remove sources
    that are outside the current question.
 4. Leave **Advanced methodology settings** closed for the default
-   phrase-preferred analysis. Open it only when you deliberately want a
-   different phrase policy or sparse-result threshold.
+   phrase-preferred and standard stopword analysis. Open it when you
+   deliberately want a different phrase policy, sparse-result threshold, or
+   custom stopword additions/removals.
 5. Click **Analyze this text**. Wait for the green completion message.
 6. If you edit the text or change the lexicons afterward, click **Analyze this
    text** again before using the displayed result.
@@ -66,7 +68,9 @@ Use this order:
    a few matched observations should be treated cautiously. The displayed 60%
    and 80% coverage bands are orientation aids, not universal scholarly rules.
 2. **VAD profile** — compare normative valence, arousal, and dominance ratings
-   among matched observations. The side-by-side chart uses a derived 0-1 scale.
+   among matched observations. Definitions, interpretations, token/type
+   weighting, cumulative loads, and top contributors appear beneath the
+   derived 0-1 comparison chart.
 3. **Emotion profile** — read categorical associations and numeric intensities
    as separate kinds of evidence.
 4. **Evidence** — inspect which surface forms, phrases, or lemmas contributed;
@@ -102,6 +106,41 @@ Higher normalized valence, arousal, or dominance means a higher mean normative
 rating for the matched lexical observations on that dimension. It does not mean
 that the poem, speaker, author, or reader has "more emotion."
 
+### Token/type means and cumulative load
+
+A token-weighted mean counts every included occurrence, so repetition matters.
+A type-weighted mean counts each distinct matched lexicon entry once within the
+work, so it describes the matched vocabulary rather than repetition. VerseVAD
+shows valence, arousal, and dominance for both.
+
+Cumulative normative lexical load is intentionally length-sensitive. The
+rating total sums normalized ratings. Above- and below-midpoint loads sum
+distance on either side of 0.5; net load permits cancellation; absolute load
+sums distance in either direction. These are totals of encountered matched
+lexical ratings, not measurements of cognitive or emotional load on a reader.
+
+Top contributors use a leave-one-matched-type-out calculation: VerseVAD removes
+all occurrences of one matched entry and reports the change in the token mean.
+The primary ranking uses `frequency × (normalized rating - 0.5)`, so repetition
+and distance from the normalized midpoint remain visible. This makes rating and
+repetition effects inspectable without claiming a causal effect on
+interpretation.
+
+### All matched versus stopwords excluded
+
+The VAD page shows both views by default:
+
+- **All matched observations** retains every included lexicon match.
+- **Stopwords excluded** removes entries recognized by the declared stopword
+  policy while retaining protected terms such as `not`, `never`, and `without`.
+
+The second view uses a content-focused coverage denominator containing eligible
+non-stopword tokens. Published phrase entries stay intact. Open the methodology
+settings to see the pinned list source, version, active count, and hash; select
+custom mode to add or remove words, import a plain-text list, or download the
+active list. Every exclusion and its surface/lemma reason remains visible under
+**Evidence** and in the audit exports.
+
 ### Associations versus intensity
 
 NRC Emotion associations are binary, multi-label categories. One occurrence
@@ -113,7 +152,64 @@ pairs. VerseVAD keeps prevalence separate from the mean rating among supplied
 matched pairs. A missing pair is not counted as an intensity of zero. Neither
 of these constructs is normalized into, pooled with, or averaged into VAD.
 
-## Downloads and the seven audit CSVs
+## Build and compare a corpus
+
+1. Choose **Projects & corpus** in the workspace tabs across the top.
+2. Create a project. It is stored in `projects/versevad.sqlite3` by default.
+3. Under **Works & metadata**, choose a folder containing UTF-8 `.txt` files.
+   Each file is a separate work and subfolder paths are retained. Re-importing
+   changed content creates a new preserved version under the same work ID.
+4. Edit author, collection, date label, genre, notes, or custom JSON metadata.
+5. Under **Analyze & compare**, select works and lexicons, then click **Analyze
+   selected works**. VerseVAD processes one work at a time and publishes the
+   dashboard only when the entire selected batch completes.
+6. Filter a completed comparison by collection, author, or genre.
+7. Use **Unmatched QC** to record review status, notes, or a possible mapping.
+   These notes document quality control and do not change completed scores.
+8. Download the Excel workbook under **Excel export**.
+
+To delete a project, open **Project settings**, read the warning, and type the
+project title exactly—including capitalization—before clicking **Delete this
+project**. This permanently removes only that project and its locally stored
+works, versions, analyses, and notes. Other projects and source lexicons are
+not touched.
+
+### Long and short works in one collection
+
+VerseVAD reports two collection VAD views:
+
+- **Token-weighted volume profile:** pools included matched observations. Long
+  poems contribute more because they contain more of the volume's vocabulary.
+- **Work-weighted volume profile:** averages eligible work-level token means.
+  Every poem contributes one score regardless of length.
+
+Neither is the universally correct view; they answer different questions. The
+dashboard and Excel workbook show their signed difference. A divergence may be
+an important result. A work with no eligible score is reported as omitted and
+never assigned a neutral value.
+
+## Use Lexicon Explorer
+
+1. Choose **Lexicon Explorer** in the workspace tabs across the top.
+2. Enter one word or phrase. VerseVAD searches every installed source.
+3. Read **How it matched** before reading values: exact entry, exact phrase,
+   lemma-derived entry, or user-supplied mapped lookup are distinct.
+4. Leave **Original and normalized** selected to retain source ratings and the
+   separate derived 0-1 comparison together.
+5. Expand variation/provenance panels when investigating a surprising entry.
+
+Warriner standard deviations and rater counts appear where supplied. Empty
+uncertainty cells mean the source did not provide those fields. Cross-lexicon
+"agreement" is a labeled VerseVAD range heuristic, not a source reliability
+statistic. A component average appears only when a phrase has no published VAD
+entry in that source and all component words do; it is clearly labeled as a
+derived value. Similar-word suggestions are never substituted automatically.
+
+An optional user mapping can display, for example, `o'er → over`, but it is a
+lookup-only fallback and does not alter poem or corpus analysis. Persistent,
+scenario-controlled analysis mappings remain a later review-system feature.
+
+## Downloads and the audit bundle
 
 The easiest download has a filename ending in `_scholar_summary.csv`. It contains compact
 coverage, normalized VAD, emotion-association, and intensity rows with plain
@@ -136,6 +232,8 @@ files plus:
   side, with no consensus score;
 - `phase2_manifest.csv` — software, source hashes, adapter and recipe details,
   inclusion decisions, and other reproducibility metadata.
+- `phase2_results.json` — the structured analysis result, including the complete
+  stopword policy and both VAD views, for machine-readable reuse.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. The full ZIP is the reproducibility record; the friendly

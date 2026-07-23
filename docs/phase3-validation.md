@@ -54,7 +54,8 @@ Expected:
 1. Open **VAD profile**.
 2. Confirm that Warriner, NRC VAD v1, and NRC VAD v2.1 have separate rows.
 3. Confirm that every displayed comparison mean lies between 0 and 1.
-4. Open **Original scales, formulas, and token/type comparison**.
+4. Open **Original source scales and normalization formulas**. The token/type
+   comparison is now visible directly above it.
 
 Expected formulas:
 

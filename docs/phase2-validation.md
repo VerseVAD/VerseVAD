@@ -8,8 +8,8 @@ All five supplied lexicons now have read-only adapters and work through one
 auditable analysis interface. The Phase 2 demonstration reproduces invented
 hand calculations, validates the five inspected source hashes, analyzes one
 short invented text independently with each lexicon, and writes seven CSV
-files. No source lexicon is modified or added to Git, and no consensus score is
-created.
+files plus one structured JSON result. No source lexicon is modified or added
+to Git, and no consensus score is created.
 
 ## Implemented behavior
 
@@ -102,7 +102,8 @@ UTF-8 export, and safe export replacement.
    - `phase2_emotion_associations.csv`;
    - `phase2_emotion_intensity.csv`;
    - `phase2_cross_lexicon_comparison.csv`;
-   - `phase2_manifest.csv`.
+   - `phase2_manifest.csv`;
+   - `phase2_results.json`.
 
 In `phase2_match_audit.csv`, filter `match_method` to `exact_phrase` and confirm
 that `a bit` and `dark night` are included for `nrc_vad_v2_1`. In
@@ -115,6 +116,10 @@ does not alter source lexicons or literary texts.
 To reverse the test, delete only `phase2_demo_output`; the runner recreates it.
 
 ## Known Phase 2 limitations
+
+This section records the historical Phase 2 state. Phase 4 subsequently added
+the graphical corpus workflow and activated Warriner whitespace entries as
+exact phrase candidates; see `phase4-validation.md` for current behavior.
 
 - There is no graphical interface or ordinary user-text import yet.
 - Phrase matching is exact, line-bounded, and punctuation-bounded; lemma-based

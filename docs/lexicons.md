@@ -54,10 +54,11 @@ counts.
   text. Case-colliding ratings must remain separate: exact source
   capitalization may disambiguate them, while unresolved forms should be
   flagged rather than assigned an arbitrary rating.
-- **Adapter status:** implemented and contract-tested in Phase 1. All source
+- **Adapter status:** implemented and contract-tested. All source
   values remain on the 1–9 scale; separate 0–1 values use
-  `(original - 1) / 8`. The 102 whitespace entries remain retained but inactive
-  under the Phase 2 word/lemma-level default.
+  `(original - 1) / 8`. Phase 4 activates the 102 whitespace entries as exact,
+  longest-first phrase candidates under the selected phrase policy. Overall
+  standard deviations and rater counts are retained for Lexicon Explorer.
 
 ## 2. NRC VAD Lexicon v1
 

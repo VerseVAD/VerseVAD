@@ -1,0 +1,107 @@
+from io import BytesIO
+
+from openpyxl import load_workbook
+
+from versevad.db import (
+    CorpusMetricRecord,
+    CorpusTextRecord,
+    ProjectRecord,
+    UnmatchedQcRecord,
+)
+from versevad.exports.corpus_excel import build_corpus_workbook
+
+
+def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
+    project = ProjectRecord("project-1", "Jeffers volume", "", "Scholar", "now", "now")
+    text = CorpusTextRecord(
+        "text-1",
+        "version-1",
+        project.project_id,
+        "Poem",
+        "poem.txt",
+        "poem.txt",
+        "Robinson Jeffers",
+        "Volume",
+        "1925",
+        "lyric",
+        "",
+        {},
+        "Bright.",
+        "abc123",
+        "now",
+        "now",
+    )
+
+    def metric(name: str, value: float, *, weighting: str = "token") -> CorpusMetricRecord:
+        return CorpusMetricRecord(
+            "run-1",
+            text.text_id,
+            text.text_version_id,
+            text.title,
+            text.author,
+            text.collection,
+            text.date_label,
+            text.genre,
+            "vad-test",
+            "VAD test",
+            "vad",
+            name,
+            "valence",
+            "",
+            weighting,
+            "normalized_0_1" if name == "vad_mean" else "midpoint_deviation_sum",
+            "1 included matched observation",
+            value,
+            1,
+            1,
+            1,
+            1.0,
+            "now",
+        )
+
+    metrics = (
+        metric("vad_mean", 0.875),
+        metric("vad_mean", 0.875, weighting="type"),
+        metric("vad_absolute_midpoint_load", 0.375),
+    )
+    unmatched = (
+        UnmatchedQcRecord(
+            project.project_id,
+            text.text_id,
+            text.title,
+            "vad-test",
+            "VAD test",
+            "mystery",
+            "mystery",
+            1,
+            "NOUN",
+            "mystery",
+            1,
+            "Bright mystery.",
+            "needs mapping",
+            "Review historical sense.",
+            "",
+            "note-1",
+            "now",
+        ),
+    )
+    content = build_corpus_workbook(project, (text,), metrics, unmatched)
+    workbook = load_workbook(BytesIO(content), data_only=False)
+    assert workbook.sheetnames == [
+        "START HERE",
+        "Corpus profiles",
+        "Work VAD",
+        "Cumulative load",
+        "Coverage and emotion",
+        "Unmatched QC",
+        "Text metadata",
+    ]
+    assert workbook["START HERE"]["A1"].value == "VerseVAD corpus workbook"
+    profile_headers = [cell.value for cell in workbook["Corpus profiles"][4]]
+    assert "Token-weighted volume mean" in profile_headers
+    assert "Work-weighted volume mean" in profile_headers
+    assert workbook["Corpus profiles"]["I5"].value == 0.875
+    assert workbook["Corpus profiles"]["B5"].value == "All Matched"
+    assert workbook["Corpus profiles"]["I5"].value == 0.875
+    assert workbook["Unmatched QC"]["K5"].value == "Review historical sense."
+    assert workbook["Text metadata"]["I5"].value == "abc123"

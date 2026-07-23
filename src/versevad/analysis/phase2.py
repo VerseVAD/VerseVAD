@@ -23,6 +23,8 @@ from versevad.models import (
     MatchSelection,
     Phase2AnalysisResult,
     PhrasePolicy,
+    StopwordCoverageStatistics,
+    StopwordPolicy,
     TermContribution,
     TextDocument,
     TokenRecord,
@@ -32,6 +34,7 @@ from versevad.models import (
 )
 from versevad.normalization import normalize_lookup, possessive_surface_base
 from versevad.preprocessing import TextPreprocessor
+from versevad.stopwords import build_stopword_policy, classify_match_stopword
 
 
 PHASE2_SCENARIO_ID = "phase2-multi-lexicon-v1"
@@ -79,6 +82,7 @@ def _record(
     entry: SupportedEntry | None,
     included: bool,
     reason: str,
+    stopword_policy: StopwordPolicy,
     suppressed_by: str | None = None,
 ) -> AffectMatchRecord:
     first = tokens[0]
@@ -89,6 +93,11 @@ def _record(
         "associations": (),
         "intensities": (),
     }
+    stopword_status, stopword_excluded, stopword_reason = classify_match_stopword(
+        tokens,
+        stopword_policy,
+        is_published_phrase=method == MatchMethod.PHRASE and entry is not None,
+    )
     return AffectMatchRecord(
         match_id=match_id,
         lexicon_id=lexicon_id,
@@ -104,6 +113,9 @@ def _record(
         included=included,
         suppressed_by_match_id=suppressed_by,
         reason=reason,
+        stopword_status=stopword_status,
+        included_in_stopword_view=included and not stopword_excluded,
+        stopword_exclusion_reason=stopword_reason,
         **payload,
     )
 
@@ -221,6 +233,7 @@ def _build_matches(
     tokens: tuple[TokenRecord, ...],
     lexicon: SupportedLexicon,
     phrase_policy: PhrasePolicy,
+    stopword_policy: StopwordPolicy,
 ) -> tuple[AffectMatchRecord, ...]:
     records: list[AffectMatchRecord] = []
     selected_phrases = []
@@ -242,6 +255,7 @@ def _build_matches(
                 selection=MatchSelection.INCLUDED,
                 entry=entry,
                 included=True,
+                stopword_policy=stopword_policy,
                 reason=(
                     "Selected as the deterministic longest non-overlapping exact "
                     "phrase candidate."
@@ -266,6 +280,7 @@ def _build_matches(
                 selection=MatchSelection.SUPPRESSED_OVERLAP,
                 entry=entry,
                 included=False,
+                stopword_policy=stopword_policy,
                 suppressed_by=suppressor,
                 reason="A longer or earlier equal-length phrase occupied part of this span.",
             )
@@ -298,6 +313,7 @@ def _build_matches(
                 selection=selection,
                 entry=entry,
                 included=included,
+                stopword_policy=stopword_policy,
                 suppressed_by=(
                     phrase_by_token.get(token.token_id)
                     if selection == MatchSelection.SUPPRESSED_COMPONENT
@@ -355,6 +371,81 @@ def _coverage(
     )
 
 
+def _stopword_coverage(
+    tokens: tuple[TokenRecord, ...],
+    matches: tuple[AffectMatchRecord, ...],
+    policy: StopwordPolicy,
+) -> StopwordCoverageStatistics:
+    """Calculate content-focused coverage without penalizing intentional removals."""
+
+    lexical = tuple(token for token in tokens if token.is_lexical)
+    lexical_by_id = {token.token_id: token for token in lexical}
+    retained_phrase_token_ids = {
+        token_id
+        for match in matches
+        if match.included
+        and match.method == MatchMethod.PHRASE
+        and match.included_in_stopword_view
+        for token_id in match.token_ids
+    }
+    eligible_ids = {
+        token.token_id
+        for token in lexical
+        if (
+            not classify_match_stopword(
+                (token,),
+                policy,
+                is_published_phrase=False,
+            )[1]
+            or token.token_id in retained_phrase_token_ids
+        )
+    }
+    filtered_matches = tuple(
+        match for match in matches if match.included_in_stopword_view
+    )
+    matched_ids = {
+        token_id
+        for match in filtered_matches
+        for token_id in match.token_ids
+        if token_id in eligible_ids
+    }
+    eligible_types = {
+        lexical_by_id[token_id].normalized_form for token_id in eligible_ids
+    }
+    matched_types = {
+        lexical_by_id[token_id].normalized_form for token_id in matched_ids
+    }
+    excluded_matches = tuple(
+        match
+        for match in matches
+        if match.included and not match.included_in_stopword_view
+    )
+    excluded_token_ids = {
+        token_id
+        for match in excluded_matches
+        for token_id in match.token_ids
+        if token_id in lexical_by_id
+    }
+    excluded_types = {
+        match.matched_lookup_form
+        for match in excluded_matches
+        if match.matched_lookup_form is not None
+    }
+    return StopwordCoverageStatistics(
+        eligible_token_count=len(eligible_ids),
+        eligible_unique_type_count=len(eligible_types),
+        matched_token_count=len(matched_ids),
+        unmatched_token_count=len(eligible_ids - matched_ids),
+        matched_type_count=len(matched_types),
+        unmatched_type_count=len(eligible_types - matched_types),
+        lexical_token_coverage=_safe_rate(len(matched_ids), len(eligible_ids)),
+        type_coverage=_safe_rate(len(matched_types), len(eligible_types)),
+        excluded_matched_observation_count=len(excluded_matches),
+        excluded_matched_token_count=len(excluded_token_ids),
+        excluded_matched_type_count=len(excluded_types),
+    )
+
+
 def _vad_summary(
     matches: tuple[AffectMatchRecord, ...], minimum_match_requirement: int
 ) -> VadSummary:
@@ -365,6 +456,15 @@ def _vad_summary(
     for match in included:
         if match.matched_lookup_form is not None:
             unique.setdefault(match.matched_lookup_form, match)
+    filtered = tuple(
+        match
+        for match in included
+        if match.included_in_stopword_view
+    )
+    filtered_unique: dict[str, AffectMatchRecord] = {}
+    for match in filtered:
+        if match.matched_lookup_form is not None:
+            filtered_unique.setdefault(match.matched_lookup_form, match)
     return VadSummary(
         token_weighted_original=weighted_vad_statistics(
             match.original_scores for match in included if match.original_scores is not None
@@ -380,6 +480,27 @@ def _vad_summary(
         ),
         minimum_match_requirement=minimum_match_requirement,
         is_sparse=len(included) < minimum_match_requirement,
+        stopword_excluded_token_weighted_original=weighted_vad_statistics(
+            match.original_scores
+            for match in filtered
+            if match.original_scores is not None
+        ),
+        stopword_excluded_type_weighted_original=weighted_vad_statistics(
+            match.original_scores
+            for match in filtered_unique.values()
+            if match.original_scores is not None
+        ),
+        stopword_excluded_token_weighted_normalized=weighted_vad_statistics(
+            match.normalized_scores
+            for match in filtered
+            if match.normalized_scores is not None
+        ),
+        stopword_excluded_type_weighted_normalized=weighted_vad_statistics(
+            match.normalized_scores
+            for match in filtered_unique.values()
+            if match.normalized_scores is not None
+        ),
+        stopword_excluded_is_sparse=len(filtered) < minimum_match_requirement,
     )
 
 
@@ -478,6 +599,7 @@ def analyze_lexicon(
     phrase_policy: PhrasePolicy = PhrasePolicy.PHRASE_PREFERRED,
     scenario_id: str = PHASE2_SCENARIO_ID,
     minimum_match_requirement: int = 3,
+    stopword_policy: StopwordPolicy | None = None,
 ) -> Phase2AnalysisResult:
     """Run one supplied lexicon independently under an explicit phrase policy."""
 
@@ -485,9 +607,11 @@ def analyze_lexicon(
         raise ValueError("minimum_match_requirement must be at least 1")
     if not lexicon.validation.is_valid:
         raise ValueError("A lexicon with validation errors cannot be analyzed.")
+    active_stopword_policy = stopword_policy or build_stopword_policy()
     tokens = preprocessor.process(document)
-    matches = _build_matches(tokens, lexicon, phrase_policy)
+    matches = _build_matches(tokens, lexicon, phrase_policy, active_stopword_policy)
     coverage = _coverage(tokens, matches)
+    stopword_coverage = _stopword_coverage(tokens, matches, active_stopword_policy)
     vad_summary = None
     categories = ()
     intensities = ()
@@ -509,6 +633,21 @@ def analyze_lexicon(
             f"observation(s) were included; the configured minimum is "
             f"{minimum_match_requirement}. Treat the aggregate as sparse."
         )
+    if (
+        vad_summary is not None
+        and vad_summary.stopword_excluded_is_sparse
+        and stopword_coverage.excluded_matched_observation_count
+    ):
+        filtered_count = (
+            vad_summary.stopword_excluded_token_weighted_original.valence.count
+            if vad_summary.stopword_excluded_token_weighted_original is not None
+            else 0
+        )
+        warnings.append(
+            f"The stopword-excluded view contains {filtered_count} VAD match "
+            f"observation(s), below the configured minimum of "
+            f"{minimum_match_requirement}; treat that alternative view as sparse."
+        )
     if phrase_policy == PhrasePolicy.PHRASE_AND_COMPONENT:
         warnings.append(
             "Exploratory phrase-and-component mode intentionally double-counts "
@@ -525,6 +664,8 @@ def analyze_lexicon(
             scenario_id,
             phrase_policy.value,
             str(minimum_match_requirement),
+            active_stopword_policy.mode.value,
+            active_stopword_policy.active_list_sha256,
         )
     )
     return Phase2AnalysisResult(
@@ -542,6 +683,8 @@ def analyze_lexicon(
         category_statistics=categories,
         intensity_statistics=intensities,
         warnings=tuple(warnings),
+        stopword_policy=active_stopword_policy,
+        stopword_coverage=stopword_coverage,
     )
 
 
@@ -562,6 +705,7 @@ def _comparison_metrics(result: Phase2AnalysisResult) -> list[ComparisonMetric]:
             scale="count",
             denominator="all lexical tokens",
             value=result.coverage.matched_token_count,
+            analysis_view="all_matched",
         ),
         ComparisonMetric(
             **common,
@@ -570,20 +714,75 @@ def _comparison_metrics(result: Phase2AnalysisResult) -> list[ComparisonMetric]:
             scale="proportion",
             denominator="all lexical tokens",
             value=result.coverage.lexical_token_coverage,
+            analysis_view="all_matched",
         ),
     ]
-    if result.vad_summary is not None:
-        for dimension, stats in result.vad_summary.token_weighted_normalized.by_dimension().items():
-            metrics.append(
+    if result.stopword_coverage is not None:
+        metrics.extend(
+            (
                 ComparisonMetric(
                     **common,
-                    metric=f"mean_normative_{dimension}",
+                    metric="matched_token_count",
                     weighting="token",
-                    scale="normalized_0_1",
-                    denominator="included matched VAD observations",
-                    value=stats.mean,
-                )
+                    scale="count",
+                    denominator="eligible non-stopword lexical tokens",
+                    value=result.stopword_coverage.matched_token_count,
+                    analysis_view="stopwords_excluded",
+                ),
+                ComparisonMetric(
+                    **common,
+                    metric="lexical_token_coverage",
+                    weighting="token",
+                    scale="proportion",
+                    denominator="eligible non-stopword lexical tokens",
+                    value=result.stopword_coverage.lexical_token_coverage,
+                    analysis_view="stopwords_excluded",
+                ),
             )
+        )
+    if result.vad_summary is not None:
+        summary = result.vad_summary
+        vad_groups = (
+            (
+                "all_matched",
+                "token",
+                summary.token_weighted_normalized,
+                "all included matched VAD observations",
+            ),
+            (
+                "all_matched",
+                "type",
+                summary.type_weighted_normalized,
+                "distinct included matched VAD entries",
+            ),
+            (
+                "stopwords_excluded",
+                "token",
+                summary.stopword_excluded_token_weighted_normalized,
+                "included matched VAD observations after stopword exclusion",
+            ),
+            (
+                "stopwords_excluded",
+                "type",
+                summary.stopword_excluded_type_weighted_normalized,
+                "distinct matched VAD entries after stopword exclusion",
+            ),
+        )
+        for analysis_view, weighting, group, denominator in vad_groups:
+            if group is None:
+                continue
+            for dimension, stats in group.by_dimension().items():
+                metrics.append(
+                    ComparisonMetric(
+                        **common,
+                        metric=f"mean_normative_{dimension}",
+                        weighting=weighting,
+                        scale="normalized_0_1",
+                        denominator=denominator,
+                        value=stats.mean,
+                        analysis_view=analysis_view,
+                    )
+                )
     for category in result.category_statistics:
         metrics.append(
             ComparisonMetric(
@@ -633,6 +832,8 @@ def compare_lexicons(results: Iterable[Phase2AnalysisResult]) -> CrossLexiconCom
             raise ValueError("Cross-lexicon results must use the same scenario.")
         if result.phrase_policy != first.phrase_policy:
             raise ValueError("Cross-lexicon results must use the same phrase policy.")
+        if result.stopword_policy != first.stopword_policy:
+            raise ValueError("Cross-lexicon results must use the same stopword policy.")
     lexicon_ids = tuple(result.lexicon_metadata.lexicon_id for result in result_tuple)
     signature = "|".join(result.analysis_id for result in result_tuple)
     metrics = tuple(metric for result in result_tuple for metric in _comparison_metrics(result))

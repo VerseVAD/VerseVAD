@@ -1,4 +1,5 @@
 import csv
+import json
 from pathlib import Path
 
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
@@ -27,9 +28,13 @@ def test_phase2_bundle_is_traceable_and_contains_no_consensus(preprocessor, tmp_
     )
     comparison = compare_lexicons(results)
     paths = export_phase2_csv(results, comparison, tmp_path)
-    assert len(paths) == 7
+    assert len(paths) == 8
     assert all(path.is_file() for path in paths)
-    assert all(path.read_bytes().startswith(b"\xef\xbb\xbf") for path in paths)
+    assert all(
+        path.read_bytes().startswith(b"\xef\xbb\xbf")
+        for path in paths
+        if path.suffix == ".csv"
+    )
 
     audit = _rows(tmp_path / "phase2_match_audit.csv")
     assert any(
@@ -39,11 +44,29 @@ def test_phase2_bundle_is_traceable_and_contains_no_consensus(preprocessor, tmp_
         for row in audit
     )
     assert any(row["selection"] == "suppressed_component" for row in audit)
+    assert {
+        "stopword_status",
+        "included_in_all_matched",
+        "included_in_stopword_excluded",
+        "stopword_exclusion_reason",
+    }.issubset(audit[0])
 
     manifest = _rows(tmp_path / "phase2_manifest.csv")
     assert len(manifest) == 3
     assert {row["phrase_policy"] for row in manifest} == {"phrase_preferred"}
     assert all(row["source_sha256"] for row in manifest)
+    assert {row["stopword_source"] for row in manifest} == {
+        "spaCy English STOP_WORDS"
+    }
+
+    payload = json.loads((tmp_path / "phase2_results.json").read_text(encoding="utf-8"))
+    assert payload["results"][0]["stopword_policy"]["active_list_sha256"]
+    assert (
+        payload["results"][0]["vad_summary"][
+            "stopword_excluded_token_weighted_normalized"
+        ]
+        is not None
+    )
 
     comparison_rows = _rows(tmp_path / "phase2_cross_lexicon_comparison.csv")
     assert comparison_rows

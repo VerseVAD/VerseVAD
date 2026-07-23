@@ -7,6 +7,8 @@ import pytest
 
 from versevad.adapters import LexiconAdapterError, WarrinerVadAdapter
 from versevad.analysis import analyze_vad
+from versevad.analysis.phase2 import analyze_lexicon
+from versevad.models import MatchSelection, PhrasePolicy
 from versevad.preprocessing import create_text_document
 from versevad.validation import PHASE1_DEMO_TEXT
 
@@ -35,6 +37,38 @@ def test_warriner_adapter_preserves_original_and_normalized_scores(tmp_path: Pat
         "dominance": 1.0,
     }
     assert source.read_text(encoding="utf-8").startswith("Word,")
+
+
+def test_warriner_whitespace_entries_are_exact_phrase_candidates(
+    tmp_path: Path,
+    preprocessor,
+) -> None:
+    source = tmp_path / "warriner-phrases.csv"
+    _write_fixture(
+        source,
+        [
+            ["dark night", 2, 7, 3],
+            ["dark", 3, 6, 4],
+            ["night", 4, 5, 6],
+        ],
+    )
+    lexicon = WarrinerVadAdapter().load(source)
+    result = analyze_lexicon(
+        create_text_document("warriner-phrase", "Phrase", "Dark night."),
+        lexicon,
+        preprocessor,
+        phrase_policy=PhrasePolicy.PHRASE_PREFERRED,
+    )
+    included = [match for match in result.matches if match.included]
+    suppressed = [
+        match
+        for match in result.matches
+        if match.selection == MatchSelection.SUPPRESSED_COMPONENT
+    ]
+    assert lexicon.metadata.phrase_support
+    assert [match.matched_term for match in included] == ["dark night"]
+    assert len(suppressed) == 2
+    assert not any("cannot contribute" in warning for warning in result.warnings)
 
 
 def test_warriner_adapter_stops_on_missing_columns(tmp_path: Path) -> None:
@@ -157,10 +191,17 @@ def test_local_supplied_warriner_file_passes_contract_if_present() -> None:
     assert lexicon.validation.total_rows == 13_915
     assert lexicon.validation.usable_entries == 13_915
     assert lexicon.validation.phrase_entries == 102
+    assert lexicon.metadata.phrase_support
     assert lexicon.validation.conflicting_normalized_keys == 10
     assert lexicon.validation.source_sha256 == (
         "78ac8107c78e116bb96538fae4faa47281a155f5f8fe39f30bbc6ea3db05b446"
     )
+    aardvark = lexicon.lookup("aardvark")
+    assert aardvark is not None
+    assert aardvark.standard_deviation is not None
+    assert aardvark.standard_deviation.valence == pytest.approx(2.21)
+    assert aardvark.rater_count is not None
+    assert aardvark.rater_count.valence == 19
 
 
 def test_local_warriner_adapter_integrates_with_engine_if_present(preprocessor) -> None:

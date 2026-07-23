@@ -110,7 +110,11 @@ def test_readable_views_keep_constructs_and_denominators_separate(
     assert len(coverage) == 3
     assert all(row.lexical_tokens == 4 for row in coverage)
     vad = vad_views(synthetic_workspace)
-    assert len(vad) == 1
+    assert len(vad) == 2
+    assert {row.analysis_view for row in vad} == {
+        "All matched tokens",
+        "Stopwords excluded",
+    }
     assert vad[0].normalized_valence is not None
     assert vad[0].original_scale == "1 to 9"
     associations = emotion_association_views(synthetic_workspace)
@@ -142,9 +146,16 @@ def test_scholar_summary_and_guide_are_excel_friendly(synthetic_workspace) -> No
     assert {row["section"] for row in summary_rows} >= {
         "Coverage",
         "Normalized VAD",
+        "Cumulative normative lexical load",
+        "Stopword sensitivity",
         "Emotion association",
         "Emotion intensity",
     }
+    vad_metrics = [
+        row["metric"] for row in summary_rows if row["section"] == "Normalized VAD"
+    ]
+    assert any("token-weighted" in metric for metric in vad_metrics)
+    assert any("type-weighted" in metric for metric in vad_metrics)
     guide_rows = _csv_rows(guide)
     assert guide_rows[0]["file"] == "scholar_summary.csv"
     assert any(row["file"] == "phase2_match_audit.csv" for row in guide_rows)
@@ -161,5 +172,6 @@ def test_detailed_download_starts_with_friendly_files_and_retains_audit(
         assert "csv_reading_guide.csv" in names
         assert "phase2_match_audit.csv" in names
         assert "phase2_manifest.csv" in names
+        assert "phase2_results.json" in names
         start_here = bundle.read("START_HERE.txt").decode("utf-8")
         assert "lexical evidence" in start_here

@@ -111,7 +111,27 @@ plain request validation, all readable view models, match and unmatched
 drill-down, scholar-summary and guide encoding, complete in-memory audit ZIPs,
 eleven installation/source diagnostics, Streamlit empty and successful states,
 all six result tabs, three download controls, and the offline/local-only Windows
-helpers. The full suite passes with:
+helpers.
+
+Phase 3.1 and Phase 4 bring the full suite to 78 passing tests. The added tests
+cover VAD definitions and interpretation, leave-one-type-out contributors,
+hand-calculated cumulative midpoint loads, Warriner exact phrase activation and
+uncertainty fields, folder decoding, SQLite migrations and closed connections,
+text version preservation, extensible metadata, immutable batch publication,
+persistent unmatched notes, mixed-length token/work collection means, an
+end-to-end two-work corpus run, Excel workbook structure, Lexicon Explorer
+exact/phrase/lemma/mapped/component behavior, and all three Streamlit workspace
+entry paths.
+
+Phase 4.1 brings the full suite to 87 passing tests. The added coverage verifies
+dual all-matched/stopword-excluded aggregation; pinned, protected, and custom
+stopword behavior; exact phrase retention; midpoint-centered contribution
+formulas; both result views in CSV/JSON/SQLite/Excel; schema-version-2
+migration; exact-confirmation project deletion; top workspace tabs; stale
+Explorer recovery; and the comprehensive Word manual's package structure,
+required content, page geometry, real numbering, and fixed-DXA table geometry.
+
+The full suite passes with:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
@@ -124,3 +144,18 @@ the in-app self-test. It produced no application error, the VAD chart remained
 bounded to 0-1, and all 11 self-test checks passed. File import is verified at
 the service and Streamlit smoke-test layers; the manual browser pass deliberately
 used paste input to avoid copying any private literary file.
+
+The Phase 4 browser pass verified clean navigation between all three workspaces,
+a five-source `blood` lookup with provenance and normalized spread, a complete
+one-poem analysis with definitions/token-type/cumulative/contributor sections,
+all three download controls, and the absence of the former inactive-Warriner-
+phrase warning. A real two-work NRC VAD corpus pipeline generated an Excel
+workbook; it was re-imported, key ranges inspected, and the collection-profile
+sheet rendered for visual review using the spreadsheet validation tooling.
+
+The Phase 4.1 browser pass used an isolated temporary database and verified the
+top workspace tab bar, a complete five-source one-poem analysis, both VAD
+views, definitions, stopword sensitivity, cumulative totals, midpoint-centered
+contributors, the excluded-match evidence filter, a fresh `kiss` Lexicon
+Explorer lookup, and exact-case project deletion with a visible success
+confirmation. The temporary database was removed afterward.

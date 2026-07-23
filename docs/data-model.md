@@ -1,15 +1,17 @@
 # Initial Data Model
 
-This model is conceptual during Phase 0. Phase 1 will implement only the subset
-needed for a validated single-text engine; persistent migrations begin with the
-project/corpus phase.
+This model began as the Phase 0 design. Phase 4 implements persistent local
+projects and corpus results. Schema version 2 adds explicit analysis-view and
+stopword-methodology fields while migrating existing version-1 databases
+transactionally.
 
 Phase 1 now implements immutable in-memory forms of `TextDocument`,
 `TokenRecord`, `LexiconMetadata`, `LexiconValidation`, `VadEntry`, `TokenMatch`,
 `CoverageStatistics`, `VadSummary`, `PreprocessingMetadata`, and
 `AnalysisResult`. CSV exports carry their stable text, token, analysis,
-scenario, source-hash, adapter, recipe, and model identifiers. SQLite entities
-remain conceptual until the persistence phase.
+scenario, source-hash, adapter, recipe, and model identifiers. The engine
+records remain immutable in-memory values; Phase 4 persists their declared
+aggregate and unmatched-review subset for corpus comparison.
 
 Phase 2 adds immutable emotion-association and emotion-intensity entries and
 lexicons, explicit lexicon value kinds and dimensions, span-based
@@ -24,10 +26,27 @@ coverage, VAD, emotion-association, emotion-intensity, match, and unmatched view
 records. They are framework-independent application models used by both tests
 and the Streamlit page. The workspace contains the preserved `TextDocument`,
 selected source-specific results, comparison record, recipe choices, and
-request signature. It is temporary and in memory; it does not pretend to be the
-persistent `Project` or `AnalysisRun` planned for Phase 4. Download manifests
+request signature. The one-poem workspace remains temporary and in memory; it
+does not pretend to be a persistent Phase 4 `Project` or `AnalysisRun`. Download manifests
 still carry the stable text version, analysis, scenario, adapter, recipe,
 software, source-hash, and inclusion metadata produced by the engine.
+
+Phase 3.1 adds VAD definition, interpretation, contributor, and cumulative-load
+view records. Phase 4 implements `projects`, `texts`, `text_versions`,
+`corpus_batches`, `analysis_runs`, `analysis_metrics`,
+`unmatched_observations`, and `unmatched_notes`. Every stored run links to the
+active preserved text version, source hashes, adapter versions, recipe,
+scenario, software version, selected lexicons, phrase policy, and minimum-match
+choice. Phase 4.1 additionally records stopword mode, source/version/hash,
+protected words, custom additions/removals, and `analysis_view` on persisted
+metrics. Completed corpus batches are immutable; pending or failed batches do
+not appear as the current comparison. Excel remains a derived export.
+
+The local source lexicons are not copied into the project database. Their
+immutable adapter models are loaded in place from known source paths and hashes.
+Lexicon Explorer exposes exact source rows, source values, optional Warriner
+standard-deviation/rater fields, normalization formulas, and provenance without
+creating a second authoritative copy.
 
 ## Identity and versioning
 
@@ -131,7 +150,8 @@ decision responsible for any change.
 
 Stores or caches a declared statistic only when it can link back to the run and
 included match set. Dimensions include structural scope, weighting policy,
-denominator, count, coverage, estimate, uncertainty, and sparse-result status.
+denominator, count, coverage, estimate, uncertainty, sparse-result status, and
+the explicit `all_matched` or `stopwords_excluded` analysis view.
 
 ### ExportRecord
 

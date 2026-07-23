@@ -2,6 +2,8 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from versevad.db.repository import ProjectRepository
+
 
 APP_PATH = Path(__file__).parents[1] / "src" / "versevad" / "ui" / "app.py"
 
@@ -14,13 +16,82 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     assert not app.exception
     assert [title.value for title in app.title] == ["VerseVAD"]
-    assert [area.label for area in app.text_area] == [
-        "Paste the poem exactly as you want it analyzed"
+    assert "Paste the poem exactly as you want it analyzed" in [
+        area.label for area in app.text_area
     ]
+    navigation = app.get("button_group")[0]
+    assert navigation.label == "Workspace"
+    assert navigation.value == "One poem"
     assert "Poem title or working label" in [field.label for field in app.text_input]
     assert "Analyze this text" in [button.label for button in app.button]
     assert "Run self-test" in [button.label for button in app.button]
     assert not app.tabs
+
+
+def test_interface_opens_persistent_corpus_workspace(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("VERSEVAD_DATABASE_PATH", str(tmp_path / "versevad.sqlite3"))
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Projects & corpus")
+    app.run(timeout=30)
+    assert not app.exception
+    assert [title.value for title in app.title] == ["VerseVAD projects & corpus"]
+    assert "Project title" in [field.label for field in app.text_input]
+    assert "Create project" in [button.label for button in app.button]
+
+
+def test_interface_deletes_only_exactly_confirmed_project(tmp_path, monkeypatch) -> None:
+    database_path = tmp_path / "versevad.sqlite3"
+    monkeypatch.setenv("VERSEVAD_DATABASE_PATH", str(database_path))
+    repository = ProjectRepository(database_path)
+    disposable = repository.create_project("Disposable project")
+    keeper = repository.create_project("Keep this project")
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Projects & corpus")
+    app.run(timeout=30)
+    active_project = next(
+        field for field in app.selectbox if field.label == "Active project"
+    )
+    active_project.set_value(disposable.project_id)
+    app.run(timeout=30)
+
+    confirmation = next(
+        field
+        for field in app.text_input
+        if field.label.startswith("Type the exact project title to confirm")
+    )
+    delete_button = _button(app, "Delete this project")
+    assert delete_button.disabled
+
+    confirmation.input("Disposable project")
+    app.run(timeout=30)
+    delete_button = _button(app, "Delete this project")
+    assert not delete_button.disabled
+    delete_button.click()
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert any(
+        'Project "Disposable project" was deleted' in message.value
+        for message in app.success
+    )
+    assert [project.project_id for project in repository.list_projects()] == [
+        keeper.project_id
+    ]
+
+
+def test_interface_opens_lexicon_explorer() -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Lexicon Explorer")
+    app.run(timeout=30)
+    assert not app.exception
+    assert [title.value for title in app.title] == ["Lexicon Explorer"]
+    assert "Word or phrase" in [field.label for field in app.text_input]
+    assert "Optional user-supplied mapping" in [field.label for field in app.text_input]
+    assert "Search installed lexicons" in [button.label for button in app.button]
 
 
 def test_interface_shows_plain_language_input_error() -> None:
@@ -56,12 +127,13 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         (metric.label, metric.value) for metric in app.metric
     ]
     downloads = app.get("download_button")
-    assert {button.label for button in downloads} == {
+    assert {button.label for button in downloads} >= {
         "Download readable summary",
         "Download CSV reading guide",
         "Download full audit bundle",
     }
-    assert any("Comparable normalized VAD" in heading.value for heading in app.subheader)
+    assert any("Parallel normalized VAD views" in heading.value for heading in app.subheader)
+    assert any("Stopword sensitivity" in heading.value for heading in app.subheader)
     assert any("Categorical emotion associations" in heading.value for heading in app.subheader)
 
 

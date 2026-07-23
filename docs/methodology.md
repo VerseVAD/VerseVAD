@@ -39,10 +39,11 @@ The default recipe for implementation and testing is:
 9. use reviewed mappings only when their scope and approval allow it;
 10. do not stem, guess historical substitutions, or infer coined-word meanings;
 11. do not automatically invert scores near negation;
-12. include matched stopwords in the primary scenario;
-13. report token- and type-weighted summaries separately;
-14. show matched counts and coverage with every aggregate;
-15. preserve all candidate, suppression, exclusion, and match provenance.
+12. retain all matched observations as the complete lexical-evidence view;
+13. also calculate a separately labeled, auditable stopword-excluded view;
+14. report token- and type-weighted summaries separately;
+15. show matched counts and coverage with every aggregate;
+16. preserve all candidate, suppression, exclusion, and match provenance.
 
 This recipe will be versioned. Changes create new analyses rather than altering
 completed results.
@@ -73,6 +74,42 @@ VerseVAD creates no pooled or consensus VAD score.
 Categorical emotion associations and numeric word-emotion intensities are not
 alternate scales for VAD. They retain their own value kinds and denominators
 and are never normalized into or averaged with the VAD dimensions.
+
+## Dual VAD reporting and stopword policy
+
+VerseVAD does not treat stopword removal as neutral preprocessing. Every VAD
+analysis keeps the complete **all matched observations** result and derives a
+second **stopwords excluded** result from the same audited matches. The second
+view changes aggregate inclusion only; it does not change tokenization,
+lexicon lookup, exact-versus-lemma priority, or source ratings.
+
+The standard list is spaCy English `STOP_WORDS`, pinned to the installed spaCy
+version and identified by its full active-list SHA-256 hash. VerseVAD protects
+meaning-changing negations, modals, comparatives, and intensifiers—including
+`no`, `not`, `never`, `without`, `may`, `might`, `must`, `more`, `most`, `too`,
+and `very`—from default exclusion. A scholar may add or remove normalized forms
+in custom mode; the full resulting list and the changes are recorded with the
+analysis.
+
+Recognition may use the normalized surface form or lemma and records which
+evidence caused exclusion. This does not silently turn a lemma into a lexicon
+match. An activated exact published phrase remains one match and is retained
+intact rather than being split because one component is a stopword.
+
+Full-view coverage keeps the ordinary eligible lexical-token denominator.
+Content-focused coverage uses eligible non-stopword tokens as its denominator
+and reports excluded matched observations separately. Stopword sensitivity is
+the stopwords-excluded statistic minus the corresponding all-matched statistic;
+it is descriptive rather than a robustness threshold.
+
+Top-contributor tables remain separate by view. A matched entry's signed
+midpoint contribution for one dimension is:
+
+`frequency × (normalized rating - 0.5)`
+
+Positive values raise the cumulative midpoint-centered total; negative values
+lower it. The ranking is an accounting of normative lexical evidence, not a
+claim about causal reader response.
 
 ## Emotion association summaries
 
@@ -128,9 +165,71 @@ occurrences covered by included records, so exploratory double-counting does
 not inflate the matched-token numerator. A selected phrase contributes one VAD
 observation even when it covers multiple tokens.
 
-The older Warriner and NRC VAD v1 sources are documented as word or lemma level.
-Their whitespace-containing rows remain preserved and counted during validation
-but are not active phrase candidates under the Phase 2 default.
+The Phase 4 local policy activates Warriner's 102 whitespace-containing source
+rows as exact phrase candidates at the user's request. They use the same
+longest-first selection and visible suppression records as NRC VAD v2.1. This
+is a declared VerseVAD processing policy; it does not claim that the Warriner
+publication separately validated phrase norms. NRC VAD v1 whitespace entries
+remain preserved but inactive under its word-level default.
+
+## Cumulative VAD totals
+
+For every VAD dimension, VerseVAD separately reports these length-sensitive
+token totals on the derived 0-1 display scale:
+
+- rating total: `sum(x)`;
+- above-midpoint load: `sum(max(x - 0.5, 0))`;
+- below-midpoint load: `sum(max(0.5 - x, 0))`;
+- net midpoint load: above minus below, equivalent to `sum(x - 0.5)`;
+- absolute midpoint load: above plus below, equivalent to
+  `sum(abs(x - 0.5))`.
+
+Each included matched occurrence contributes once; an activated phrase is one
+matched observation under the declared phrase policy. Unmatched tokens are
+absent and never receive zero or 0.5. These statistics are called cumulative
+normative lexical load because they grow with encountered matched vocabulary.
+They are not a direct measure of cognitive load or affective impact on a reader.
+
+## Corpus weighting and long works
+
+Every work is analyzed separately before collection aggregation. For a given
+lexicon and normalized VAD dimension, let `m_i` be work `i`'s token-weighted
+mean and `n_i` its number of included matched observations.
+
+The token-weighted volume profile pools observations:
+
+`sum(m_i * n_i) / sum(n_i)`
+
+The work-weighted volume profile gives every eligible work one score:
+
+`sum(m_i) / number of eligible works`
+
+Long works therefore contribute more to the first view but not the second.
+VerseVAD reports both plus their signed difference. Work scores that are
+missing because no observations matched remain missing; they are counted as
+omitted and do not become neutral values. This collection-level distinction is
+separate from the within-work token/type distinction: type-weighted work means
+give each distinct matched lexicon entry one contribution.
+
+Corpus comparisons use one completed batch. A pending or failed batch can
+contain individually complete work runs for recovery and audit, but it never
+replaces the latest complete comparison view.
+
+## Lexicon Explorer derivations
+
+Lexicon Explorer resolves an exact normalized entry or phrase before displaying
+an explicitly labeled POS-sensitive lemma-derived entry. A user-supplied mapped
+lookup is display-only and never changes poem/corpus matching. Similar terms are
+suggestions only. If a phrase has no source entry and every component has an
+exact VAD entry in one source, the interface may show their arithmetic mean as
+a **VerseVAD-derived component average**, never as a published phrase rating.
+
+Cross-lexicon spread is the range of normalized ratings for the displayed
+entries. The interface labels ranges up to 0.10 "high" agreement, up to 0.25
+"moderate," and larger ranges "low." This is an orientation heuristic, not a
+source-provided reliability statistic or inferential test. Warriner standard
+deviations and dimension-specific rater counts are displayed from their source
+columns; missing uncertainty fields in other resources remain blank.
 
 ## Cross-lexicon comparison
 

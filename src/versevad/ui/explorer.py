@@ -1,0 +1,336 @@
+"""Streamlit Lexicon Explorer for exact, lemma, phrase, and mapped lookup."""
+
+from __future__ import annotations
+
+import pandas as pd
+import streamlit as st
+
+from versevad.explorer import LexiconExplorerResult, explore_lexicons
+from versevad.preprocessing import TextPreprocessor
+
+
+def _score(value: float | None) -> str:
+    return "—" if value is None else f"{value:.3f}"
+
+
+def _render_vad(result: LexiconExplorerResult) -> None:
+    vad = [row for row in result.entries if row.original_scores is not None]
+    if not vad:
+        return
+    st.subheader("Valence, arousal, and dominance")
+    mode = st.radio(
+        "Value display",
+        options=["Original and normalized", "Original source values", "Normalized comparison"],
+        horizontal=True,
+        key="explorer_value_display",
+    )
+    rows = []
+    for entry in vad:
+        original = entry.original_scores
+        normalized = entry.normalized_scores
+        assert original is not None and normalized is not None
+        row = {
+            "Lexicon": entry.lexicon,
+            "Matched entry": entry.matched_term,
+            "Method": entry.match_method,
+        }
+        if mode != "Normalized comparison":
+            row.update(
+                {
+                    "Valence — original": f"{original.valence:.3f} / {entry.original_scale}",
+                    "Arousal — original": f"{original.arousal:.3f} / {entry.original_scale}",
+                    "Dominance — original": f"{original.dominance:.3f} / {entry.original_scale}",
+                }
+            )
+        if mode != "Original source values":
+            row.update(
+                {
+                    "Valence — normalized": normalized.valence,
+                    "Arousal — normalized": normalized.arousal,
+                    "Dominance — normalized": normalized.dominance,
+                }
+            )
+        rows.append(row)
+    frame = pd.DataFrame(rows)
+    normalized_columns = [column for column in frame if "normalized" in column]
+    styling = frame.style
+    if normalized_columns:
+        styling = styling.format({column: "{:.3f}" for column in normalized_columns})
+    st.dataframe(styling, hide_index=True, width="stretch")
+    st.caption(
+        "Original values reproduce the source scales. Normalized values are separate "
+        "derived 0–1 transformations; they do not make the source samples interchangeable."
+    )
+
+    comparison_rows = []
+    for entry in vad:
+        normalized = entry.normalized_scores
+        assert normalized is not None
+        for dimension in ("valence", "arousal", "dominance"):
+            comparison_rows.append(
+                {
+                    "Lexicon": entry.lexicon,
+                    "Dimension": dimension.title(),
+                    "Normalized rating": getattr(normalized, dimension),
+                    "Method": entry.match_method,
+                }
+            )
+    st.bar_chart(
+        pd.DataFrame(comparison_rows),
+        x="Dimension",
+        y="Normalized rating",
+        color="Lexicon",
+        stack=False,
+        height=320,
+    )
+
+    uncertainty = []
+    for entry in vad:
+        if entry.standard_deviation is None and entry.rater_count is None:
+            continue
+        for dimension in ("valence", "arousal", "dominance"):
+            uncertainty.append(
+                {
+                    "Lexicon": entry.lexicon,
+                    "Dimension": dimension.title(),
+                    "Mean": getattr(entry.original_scores, dimension),
+                    "Standard deviation": (
+                        getattr(entry.standard_deviation, dimension)
+                        if entry.standard_deviation is not None
+                        else None
+                    ),
+                    "Rater count": (
+                        int(getattr(entry.rater_count, dimension))
+                        if entry.rater_count is not None
+                        else None
+                    ),
+                }
+            )
+    if uncertainty:
+        with st.expander("Rating variation and rater counts"):
+            st.write(
+                "A larger standard deviation means the source ratings were more dispersed "
+                "around the mean. Blank cells mean that source did not supply the field."
+            )
+            st.dataframe(
+                pd.DataFrame(uncertainty).style.format(
+                    {"Mean": "{:.3f}", "Standard deviation": "{:.3f}"},
+                    na_rep="—",
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+
+    if result.comparisons:
+        st.subheader("VerseVAD-derived cross-lexicon spread")
+        spread = pd.DataFrame(
+            [
+                {
+                    "Dimension": row.dimension.title(),
+                    "Entries": row.entry_count,
+                    "Minimum": row.minimum,
+                    "Maximum": row.maximum,
+                    "Range": row.spread,
+                    "Descriptive agreement": row.descriptive_agreement.title(),
+                }
+                for row in result.comparisons
+            ]
+        )
+        st.dataframe(
+            spread.style.format({"Minimum": "{:.3f}", "Maximum": "{:.3f}", "Range": "{:.3f}"}),
+            hide_index=True,
+            width="stretch",
+        )
+        st.caption(
+            "Agreement is a VerseVAD heuristic based only on normalized range: high ≤ 0.10, "
+            "moderate ≤ 0.25, low > 0.25. It is descriptive, not a reliability statistic."
+        )
+
+
+def _render_emotion(result: LexiconExplorerResult) -> None:
+    associations = [
+        row for row in result.entries if row.value_kind == "categorical_association"
+    ]
+    intensities = [row for row in result.entries if row.intensities]
+    if associations:
+        st.subheader("Categorical emotion associations")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Lexicon": row.lexicon,
+                        "Matched entry": row.matched_term,
+                        "Method": row.match_method,
+                        "Source associations": (
+                            ", ".join(row.associations)
+                            if row.associations
+                            else "No positive associations in the source entry"
+                        ),
+                    }
+                    for row in associations
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+    if intensities:
+        st.subheader("Emotion intensity entries")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Lexicon": row.lexicon,
+                        "Matched entry": row.matched_term,
+                        "Method": row.match_method,
+                        "Category": category.title(),
+                        "Source intensity": intensity,
+                    }
+                    for row in intensities
+                    for category, intensity in row.intensities
+                ]
+            ).style.format({"Source intensity": "{:.3f}"}),
+            hide_index=True,
+            width="stretch",
+        )
+
+
+def _render_components(result: LexiconExplorerResult) -> None:
+    if not result.component_averages:
+        return
+    st.subheader("Derived component averages")
+    st.warning(
+        "No published phrase entry was found in these VAD sources. The rows below "
+        "average exact component entries and are VerseVAD-derived—not published phrase ratings."
+    )
+    rows = []
+    for average in result.component_averages:
+        rows.append(
+            {
+                "Lexicon": average.lexicon,
+                "Components": " + ".join(average.components),
+                "Original valence": f"{average.original_scores.valence:.3f} / {average.original_scale}",
+                "Normalized valence": average.normalized_scores.valence,
+                "Normalized arousal": average.normalized_scores.arousal,
+                "Normalized dominance": average.normalized_scores.dominance,
+            }
+        )
+    st.dataframe(
+        pd.DataFrame(rows).style.format(
+            {
+                "Normalized valence": "{:.3f}",
+                "Normalized arousal": "{:.3f}",
+                "Normalized dominance": "{:.3f}",
+            }
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+
+
+def _render_provenance(result: LexiconExplorerResult) -> None:
+    if not result.entries:
+        return
+    with st.expander("Source provenance"):
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Lexicon": row.lexicon,
+                        "Version": row.version,
+                        "Matched entry": row.matched_term,
+                        "Method": row.match_method,
+                        "Source rows": ", ".join(str(value) for value in row.source_rows),
+                        "Original scale": row.original_scale,
+                        "Formula": row.normalization_formula,
+                        "Adapter": row.adapter_version,
+                        "Source file": row.source_file,
+                        "SHA-256": row.source_sha256,
+                        "Citation": row.citation,
+                    }
+                    for row in result.entries
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+            height=340,
+        )
+
+
+def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
+    with st.sidebar:
+        st.markdown("### Lexicon Explorer")
+        st.success("Every lookup stays on this computer.")
+        st.caption(
+            "Exact entries, phrase entries, lemma-derived entries, and user-supplied mappings are always labeled separately."
+        )
+    st.markdown(
+        '<p class="verse-kicker">Auditable word and phrase lookup</p>',
+        unsafe_allow_html=True,
+    )
+    st.title("Lexicon Explorer")
+    st.write(
+        "Look up a word or phrase across all five installed lexicons. Original source "
+        "values remain visible; normalized values are a separate comparison view."
+    )
+    with st.form("lexicon_explorer_search"):
+        query = st.text_input(
+            "Word or phrase",
+            placeholder="Try: blood, burning, broken heart, or fall in love",
+        )
+        mapped_query = st.text_input(
+            "Optional user-supplied mapping",
+            placeholder="Example: o'er → over (enter over here)",
+            help="Used only as a clearly labeled lookup fallback. It never changes poem or corpus analyses.",
+        )
+        search = st.form_submit_button("Search installed lexicons", type="primary")
+    if search:
+        try:
+            with st.spinner("Searching the five local source lexicons…"):
+                st.session_state["lexicon_explorer_result"] = explore_lexicons(
+                    query,
+                    preprocessor,
+                    mapped_query=mapped_query,
+                )
+        except ValueError as error:
+            st.error(str(error))
+
+    result = st.session_state.get("lexicon_explorer_result")
+    if result is None:
+        st.info("Enter one word or phrase to begin. Similar terms are suggestions only; they are never substituted automatically.")
+        return
+    st.divider()
+    st.header(result.query)
+    details = [f"Normalized lookup: `{result.normalized_query}`"]
+    if result.processing_lemma:
+        details.append(f"Model lemma: `{result.processing_lemma}`")
+    if result.processing_pos:
+        details.append(f"Model part of speech: `{result.processing_pos}`")
+    st.write(" · ".join(details))
+    for notice in result.notices:
+        st.info(notice)
+    if not result.entries:
+        st.warning("No exact or lemma-derived published entry was found in the installed sources.")
+        if result.suggestions:
+            st.write("**Possible spelling or nearby-form suggestions (not substitutes):**")
+            st.write(", ".join(result.suggestions))
+    else:
+        methods = pd.DataFrame(
+            [
+                {
+                    "Lexicon": row.lexicon,
+                    "Matched source entry": row.matched_term,
+                    "How it matched": row.match_method,
+                    "Value kind": row.value_kind.replace("_", " ").title(),
+                }
+                for row in result.entries
+            ]
+        )
+        st.dataframe(methods, hide_index=True, width="stretch")
+    _render_vad(result)
+    _render_emotion(result)
+    _render_components(result)
+    _render_provenance(result)
+    st.warning(
+        "A lookup reports decontextualized normative ratings or associations. It does "
+        "not resolve polysemy, historical sense, irony, metaphor, or contextual meaning."
+    )

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from dataclasses import asdict
+from enum import Enum
 from pathlib import Path
 from typing import Iterable
 
@@ -22,6 +25,8 @@ MATCH_FIELDS = [
     "match_id",
     "token_ids",
     "surface_span",
+    "normalized_span",
+    "lemma_span",
     "start_token_position",
     "end_token_position",
     "line_number",
@@ -32,6 +37,10 @@ MATCH_FIELDS = [
     "matched_lookup_form",
     "source_rows",
     "included",
+    "included_in_all_matched",
+    "included_in_stopword_excluded",
+    "stopword_status",
+    "stopword_exclusion_reason",
     "suppressed_by_match_id",
     "reason",
     "source_valence",
@@ -47,6 +56,43 @@ MATCH_FIELDS = [
 
 def _score(scores: object, dimension: str) -> float | str:
     return getattr(scores, dimension) if scores is not None else ""
+
+
+def _json_default(value: object) -> object:
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"Not JSON serializable: {type(value)!r}")
+
+
+def _atomic_write_json(destination: Path, payload: object) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary_name = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            prefix=f".{destination.stem}-",
+            suffix=".tmp",
+            dir=destination.parent,
+            delete=False,
+        ) as temporary:
+            temporary_name = temporary.name
+            json.dump(
+                payload,
+                temporary,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+                default=_json_default,
+            )
+            temporary.write("\n")
+        os.replace(temporary_name, destination)
+    finally:
+        if temporary_name and os.path.exists(temporary_name):
+            os.unlink(temporary_name)
 
 
 def _match_rows(results: tuple[Phase2AnalysisResult, ...]) -> Iterable[dict[str, object]]:
@@ -65,6 +111,12 @@ def _match_rows(results: tuple[Phase2AnalysisResult, ...]) -> Iterable[dict[str,
                 "surface_span": " ".join(
                     token_map[token_id].surface_form for token_id in match.token_ids
                 ),
+                "normalized_span": " ".join(
+                    token_map[token_id].normalized_form for token_id in match.token_ids
+                ),
+                "lemma_span": " ".join(
+                    token_map[token_id].lemma for token_id in match.token_ids
+                ),
                 "start_token_position": match.start_token_position,
                 "end_token_position": match.end_token_position,
                 "line_number": match.line_number,
@@ -75,6 +127,10 @@ def _match_rows(results: tuple[Phase2AnalysisResult, ...]) -> Iterable[dict[str,
                 "matched_lookup_form": match.matched_lookup_form or "",
                 "source_rows": " | ".join(str(row) for row in match.source_rows),
                 "included": match.included,
+                "included_in_all_matched": match.included,
+                "included_in_stopword_excluded": match.included_in_stopword_view,
+                "stopword_status": match.stopword_status,
+                "stopword_exclusion_reason": match.stopword_exclusion_reason,
                 "suppressed_by_match_id": match.suppressed_by_match_id or "",
                 "reason": match.reason,
                 "source_valence": _score(match.original_scores, "valence"),
@@ -89,8 +145,9 @@ def _match_rows(results: tuple[Phase2AnalysisResult, ...]) -> Iterable[dict[str,
 
 
 def _coverage_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, object]]:
-    return [
-        {
+    rows: list[dict[str, object]] = []
+    for result in results:
+        common = {
             "analysis_id": result.analysis_id,
             "scenario_id": result.scenario_id,
             "phrase_policy": result.phrase_policy.value,
@@ -98,10 +155,24 @@ def _coverage_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, 
             "text_version_id": result.document.text_version_id,
             "lexicon_id": result.lexicon_metadata.lexicon_id,
             "value_kind": result.lexicon_metadata.value_kind.value,
-            **asdict(result.coverage),
         }
-        for result in results
-    ]
+        rows.append(
+            {
+                **common,
+                "analysis_view": "all_matched",
+                **asdict(result.coverage),
+            }
+        )
+        if result.stopword_coverage is not None:
+            filtered = asdict(result.stopword_coverage)
+            rows.append(
+                {
+                    **common,
+                    "analysis_view": "stopwords_excluded",
+                    **filtered,
+                }
+            )
+    return rows
 
 
 def _vad_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, object]]:
@@ -109,24 +180,56 @@ def _vad_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, objec
     for result in results:
         if result.vad_summary is None:
             continue
+        summary = result.vad_summary
         groups = (
-            ("token", "source", result.vad_summary.token_weighted_original),
-            ("type", "source", result.vad_summary.type_weighted_original),
-            ("token", "normalized_0_1", result.vad_summary.token_weighted_normalized),
-            ("type", "normalized_0_1", result.vad_summary.type_weighted_normalized),
+            ("all_matched", "token", "source", summary.token_weighted_original),
+            ("all_matched", "type", "source", summary.type_weighted_original),
+            ("all_matched", "token", "normalized_0_1", summary.token_weighted_normalized),
+            ("all_matched", "type", "normalized_0_1", summary.type_weighted_normalized),
+            (
+                "stopwords_excluded",
+                "token",
+                "source",
+                summary.stopword_excluded_token_weighted_original,
+            ),
+            (
+                "stopwords_excluded",
+                "type",
+                "source",
+                summary.stopword_excluded_type_weighted_original,
+            ),
+            (
+                "stopwords_excluded",
+                "token",
+                "normalized_0_1",
+                summary.stopword_excluded_token_weighted_normalized,
+            ),
+            (
+                "stopwords_excluded",
+                "type",
+                "normalized_0_1",
+                summary.stopword_excluded_type_weighted_normalized,
+            ),
         )
-        for weighting, scale, group in groups:
+        for analysis_view, weighting, scale, group in groups:
+            if group is None:
+                continue
             for dimension, stats in group.by_dimension().items():
                 rows.append(
                     {
                         "analysis_id": result.analysis_id,
                         "lexicon_id": result.lexicon_metadata.lexicon_id,
+                        "analysis_view": analysis_view,
                         "weighting": weighting,
                         "scale": scale,
                         "dimension": dimension,
                         **asdict(stats),
-                        "minimum_match_requirement": result.vad_summary.minimum_match_requirement,
-                        "is_sparse": result.vad_summary.is_sparse,
+                        "minimum_match_requirement": summary.minimum_match_requirement,
+                        "is_sparse": (
+                            summary.is_sparse
+                            if analysis_view == "all_matched"
+                            else summary.stopword_excluded_is_sparse
+                        ),
                     }
                 )
     return rows
@@ -207,6 +310,60 @@ def _manifest_rows(results: tuple[Phase2AnalysisResult, ...]) -> list[dict[str, 
             "usable_source_entries": result.lexicon_validation.usable_entries,
             "source_phrase_entries": result.lexicon_validation.phrase_entries,
             "source_loaded_at_utc": result.lexicon_validation.loaded_at_utc,
+            "stopword_mode": (
+                result.stopword_policy.mode.value if result.stopword_policy else ""
+            ),
+            "stopword_source": (
+                result.stopword_policy.source if result.stopword_policy else ""
+            ),
+            "stopword_library_version": (
+                result.stopword_policy.library_version if result.stopword_policy else ""
+            ),
+            "stopword_list_version": (
+                result.stopword_policy.list_version if result.stopword_policy else ""
+            ),
+            "standard_stopword_count": (
+                result.stopword_policy.standard_word_count if result.stopword_policy else ""
+            ),
+            "standard_stopword_sha256": (
+                result.stopword_policy.standard_list_sha256 if result.stopword_policy else ""
+            ),
+            "active_stopword_count": (
+                len(result.stopword_policy.active_words) if result.stopword_policy else ""
+            ),
+            "active_stopword_sha256": (
+                result.stopword_policy.active_list_sha256 if result.stopword_policy else ""
+            ),
+            "active_stopwords": (
+                json.dumps(result.stopword_policy.active_words)
+                if result.stopword_policy
+                else ""
+            ),
+            "protected_stopwords": (
+                json.dumps(result.stopword_policy.protected_words)
+                if result.stopword_policy
+                else ""
+            ),
+            "custom_stopword_additions": (
+                json.dumps(result.stopword_policy.custom_additions)
+                if result.stopword_policy
+                else ""
+            ),
+            "custom_stopword_removals": (
+                json.dumps(result.stopword_policy.custom_removals)
+                if result.stopword_policy
+                else ""
+            ),
+            "excluded_matched_stopword_observations": (
+                result.stopword_coverage.excluded_matched_observation_count
+                if result.stopword_coverage
+                else ""
+            ),
+            "excluded_matched_stopword_types": (
+                result.stopword_coverage.excluded_matched_type_count
+                if result.stopword_coverage
+                else ""
+            ),
             "warnings": " | ".join(result.warnings),
         }
         for result in results
@@ -232,10 +389,14 @@ def export_phase2_csv(
         "intensity": output_directory / "phase2_emotion_intensity.csv",
         "comparison": output_directory / "phase2_cross_lexicon_comparison.csv",
         "manifest": output_directory / "phase2_manifest.csv",
+        "json": output_directory / "phase2_results.json",
     }
     _atomic_write_csv(paths["matches"], MATCH_FIELDS, _match_rows(result_tuple))
     coverage = _coverage_rows(result_tuple)
-    _atomic_write_csv(paths["coverage"], list(coverage[0]), coverage)
+    coverage_fields = list(
+        dict.fromkeys(key for row in coverage for key in row)
+    )
+    _atomic_write_csv(paths["coverage"], coverage_fields, coverage)
     vad = _vad_rows(result_tuple)
     _atomic_write_csv(
         paths["vad"],
@@ -262,4 +423,9 @@ def export_phase2_csv(
     _atomic_write_csv(paths["comparison"], list(comparison_rows[0]), comparison_rows)
     manifest = _manifest_rows(result_tuple)
     _atomic_write_csv(paths["manifest"], list(manifest[0]), manifest)
+    payload = {
+        "results": [asdict(result) for result in result_tuple],
+        "comparison": asdict(comparison),
+    }
+    _atomic_write_json(paths["json"], payload)
     return tuple(paths.values())

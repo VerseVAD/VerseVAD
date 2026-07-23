@@ -108,11 +108,86 @@ review required.
 - [x] Documentation reflects the tested Phase 3 behavior and limitations.
 - [x] Create the Phase 3 source-control checkpoint.
 
+## Phase 3.1 - Interpretation and usability
+
+- [x] Define valence, arousal, and dominance in beginner-facing language.
+- [x] Explain each normalized mean relative to the derived midpoint with matched
+  counts, coverage, and an explicit lexical-evidence scope statement.
+- [x] Display all three token- and type-weighted VAD means side by side.
+- [x] Rank the largest leave-one-matched-type-out contributors to each token
+  mean with source evidence and examples.
+- [x] Add cumulative rating and midpoint-deviation totals without presenting
+  them as a measured psychological load on a reader.
+- [x] Keep Streamlit internal while using VerseVAD titles, navigation, styling,
+  and a minimal hidden-branding toolbar configuration.
+
 ## Phase 4 - Corpus and metadata
 
-- [ ] Add the persistent SQLite project database and migrations.
-- [ ] Add batch imports, extensible metadata, grouping, and filtering.
-- [ ] Add corpus summaries and Excel exports.
+- [x] Add the persistent SQLite project database and explicit first migration.
+- [x] Add browser folder import, preserved text versions, stable IDs, source
+  hashes, extensible metadata, grouping, and filtering.
+- [x] Analyze each work separately and publish comparisons only after a complete
+  immutable corpus batch.
+- [x] Add token-weighted and work-weighted collection VAD profiles so long works
+  can be influential without being the only collection view.
+- [x] Add length-sensitive cumulative normative VAD loads alongside mean-based
+  token/type results.
+- [x] Add persistent per-text, per-lexicon unmatched-vocabulary quality-control
+  notes that do not silently alter analyses.
+- [x] Add a readable Excel workbook with collection profiles, work-level data,
+  cumulative loads, quality-control notes, and provenance.
+- [x] Add a local Lexicon Explorer for exact, phrase, lemma-derived, component,
+  mapped, uncertainty, comparison, and provenance views.
+
+### Phase 4 exit criteria
+
+- [x] Imported literary texts, projects, results, notes, and workbooks remain
+  local and excluded from source control.
+- [x] Pending or failed batches never replace the most recent complete corpus
+  comparison.
+- [x] Missing words and missing work scores remain missing rather than neutral.
+- [x] Warriner whitespace-containing entries participate as audited exact phrase
+  candidates without modifying the supplied source file.
+- [x] Automated calculations reproduce a deliberately divergent long/short-work
+  example for token- and work-weighted collection means.
+- [x] All 78 automated tests, both synthetic validation demonstrations, the
+  11-check diagnostic, live browser workflow, and rendered workbook review pass.
+- [x] Current behavior, methodology, limitations, and beginner test steps are
+  documented.
+- [x] Create the Phase 4 source-control checkpoint using the bundled Git
+  executable supplied by the local Codex workspace runtime.
+
+## Phase 4.1 - Dual VAD reporting and project usability
+
+- [x] Report every VAD result for both all matched observations and a separately
+  labeled stopword-excluded view.
+- [x] Pin and record the spaCy English stopword source, version, active-list
+  hash, protected meaning-changing terms, and custom additions/removals.
+- [x] Preserve exact published phrase matches as one unit in both views.
+- [x] Add content-focused coverage, stopword-sensitivity differences, separate
+  contributors, cumulative totals, and population dispersion for both views.
+- [x] Persist both views in corpus metrics and include the methodology in CSV,
+  JSON, ZIP, and Excel exports.
+- [x] Add header workspace tabs and remove the workspace selector from the
+  sidebar.
+- [x] Add project-scoped deletion requiring an exact, case-sensitive project
+  title confirmation.
+- [x] Keep the existing visible Windows launcher behavior unchanged.
+- [x] Add a comprehensive maintainable Word user manual covering every
+  workspace, output, formula, term, safeguard, and troubleshooting path.
+
+### Phase 4.1 exit criteria
+
+- [x] Stopword recognition uses surface and lemma evidence without changing
+  exact-first lexicon matching.
+- [x] Protected negation, modal, and intensifier terms remain included unless a
+  scholar explicitly overrides the protection.
+- [x] Custom stopword changes are normalized, auditable, importable, and
+  exportable.
+- [x] Deleting a project cannot delete another project and is unavailable until
+  the exact title is entered.
+- [x] Full automated, synthetic, diagnostic, and live browser validation.
+- [x] Create a source-control checkpoint using the bundled Git executable.
 
 ## Phase 5 - Review system
 
@@ -147,9 +222,9 @@ review required.
 - [?] Confirm the provenance and original documentation of the locally supplied
   Warriner data. The package is a secondary XANEW distribution and does not
   include the original Warriner paper or an independent license file.
-- [x] Phase 2 conservatively retains but does not activate whitespace-containing
-  Warriner and NRC VAD v1 entries. NRC VAD v2.1 explicitly supports multiword
-  expressions and participates in phrase matching. A later sensitivity scenario
-  may revisit the older word/lemma-level resources without changing this default.
-- [?] Confirm whether publication years, approximate dates, and date ranges
-  should be modeled at import time or deferred until the corpus phase.
+- [x] Phase 4 activates Warriner's 102 whitespace-containing rows as exact,
+  longest-first phrase candidates at the user's request. NRC VAD v1 remains
+  word-level by default; NRC VAD v2.1 explicitly supports multiword expressions.
+- [x] Publication years, approximate dates, and date ranges can be recorded as a
+  free text date label at import/edit time; structured date inference is not
+  performed.

@@ -18,7 +18,7 @@ from versevad.normalization import normalize_lookup
 
 
 class WarrinerVadAdapter:
-    adapter_version = "0.1.0"
+    adapter_version = "0.3.0"
     required_columns = ("Word", "V.Mean.Sum", "A.Mean.Sum", "D.Mean.Sum")
 
     @staticmethod
@@ -42,7 +42,8 @@ class WarrinerVadAdapter:
             version="2013 (local XANEW package has no version tag)",
             language="English",
             unit_of_analysis=(
-                "Source-described lemmas; whitespace-containing entries are retained"
+                "Source-described lemmas; whitespace-containing entries are available "
+                "as exact multiword expressions"
             ),
             source_scale_min=1.0,
             source_scale_max=9.0,
@@ -57,7 +58,7 @@ class WarrinerVadAdapter:
                 "The supplied secondary package states CC BY-NC-ND 3.0. "
                 "Keep the source file private and do not redistribute it."
             ),
-            phrase_support=False,
+            phrase_support=True,
             source_format="UTF-8 comma-separated values with header",
             column_mapping=(
                 ("term", "Word"),
@@ -70,7 +71,8 @@ class WarrinerVadAdapter:
                 "preserved and require exact source casing or review"
             ),
             preprocessing_assumptions=(
-                "Word/lemma-level source; whitespace entries retained but inactive"
+                "Unigrams use exact-first word/lemma matching; whitespace entries use "
+                "exact longest-first phrase matching under the selected phrase policy"
             ),
         )
 
@@ -148,6 +150,31 @@ class WarrinerVadAdapter:
                     arousal=self._normalize_score(original.arousal),
                     dominance=self._normalize_score(original.dominance),
                 )
+                standard_deviation = None
+                rater_count = None
+                uncertainty_columns = (
+                    "V.SD.Sum",
+                    "A.SD.Sum",
+                    "D.SD.Sum",
+                    "V.Rat.Sum",
+                    "A.Rat.Sum",
+                    "D.Rat.Sum",
+                )
+                if all(column in fields for column in uncertainty_columns):
+                    try:
+                        standard_deviation = VadScores(
+                            valence=float(row["V.SD.Sum"]),
+                            arousal=float(row["A.SD.Sum"]),
+                            dominance=float(row["D.SD.Sum"]),
+                        )
+                        rater_count = VadScores(
+                            valence=float(row["V.Rat.Sum"]),
+                            arousal=float(row["A.Rat.Sum"]),
+                            dominance=float(row["D.Rat.Sum"]),
+                        )
+                    except (KeyError, TypeError, ValueError):
+                        malformed_rows += 1
+                        continue
                 new_entry = VadEntry(
                     lexicon_id=self.metadata.lexicon_id,
                     source_term=term,
@@ -155,6 +182,8 @@ class WarrinerVadAdapter:
                     source_row=source_row,
                     original=original,
                     normalized=normalized,
+                    standard_deviation=standard_deviation,
+                    rater_count=rater_count,
                 )
                 if lookup_form in entries:
                     existing = entries.pop(lookup_form)
@@ -180,12 +209,6 @@ class WarrinerVadAdapter:
             errors.append(f"Found {duplicate_keys} duplicate normalized terms.")
         if out_of_range_scores:
             errors.append(f"Found {out_of_range_scores} rows outside the 1-9 scale.")
-        if phrase_entries:
-            warnings.append(
-                f"Retained {phrase_entries} whitespace-containing entries. The "
-                "documented word/lemma-level policy does not activate them as "
-                "phrases, so they cannot contribute to phrase summaries."
-            )
         if conflicting_entries:
             warnings.append(
                 f"Preserved {len(conflicting_entries)} case-insensitive lookup "

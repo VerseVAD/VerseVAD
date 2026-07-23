@@ -88,6 +88,8 @@ class VadEntry:
     source_row: int
     original: VadScores
     normalized: VadScores
+    standard_deviation: VadScores | None = None
+    rater_count: VadScores | None = None
 
 
 @dataclass(frozen=True)
@@ -257,6 +259,29 @@ class PhrasePolicy(StrEnum):
     PHRASE_AND_COMPONENT = "phrase_and_component_exploratory"
 
 
+class StopwordMode(StrEnum):
+    """Policy used only for the secondary stopword-sensitivity view."""
+
+    ALL_MATCHED = "all_matched"
+    STANDARD = "standard"
+    CUSTOM = "custom"
+
+
+@dataclass(frozen=True)
+class StopwordPolicy:
+    mode: StopwordMode
+    source: str
+    library_version: str
+    list_version: str
+    standard_word_count: int
+    standard_list_sha256: str
+    active_words: tuple[str, ...]
+    active_list_sha256: str
+    protected_words: tuple[str, ...]
+    custom_additions: tuple[str, ...]
+    custom_removals: tuple[str, ...]
+
+
 class MatchSelection(StrEnum):
     INCLUDED = "included"
     UNMATCHED = "unmatched"
@@ -308,6 +333,23 @@ class CoverageStatistics:
 
 
 @dataclass(frozen=True)
+class StopwordCoverageStatistics:
+    """Coverage for the secondary view with an explicitly adjusted denominator."""
+
+    eligible_token_count: int
+    eligible_unique_type_count: int
+    matched_token_count: int
+    unmatched_token_count: int
+    matched_type_count: int
+    unmatched_type_count: int
+    lexical_token_coverage: float | None
+    type_coverage: float | None
+    excluded_matched_observation_count: int
+    excluded_matched_token_count: int
+    excluded_matched_type_count: int
+
+
+@dataclass(frozen=True)
 class DescriptiveStatistics:
     count: int
     mean: float | None
@@ -341,6 +383,11 @@ class VadSummary:
     type_weighted_normalized: WeightedVadStatistics
     minimum_match_requirement: int
     is_sparse: bool
+    stopword_excluded_token_weighted_original: WeightedVadStatistics | None = None
+    stopword_excluded_type_weighted_original: WeightedVadStatistics | None = None
+    stopword_excluded_token_weighted_normalized: WeightedVadStatistics | None = None
+    stopword_excluded_type_weighted_normalized: WeightedVadStatistics | None = None
+    stopword_excluded_is_sparse: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -390,6 +437,9 @@ class AffectMatchRecord:
     included: bool
     suppressed_by_match_id: str | None
     reason: str
+    stopword_status: str = "not a stopword"
+    included_in_stopword_view: bool = False
+    stopword_exclusion_reason: str = ""
 
     def intensity_map(self) -> Mapping[str, float]:
         return MappingProxyType(dict(self.intensities))
@@ -445,6 +495,8 @@ class Phase2AnalysisResult:
     category_statistics: tuple[EmotionCategoryStatistics, ...]
     intensity_statistics: tuple[EmotionIntensityStatistics, ...]
     warnings: tuple[str, ...]
+    stopword_policy: StopwordPolicy | None = None
+    stopword_coverage: StopwordCoverageStatistics | None = None
 
 
 @dataclass(frozen=True)
@@ -459,6 +511,7 @@ class ComparisonMetric:
     scale: str
     denominator: str
     value: float | int | None
+    analysis_view: str = "all_matched"
 
 
 @dataclass(frozen=True)
