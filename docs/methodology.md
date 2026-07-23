@@ -58,6 +58,22 @@ Cross-scale comparison may use a separate normalized score when the adapter's
 source scale supports a documented linear transformation. Original scores and
 source limits always remain available.
 
+Phase 3 implements these derived transformations:
+
+- Warriner VAD 1-9: `(x - 1) / 8`;
+- NRC VAD v1 0-1: identity (`x`);
+- NRC VAD v2.1 -1 to 1: `(x + 1) / 2`.
+
+They align each documented minimum, midpoint, and maximum to a common 0-1
+display range. They do not make the source vocabularies, sampling designs, or
+lexicon versions interchangeable. Comparisons therefore remain source-specific
+and appear with coverage and matched counts. Original values are retained, and
+VerseVAD creates no pooled or consensus VAD score.
+
+Categorical emotion associations and numeric word-emotion intensities are not
+alternate scales for VAD. They retain their own value kinds and denominators
+and are never normalized into or averaged with the VAD dimensions.
+
 ## Emotion association summaries
 
 NRC Emotion Lexicon values are binary associations, not intensities. A term may
@@ -139,6 +155,11 @@ Aggregates with few matched items will be marked sparse or unstable. Missing
 data remains missing rather than becoming zero. Coverage, lemma reliance,
 mapping reliance, exclusions, and semantic-risk dependence are part of the
 result, not merely diagnostics hidden elsewhere.
+
+The Phase 3 interface labels coverage below 60% as limited orientation, 60-80%
+as moderate orientation, and at least 80% as broad orientation. These bands are
+reading aids only, not validated universal thresholds or exclusion rules. The
+exact numerator, denominator, and rate remain primary.
 
 ## Phase 1 statistical definitions
 

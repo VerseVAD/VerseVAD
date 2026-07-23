@@ -78,7 +78,10 @@ legible.
 Phase 1 added an invented VAD text and tiny synthetic lexicon. Phase 2 extends
 the validation materials with overlapping phrases, categorical associations,
 emotion intensities, all three phrase policies, explicit denominators, and
-cross-lexicon results with no consensus score.
+cross-lexicon results with no consensus score. Phase 3 reuses those engine
+fixtures through framework-independent application services and adds UTF-8
+import, friendly-view, download-bundle, diagnostic, launcher, and interface
+smoke cases.
 
 ## Validation performed
 
@@ -101,3 +104,23 @@ source refusal, longest-first phrase selection, overlap and component audit,
 line-boundary behavior, all phrase policies, categorical denominators,
 token/type intensity statistics, source-specific comparison, seven-file CSV
 export, UTF-8 byte-order marks, and safe replacement of prior exports.
+
+Phase 3 brings the full suite to 62 passing tests. Its 13 added tests cover
+UTF-8 and CRLF-preserving `.txt` import, invalid and oversized input errors,
+plain request validation, all readable view models, match and unmatched
+drill-down, scholar-summary and guide encoding, complete in-memory audit ZIPs,
+eleven installation/source diagnostics, Streamlit empty and successful states,
+all six result tabs, three download controls, and the offline/local-only Windows
+helpers. The full suite passes with:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+A live local browser validation also exercised the beginner path using all five
+private source files: start the app, paste a three-line invented poem, analyze,
+read Overview and the normalized VAD view, open normalization details, and run
+the in-app self-test. It produced no application error, the VAD chart remained
+bounded to 0-1, and all 11 self-test checks passed. File import is verified at
+the service and Streamlit smoke-test layers; the manual browser pass deliberately
+used paste input to avoid copying any private literary file.

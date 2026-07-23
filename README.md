@@ -10,17 +10,16 @@ intended, or what a reader experiences.
 
 ## Current status
 
-**Phase 2: all five lexicons is complete.** VerseVAD now has read-only adapters
-for Warriner VAD, both NRC VAD versions, NRC Emotion, and NRC Emotion Intensity.
-It supports exact-first and POS-sensitive matching, deterministic phrase
-policies, categorical association and intensity summaries, side-by-side
-cross-lexicon results, and auditable CSV export. Hand-calculated invented
-fixtures validate the formulas; the local demonstration also exercises all five
-private source files.
+**Phase 3: the local graphical one-poem workspace is complete.** A scholar can
+paste a poem or choose a UTF-8 `.txt` file, select any of the five supplied
+lexicons, analyze it locally, and begin with readable coverage and profile
+views. Matches, unmatched vocabulary, formulas, denominators, source values,
+and provenance remain available for audit. Downloads include a compact scholar
+summary, a CSV reading guide, and the complete seven-file audit bundle.
 
-The full graphical application is not built yet. Project persistence, the
-review system, corpus analysis, and ordinary text-import workflow belong to
-later phases.
+The workspace is temporary in Phase 3, so download results before closing the
+app. Persistent projects, corpus import, review decisions, and Excel export
+belong to later phases.
 
 See:
 
@@ -31,6 +30,7 @@ See:
 - [Data model](docs/data-model.md)
 - [Testing strategy](docs/testing.md)
 - [Beginner user guide](docs/user-guide.md)
+- [Phase 3 validation and test steps](docs/phase3-validation.md)
 
 ## Privacy and source materials
 
@@ -42,6 +42,29 @@ non-commercial and no-derivatives conditions. Consequently,
 `source_lexicons/` is intentionally excluded from source control. A future
 public code release may contain adapters and instructions, but not the source
 lexicon data.
+
+## Start the graphical application
+
+On the first run, double-click `setup_windows.bat`. It creates a locked
+project-local Python environment; it does not require administrator access or a
+system-wide Python installation. Setup may use the internet to download the
+pinned runtime and dependencies.
+
+For ordinary use, double-click `start_versevad.bat`. Your browser opens the
+local address `http://127.0.0.1:8501`. Keep the small launcher window open while
+working. Ordinary startup and analysis use the already installed local files
+and do not upload the poem or results.
+
+In the app:
+
+1. paste a poem or choose a UTF-8 `.txt` file;
+2. enter a title, select the evidence sources, and click **Analyze this text**;
+3. begin with **Overview**, then read **VAD profile** or **Emotion profile**;
+4. use **Evidence** only when you want to inspect individual matches;
+5. download the friendly summary or full audit ZIP before closing.
+
+See the [beginner user guide](docs/user-guide.md) for interpretation and
+troubleshooting.
 
 ## Development-only inspection
 

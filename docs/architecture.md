@@ -1,6 +1,6 @@
 # Architecture Decision: Local Modular Python Application
 
-Status: accepted; the Phase 2 five-lexicon engine has been validated locally.
+Status: accepted; the Phase 3 local graphical workspace has been validated.
 
 Date: 2026-07-22
 
@@ -14,11 +14,11 @@ versioned adapters.
 The initial technology choices are:
 
 - Python 3.12 as the first supported runtime;
-- Streamlit for the local browser-based graphical interface;
+- Streamlit 1.60.0 for the local browser-based graphical interface;
 - the Python `sqlite3` module plus explicit, numbered SQL migrations;
 - pandas for tabular analysis and interchange;
 - spaCy with a pinned English pipeline for POS-sensitive lemmatization;
-- Plotly for interactive and export-oriented charts;
+- Altair through Streamlit for current interactive charts;
 - openpyxl or XlsxWriter for Excel exports after export requirements are tested;
 - pytest for engine, adapter, migration, export, and interface smoke tests;
 - Jinja templates for local HTML methods reports;
@@ -36,7 +36,13 @@ directories rather than installed computer-wide.
 
 Phase 2 adds no runtime dependency. Its adapter, phrase, categorical, intensity,
 comparison, and CSV-export logic remains in the framework-independent Python
-package. The development package version is `0.2.0.dev0`.
+package.
+
+Phase 3 pins Streamlit 1.60.0 and its resolved dependency tree in `uv.lock`.
+`versevad.application` owns text validation, lexicon loading, analysis
+orchestration, friendly view models, and download construction; the Streamlit
+page only presents those services. Workspaces and downloads are in memory in
+this phase. The development package version is `0.3.0.dev0`.
 
 ## Why this fits VerseVAD
 
@@ -103,8 +109,9 @@ Original and normalized scores are separate fields. For example:
 - NRC VAD v1 values already occupy 0–1;
 - NRC VAD v2.1 values can be normalized as `(x + 1) / 2`.
 
-The formulas above are proposed adapter metadata. They will receive tests and
-will never overwrite source values.
+These formulas are tested adapter metadata. They never overwrite source values.
+The Phase 3 comparison view uses only the separately derived values and labels
+the original scales and formulas alongside them.
 
 ## Local privacy and networking
 
@@ -138,9 +145,10 @@ be silently updated. New judgments create a new scenario and run.
 ### Installation complexity
 
 The target computer currently has no ordinary `python` or `git` command on its
-PATH. The intended setup will use a project-managed runtime and environment,
-with no administrator requirement, after it has been tested on a clean Windows
-account.
+PATH. Phase 3 setup uses a checksum-verified project-local `uv` executable, a
+project-managed Python runtime and environment, and no administrator access.
+The launcher uses the locked environment offline and binds Streamlit only to
+`127.0.0.1` with usage telemetry disabled.
 
 ### Interface scale
 

@@ -35,6 +35,17 @@ made a public release.
 - Side-by-side cross-lexicon metrics that retain source/family identity and do
   not generate a consensus score.
 - Seven-file Phase 2 CSV bundle and double-clickable five-lexicon validation.
+- Framework-independent Phase 3 application services for validated UTF-8 text
+  import, source selection, one-text analysis, view models, and downloads.
+- Local Streamlit workspace with paste and `.txt` import, coverage overview,
+  normalized VAD comparison, distinct association and intensity profiles,
+  filterable match evidence, unmatched vocabulary, and embedded guidance.
+- Friendly scholar-summary CSV and CSV reading guide alongside an in-memory ZIP
+  containing the complete seven-file Phase 2 audit bundle.
+- Project-local Windows setup, offline launcher, diagnostics launcher, and an
+  in-app 11-check self-test.
+- Phase 3 service, diagnostics, Streamlit smoke, launcher-safety, and local
+  browser validation tests.
 
 ### Changed
 
@@ -42,7 +53,9 @@ made a public release.
   case-insensitive lookup collisions.
 - Phase 2 identifies NRC VAD v1 and v2.1 as versions of the same family rather
   than independent replications.
-- Project development version advanced to `0.2.0.dev0`.
+- Project development version advanced to `0.3.0.dev0`.
+- VAD charts now present derived 0-1 dimensions side by side instead of
+  visually stacking different dimensions.
 
 ### Fixed
 

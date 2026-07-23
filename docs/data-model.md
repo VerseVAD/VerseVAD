@@ -19,6 +19,16 @@ and intensity statistics, `Phase2AnalysisResult`, and source-specific
 token IDs and can point from a suppressed component or overlap to the selected
 phrase responsible for suppression. No consensus-score entity is populated.
 
+Phase 3 adds an immutable `AnalysisRequest` and `WorkspaceAnalysis` plus plain
+coverage, VAD, emotion-association, emotion-intensity, match, and unmatched view
+records. They are framework-independent application models used by both tests
+and the Streamlit page. The workspace contains the preserved `TextDocument`,
+selected source-specific results, comparison record, recipe choices, and
+request signature. It is temporary and in memory; it does not pretend to be the
+persistent `Project` or `AnalysisRun` planned for Phase 4. Download manifests
+still carry the stable text version, analysis, scenario, adapter, recipe,
+software, source-hash, and inclusion metadata produced by the engine.
+
 ## Identity and versioning
 
 All primary entities use stable opaque IDs. Human-readable titles and filenames

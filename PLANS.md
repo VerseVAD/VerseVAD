@@ -80,10 +80,33 @@ review required.
 
 ## Phase 3 - Local graphical interface
 
-- [ ] Add project creation, text import, analysis, coverage, and audit views.
-- [ ] Keep core choices simple while exposing advanced methodology settings.
-- [ ] Add a local Windows setup workflow and double-clickable launcher.
-- [ ] Add diagnostics and a "Run self-test" control.
+- [x] Add a temporary private workspace, paste/UTF-8 text import, analysis,
+  coverage, profile, evidence, guidance, and download views.
+- [x] Keep the beginner path visible while exposing phrase policy and sparse
+  result controls under advanced methodology settings.
+- [x] Add a local Windows setup workflow and double-clickable launcher.
+- [x] Add command-line diagnostics and an in-app "Run self-test" control.
+- [x] Add a friendly scholar summary and CSV reading guide alongside the full
+  seven-file audit bundle.
+
+### Phase 3 exit criteria
+
+- [x] A scholar can paste a poem or choose a UTF-8 `.txt` file, analyze it
+  locally with any supplied lexicon selection, and inspect results without
+  using the command line.
+- [x] The original text, line breaks, source hashes, original ratings,
+  separately derived normalized ratings, denominators, and match provenance
+  remain traceable.
+- [x] VAD sources can be viewed on a documented derived 0-1 scale while
+  categorical associations and intensity ratings remain separate constructs.
+- [x] The Overview, profile, evidence, guidance, friendly CSV, and full audit
+  ZIP use plain scholarly language and avoid claims about a poem's emotion.
+- [x] Windows setup is project-local; ordinary startup and analysis are offline
+  and usage telemetry is disabled.
+- [x] All 62 automated tests, the 11-check diagnostic, synthetic validation,
+  and a live beginner-path browser test pass.
+- [x] Documentation reflects the tested Phase 3 behavior and limitations.
+- [x] Create the Phase 3 source-control checkpoint.
 
 ## Phase 4 - Corpus and metadata
 

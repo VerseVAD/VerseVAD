@@ -3,6 +3,7 @@
 
 # Private literary texts and runtime data
 /corpora/
+/source_texts/
 /projects/
 /exports/
 /backups/
