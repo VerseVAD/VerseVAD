@@ -26,7 +26,7 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion Stage 3 is also complete. Stage 0 added
+The Poetic Fingerprint expansion Stage 4 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
@@ -43,7 +43,17 @@ profile with exact-word-form priority, token/type coverage, a primary
 token-weighted median, descriptive distribution and structural views, seven
 audit exports, and a non-default content-word scope limited to model-tagged
 `NOUN`, `VERB`, `ADJ`, and `ADV`. Unmatched forms stay missing and `wordfreq`
-is not used. A formal centroid/region-based
+is not used. Stage 4 adds an optional local Kuperman retrospective Age of
+Acquisition profile with token/type coverage, source-response evidence,
+descriptive statistics on the original age-in-years scale, configurable
+orientation bands, structural/POS views, eight audit exports, and optional
+descriptive type-level relationships with enabled frequency and concreteness
+results. Its contextual content-word scope is also non-default: the source
+paper describes content-word sampling, but the official supplement contains
+rated polyfunctional spellings whose use in a particular poem still depends
+on context. Concreteness, Frequency, and Age of Acquisition remain temporary
+One Poem modules and are not yet persisted or aggregated in Projects & Corpus.
+A formal centroid/region-based
 emotional-profile classifier remains explicitly deferred.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
@@ -72,6 +82,8 @@ See:
 - [Poetic Fingerprint Stage 2 validation](docs/poetic-fingerprint-stage2-validation.md)
 - [Poetic Fingerprint Stage 3 frequency and rarity](docs/poetic-fingerprint-stage3.md)
 - [Poetic Fingerprint Stage 3 validation](docs/poetic-fingerprint-stage3-validation.md)
+- [Poetic Fingerprint Stage 4 Age of Acquisition](docs/poetic-fingerprint-stage4.md)
+- [Poetic Fingerprint Stage 4 validation](docs/poetic-fingerprint-stage4-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

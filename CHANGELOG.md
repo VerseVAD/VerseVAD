@@ -159,6 +159,32 @@ made a public release.
 - Hand-calculated Stage 3 demonstration plus adapter, matching, Unicode,
   proper-name, repetition, all-common, empty/unmatched, configuration,
   deterministic, UI, content-scope, and export regression tests.
+- Read-only official Kuperman Age of Acquisition erratum-supplement adapter
+  with pinned SHA-256, sheet/header, row-count, unique-key, numeric-range,
+  response-count, source `NA`, source `#N/A`, and source-field relationship
+  validation.
+- Optional framework-independent one-poem Age of Acquisition module with exact
+  observed-form priority, explicit lemma and conservative fallbacks, default
+  proper-name exclusion, source-unrated evidence, missing unmatched values,
+  and complete provenance.
+- Token-weighted source-age mean, median, inclusive quartiles, IQR, population
+  SD, range, configurable early/middle/later orientation bands, token/type
+  coverage, physical-line/stanza/POS summaries, term rankings,
+  source-response evidence, and warnings.
+- A non-default contextual AoA scope limited to exact model tags `NOUN`,
+  `VERB`, `ADJ`, and `ADV`. It remains available because the source paper's
+  content-word sampling rule does not establish the grammatical role of a
+  polyfunctional spelling in a particular poem occurrence.
+- Optional descriptive unique-surface-type Spearman relationships between AoA
+  and enabled Frequency or Concreteness results, with paired-type counts,
+  multiword-concreteness exclusion, minimum sample requirements, and
+  non-causal cautions.
+- Dedicated Age of Acquisition profile, AoA-only or mixed one-poem runs,
+  readable summary rows, seven UTF-8 CSV files, and a structured JSON result.
+- Hand-calculated Stage 4 demonstration plus adapter, matching, Unicode,
+  proper-name, repetition, empty/unmatched, source-unrated, configuration,
+  deterministic, UI, contextual content-scope, relationship, and export
+  regression tests.
 
 ### Changed
 
@@ -209,6 +235,10 @@ made a public release.
 - Project development version advanced to `0.9.0.dev0`; Stage 3 remains
   additive and in memory, uses only the pinned SUBTLEX-US Zipf source, and
   leaves database schema 3 and existing analyses unchanged.
+- Project development version advanced to `0.10.0.dev0`; Stage 4 remains
+  additive and in memory, uses only the pinned official Kuperman erratum
+  supplement, adds no cognitive or diagnostic claim, and leaves database
+  schema 3 and existing analyses unchanged.
 
 ### Fixed
 

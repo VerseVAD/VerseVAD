@@ -13,6 +13,13 @@ from versevad.adapters.concreteness import (
     ConcretenessLexicon,
     ConcretenessValidation,
 )
+from versevad.adapters.kuperman_aoa import (
+    KupermanAoAAdapter,
+    KupermanAoAAdapterError,
+    KupermanAoAEntry,
+    KupermanAoALexicon,
+    KupermanAoAValidation,
+)
 from versevad.adapters.nrc_emotion import NrcEmotionAdapter
 from versevad.adapters.nrc_intensity import NrcEmotionIntensityAdapter
 from versevad.adapters.nrc_vad import NrcVadV1Adapter, NrcVadV21Adapter
@@ -34,6 +41,11 @@ __all__ = [
     "EmotionAssociationAdapter",
     "EmotionIntensityAdapter",
     "LexiconAdapterError",
+    "KupermanAoAAdapter",
+    "KupermanAoAAdapterError",
+    "KupermanAoAEntry",
+    "KupermanAoALexicon",
+    "KupermanAoAValidation",
     "NrcEmotionAdapter",
     "NrcEmotionIntensityAdapter",
     "NrcVadV1Adapter",

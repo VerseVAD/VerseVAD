@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources. Its optional concreteness and SUBTLEX-US frequency results are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker, recover an author's intention, or measure what an individual reader feels.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources. Its optional concreteness, SUBTLEX-US frequency, and retrospective Age of Acquisition results are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, or measure what an individual reader feels.
 
 [[PAGEBREAK]]
 
@@ -15,7 +15,7 @@
 1. The one-minute mental model
 2. A safe reading order
 3. Valence, arousal, and dominance
-4. Original and normalized scales, concreteness, and Zipf frequency
+4. Original and normalized scales, concreteness, Zipf frequency, and Age of Acquisition
 5. Tokens, types, phrases, lemmas, and matches
 6. Part-of-speech profiles
 7. Coverage and unmatched vocabulary
@@ -55,7 +55,7 @@ For every analysis, read the results in this order:
 1. **Confirm the text and lexicons.** Make sure you analyzed the intended version and sources.
 2. **Read coverage.** Determine how much eligible vocabulary was represented.
 3. **Read warnings.** Note sparse evidence, lemma reliance, review exclusions, or other methodological cautions.
-4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, and corpus-relative lexical frequency are different kinds of evidence.
+4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, and retrospective normative lexical Age of Acquisition are different kinds of evidence.
 5. **Choose one analysis view.** Compare all matched observations with stopwords excluded; do not merge them.
 6. **Choose one weighting.** Token weighting answers a repetition-sensitive question; type weighting answers a vocabulary-sensitive question.
 7. **Inspect dispersion and contributors.** A mean alone can conceal mixed ratings or one repeated influential word.
@@ -202,6 +202,63 @@ Avoid: “The poem is easy,” “the vocabulary is sophisticated,” or “the 
 will understand it.” Corpus-relative word frequency is not a direct measure of
 difficulty, accessibility, intelligence, or literary quality.
 
+## Retrospective Normative Lexical Age of Acquisition
+
+The optional one-poem module uses the official Kuperman,
+Stadthagen-Gonzalez, and Brysbaert supplement. A source mean is an adult
+retrospective estimate of the age, in years, at which respondents believed
+they learned a word well enough to understand it. It is not normalized into
+VAD or combined into an affective score.
+
+VerseVAD reports token-weighted mean, median, population SD, inclusive
+quartiles, IQR, range, token and unique observed-form-type coverage,
+configurable acquisition-orientation bands, source-response evidence,
+structural/POS summaries, term rankings, and the token audit.
+
+| Source-age interval | Default display label |
+|---|---|
+| At or below 5 years | Early-acquired |
+| Above 5 and below 12 years | Middle range |
+| At or above 12 years | Later-acquired |
+
+These thresholds are configurable VerseVAD orientation aids, not categories
+validated by the source paper. A source row with `Rating.Mean = NA` remains
+auditable but has no numeric age. Unmatched and ineligible forms also remain
+missing rather than becoming age zero.
+
+The paper describes target selection from base forms used most frequently as
+nouns, verbs, or adjectives. The official supplement nevertheless has numeric
+ratings for polyfunctional spellings such as `the`, `and`, `he`, `of`, and
+`to`. The optional **AoA content words only** scope therefore remains meaningful
+and off by default. It uses the poem occurrence's contextual model tag and
+includes only `NOUN`, `VERB`, `ADJ`, and `ADV`.
+
+When Frequency or Concreteness is enabled too, VerseVAD can show a descriptive
+Spearman rank relationship after collapsing repetitions to unique paired
+normalized surface types. It requires at least three paired types, excludes
+multiword concreteness assignments, and does not establish causation.
+
+For matched source ages `a_i` across `A` matched token positions:
+
+`mean_aoa = sum(a_i) / A`
+
+`aoa_token_coverage = matched numeric eligible token positions / eligible token positions`
+
+For each source word:
+
+`numeric_response_proportion = OccurNum / OccurTotal`
+
+Source-response evidence describes the source norm; it does not change the
+poem's token weighting.
+
+Safe wording: “The matched tokens had a mean retrospective normative lexical
+AoA of 7.2 years, with 83% token coverage.”
+
+Avoid: “The poem is for seven-year-olds,” “the vocabulary is difficult,” or
+“the author shows cognitive decline.” Age-of-acquisition results are not
+grade-level, comprehension, intelligence, reader-response, or cognitive
+diagnostic measures.
+
 # 5. Tokens, Types, Phrases, Lemmas, and Matches
 
 ## Token
@@ -303,10 +360,10 @@ auxiliary or copula; they are still verbs in the beginner-facing quantity/share
 profile. The original tag remains in token evidence.
 The detailed model-tag table still reports `VERB` and `AUX` separately.
 
-The optional frequency setting **Content words only** uses a narrower rule than
-this broad display. It includes exact tags `NOUN`, `VERB`, `ADJ`, and `ADV`
-only; `AUX` and `PROPN` are not automatically included. Always report which
-scope was used.
+The optional Frequency and AoA settings **Content words only** use a narrower
+rule than this broad display. They include exact tags `NOUN`, `VERB`, `ADJ`,
+and `ADV` only; `AUX` and `PROPN` are not automatically included. The two
+module settings are recorded separately. Always report which scope was used.
 
 # 7. Coverage and Unmatched Vocabulary
 
@@ -742,6 +799,26 @@ SUBTLEX-US, while the very common form pulls the mean slightly higher. Report
 coverage and whether the default or content-word-only scope supplied the
 denominator. Do not infer that the poem has a particular reading level.
 
+## Example H: Age of Acquisition and Missing Values
+
+Suppose the matched source mean ages are `3, 3, 8, 8, 14`, and one additional
+eligible token is unmatched.
+
+`mean = (3 + 3 + 8 + 8 + 14) / 5 = 7.2 years`
+
+`median = 8 years`
+
+`token coverage = 5 / 6 = approximately 83.3%`
+
+Using the default bands, two matched occurrences are early-acquired, two are
+in the middle range, and one is later-acquired. The unmatched token does not
+receive age zero and does not enter the mean. Report whether the default or
+contextual content-word-only scope supplied the denominator.
+
+Interpretation: the represented token occurrences have a mean retrospective
+normative lexical AoA of 7.2 years in the source ratings. This is not a claim
+about the text's grade level, reader difficulty, or anyone's cognition.
+
 # 18. How to Report a Result
 
 Include these elements for every numeric claim:
@@ -749,11 +826,11 @@ Include these elements for every numeric claim:
 - text, work, or collection being analyzed;
 - exact lexicon or research resource and version;
 - original or normalized scale;
-- construct: VAD, emotion association, sentiment association, emotion intensity, normative lexical concreteness, or corpus-relative lexical frequency;
+- construct: VAD, emotion association, sentiment association, emotion intensity, normative lexical concreteness, corpus-relative lexical frequency, or retrospective normative lexical Age of Acquisition;
 - analysis view when applicable: all matched or stopwords excluded;
 - weighting: token, type, token-weighted collection, or work-weighted collection;
 - phrase policy when relevant;
-- frequency scope when relevant: all lexical tokens or content words only;
+- Frequency or AoA scope when relevant: all lexical tokens or contextual content words only;
 - matched observations or relevant denominator;
 - coverage;
 - scenario name and exact scenario version if reviewed;
@@ -764,20 +841,22 @@ Include these elements for every numeric claim:
 
 ## Reporting Template
 
-“Using **[lexicon or resource and version]**, **[text or collection]** had **[statistic] = [value]** for **[construct/dimension]** on the **[scale]**, using **[analysis view or frequency scope when applicable]** and **[weighting]** across **[matched count/denominator]**, with **[coverage]** coverage. **[Dispersion, contributors, sensitivity, or corpus divergence]**. The result describes matched lexical evidence and is interpreted alongside the text.”
+“Using **[lexicon or resource and version]**, **[text or collection]** had **[statistic] = [value]** for **[construct/dimension]** on the **[scale]**, using **[analysis view or optional-module scope when applicable]** and **[weighting]** across **[matched count/denominator]**, with **[coverage]** coverage. **[Dispersion, contributors, response evidence, relationship, sensitivity, or corpus divergence]**. The result describes matched lexical evidence and is interpreted alongside the text.”
 
 # 19. Quick-Reference Glossary
 
 | Term | Plain-language meaning in VerseVAD |
 |---|---|
 | Affective lexicon | A source list connecting words or phrases to ratings or associations |
+| Age of Acquisition rating | Adult retrospective source estimate, in years, of when a listed word was learned well enough to understand |
 | Analysis run | One immutable calculation tied to exact inputs and methods |
 | Analysis view | All matched observations or stopwords excluded |
+| AoA orientation band | Configurable early/middle/later VerseVAD display aid, not a source-validated category |
 | Arousal | Normative activation or energy associated with a lexical item |
 | Association | Binary source label linking an entry to an emotion or sentiment |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Concreteness rating | Source-supplied 1-5 normative rating from abstract/language-based toward concrete/experience-based |
-| Content words only | Optional frequency scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
+| Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
 | Coverage | Share of eligible lexical token positions represented by matches |
 | Corpus-relative frequency | Frequency evidence tied to a named corpus rather than a universal property of a word |
 | Cumulative normative lexical load | Length- and repetition-sensitive sums of normalized ratings or midpoint distances |
@@ -791,12 +870,14 @@ Include these elements for every numeric claim:
 | Mean | Arithmetic average |
 | Median | Middle sorted value |
 | Normalized VAD | Documented linear transformation to the common 0-to-1 display range |
+| Numeric-response proportion | For the AoA source, numeric responses divided by total responses; preserved separately from the source's `Dunno` label |
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens |
 | Phrase match | Multi-token span linked to one source entry |
 | Population standard deviation | Spread of the complete selected value set around its mean |
 | Review scenario | Named, versioned set of scholar-authored decision revisions |
 | Sentiment | Broad positive or negative source association, reported separately from eight emotions |
 | Source value | Original value published by one lexicon |
+| Source-unrated AoA entry | A source word row whose mean is unavailable; retained in the audit with no numeric age |
 | Stopword | Common function word selected for exclusion from the secondary aggregate |
 | Stopword sensitivity | Stopwords-excluded result minus all-matched result |
 | Surface form | Exact form in the preserved text |

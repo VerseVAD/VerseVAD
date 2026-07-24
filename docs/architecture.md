@@ -1,7 +1,7 @@
 # Architecture Decision: Local Modular Python Application
 
 Status: accepted; the Phase 5 local workspace and Poetic Fingerprint expansion
-Stage 3 frequency module have been validated.
+Stage 4 Age of Acquisition module have been validated.
 
 Date: 2026-07-23
 
@@ -91,6 +91,21 @@ audit exports. A non-default scope restricts eligibility to exact model tags
 broader `VERB`/`AUX` display grouping. Stage 3 uses no `wordfreq` fallback,
 remains in memory, and does not change database schema 3. See
 [`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md).
+
+Expansion Stage 4 advances the development package to `0.10.0.dev0`. Its
+read-only official Kuperman erratum-supplement adapter and independent Age of
+Acquisition module consume the same shared document without changing it. The
+optional one-poem path adds age-in-years descriptive statistics, coverage,
+configurable orientation bands, structural/POS groups, source-response
+evidence, represented-term rankings, warnings, provenance, and a token-level
+audit. When the corresponding modules are enabled, it can also report
+descriptive unique-surface-type Spearman relationships with Frequency and
+Concreteness. The non-default contextual content-word scope uses exact model
+tags `NOUN`, `VERB`, `ADJ`, and `ADV`; it remains meaningful even though the
+source paper describes content-word sampling. Stage 4 remains in memory and
+does not change database schema 3 or add these optional results to Projects &
+Corpus. See
+[`poetic-fingerprint-stage4.md`](poetic-fingerprint-stage4.md).
 
 The formal centroid/region emotional-profile classifier is deferred; the
 existing Emotion Profile workspace must not be represented as though it

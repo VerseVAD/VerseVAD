@@ -250,3 +250,39 @@ alternate or fallback. See
 [`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md) for the exact
 source contract, word-form-first matching, optional content-word scope,
 calculations, citation, and limitations.
+
+## Optional local Kuperman Age of Acquisition resource
+
+Poetic Fingerprint Stage 4 uses the official Springer erratum supplement for
+Kuperman, Stadthagen-Gonzalez, and Brysbaert's retrospective English Age of
+Acquisition ratings. The analysis workbook is:
+
+`resources/kuperman_2013_erratum_ESM1_official.xlsx`
+
+Its SHA-256 is
+`3f69a1332359de1cd4a7ccd3c4c3c2e39b388eeb171d6e90544709c3dc1a8a6e`.
+The inspected `Sheet1` contains 31,124 unique nonblank word rows: 31,105 with
+numeric source means from 1.58 through 25.0 years and 19 with unavailable
+numeric means. The read-only adapter validates the exact seven-column
+contract, response-count relationships, source `NA` and `#N/A` values, ranges,
+and lookup-key uniqueness.
+
+The local publisher paper is
+`resources/kuperman_stadthagen_gonzalez_brysbaert_2012_aoa_PAPER.pdf`,
+with SHA-256
+`fa72b2dd7980707de710b4dcb346d0368d5e2c21d657824a935ea4b8b8b80e1a`.
+The full workbook is never copied into exports.
+
+The paper describes content-word target selection, but the official supplement
+contains rated polyfunctional spellings including `the`, `and`, `he`, `of`,
+and `to`. VerseVAD therefore retains a non-default contextual content-word
+scope using model tags `NOUN`, `VERB`, `ADJ`, and `ADV`; source sampling and
+the grammatical role of a particular poem occurrence remain separate.
+
+The locally supplied `AoA_51715_words.xlsx`,
+`AoA_ratings_Kuperman_et_al_BRM_with_PoS.xlsx`, and Biemiller master workbook
+remain unchanged as reference/comparison sources. The Stage 4 runtime does not
+merge or substitute them. See
+[`poetic-fingerprint-stage4.md`](poetic-fingerprint-stage4.md) for the exact
+contract, calculations, source-response fields, matching policy, and
+limitations.

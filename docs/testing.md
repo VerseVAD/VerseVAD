@@ -117,6 +117,29 @@ inspection of the 30-page User Manual and 23-page Values and Terminology Guide
 are recorded in
 [`poetic-fingerprint-stage3-validation.md`](poetic-fingerprint-stage3-validation.md).
 
+Stage 4 adds `python -m versevad.aoa_validation`. It creates a temporary
+official-supplement-shaped workbook and verifies exact observed-form priority,
+an explicit lemma fallback, one unmatched form, 5/6 token coverage, mean
+source AoA 7.2 years, median source AoA 8.0 years, default bands,
+source-response evidence, and an optional contextual scope containing only
+model-tagged `NOUN`, `VERB`, `ADJ`, and `ADV`. The generated workbook checksum
+must remain unchanged.
+
+Stage 4 also adds pinned-source contract, source `NA`/`#N/A`, malformed-source,
+response-relationship, Unicode, proper-name, repetition, empty/unmatched,
+threshold, sparse-relationship, deterministic, configuration, application,
+UI, and eight-file export coverage. The content-word test verifies that the
+paper's source-list sampling statement is not treated as a contextual POS tag
+for poem occurrences. Optional Frequency/AoA and Concreteness/AoA Spearman
+relationships use unique paired normalized surface types, exclude unsupported
+multiword assignments, require at least three pairs, and remain descriptive.
+
+The Stage 4 completion suite passed `172 passed` on 2026-07-23. The synthetic
+demonstration and installed-source contract passed. Diagnostics, source and
+lock checks, rebuilt-guide structural validation, and the pending Word visual
+render limitation are recorded in
+[`poetic-fingerprint-stage4-validation.md`](poetic-fingerprint-stage4-validation.md).
+
 ## Validation performed
 
 The read-only inspection utility validated all five selected source files for

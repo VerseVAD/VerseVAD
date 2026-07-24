@@ -7,8 +7,11 @@ and **Lexicon Explorer**. One-poem analyses remain temporary unless downloaded.
 Corpus projects, preserved text versions, metadata, completed results, and
 versioned review scenarios persist in the local `projects` database. One-poem
 analysis can also enable the optional local normative lexical concreteness
-module and/or the optional SUBTLEX-US Zipf frequency module when their exact
-local workbooks are installed under `resources/`.
+module, the optional SUBTLEX-US Zipf frequency module, and/or the optional
+Kuperman retrospective Age of Acquisition module when their exact local
+workbooks are installed under `resources/`. These three optional modules are
+currently available only in **One Poem**; Projects & Corpus does not yet batch,
+persist, or aggregate their results.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -52,8 +55,9 @@ reinstall dependencies or deliberately update the software.
 3. Leave all five lexicons selected for a broad first look, or remove sources
    that are outside the current question.
 4. Under **Choose Evidence**, optionally enable **Normative lexical
-   concreteness** and/or **Frequency & rarity profile (SUBTLEX-US Zipf)**.
-   Either can run with the affective sources or by itself.
+   concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, and/or
+   **Age of Acquisition profile (Kuperman et al. ratings)**. Any can run with
+   the affective sources or by itself.
 5. Leave **Advanced methodology settings** closed for the default
    phrase-preferred and standard stopword analysis. Open it when you
    deliberately want a different phrase policy, sparse-result threshold, or
@@ -88,13 +92,16 @@ Use this order:
    coverage, dispersion, terms, structure, and the token audit.
 6. **Frequency & Rarity** — when enabled, read the primary median SUBTLEX-US
    Zipf value with its distribution, coverage, scope, and audit.
-7. **Evidence** — inspect which surface forms, phrases, lemmas, exclusions, or
+7. **Age of Acquisition** — when enabled, read the source age-in-years
+   statistics with coverage, source-response evidence, configured orientation
+   bands, structure, represented terms, and the token audit.
+8. **Evidence** — inspect which surface forms, phrases, lemmas, exclusions, or
    approved mappings contributed;
    filter the table when a result needs explanation. Review unmatched
    vocabulary for coverage gaps and historically or poetically unusual words.
-8. **Downloads** — start with the friendly scholar summary. Use the full audit
+9. **Downloads** — start with the friendly scholar summary. Use the full audit
    ZIP when reproducing or closely reviewing the calculation.
-9. **How to Read** — return here for definitions and a reminder of the intended
+10. **How to Read** — return here for definitions and a reminder of the intended
    scholarly language.
 
 ### Coverage
@@ -207,6 +214,46 @@ model-generated and may require inspection for poetry.
 Describe the result as corpus-relative lexical frequency evidence in an
 American subtitle corpus. Do not turn it into a claim that a poem is easy,
 difficult, sophisticated, accessible, intelligent, or high quality.
+
+### Retrospective normative lexical Age of Acquisition
+
+Under **Choose Evidence**, enable **Age of Acquisition profile (Kuperman et
+al. ratings)** to compare the poem's observed vocabulary with the pinned
+official local supplement. The ratings are adult retrospective estimates of
+the age, in years, at which respondents believed they learned a word well
+enough to understand it. The dedicated **Age of Acquisition** tab reports:
+
+- token-weighted mean, median, population SD, inclusive quartiles, IQR,
+  minimum, maximum, and range;
+- token and unique normalized observed-form-type coverage;
+- configurable early-, middle-, and later-acquired orientation bands;
+- source total and numeric response counts, source SD, unknown-response count,
+  numeric-response proportion, and source frequency when available;
+- physical-line, stanza, and model-assigned POS summaries;
+- earliest/latest represented terms and a complete token audit; and
+- when Frequency or Concreteness is also enabled, descriptive Spearman
+  relationships using unique paired surface types.
+
+The default thresholds—early at or below 5 years and later at or above 12
+years—are VerseVAD orientation aids, not categories validated by the source
+paper. The optional **AoA content words only** setting is off by default. When
+enabled, it uses the contextual model tags `NOUN`, `VERB`, `ADJ`, and `ADV`,
+excluding `AUX` and function-word tags. Although the paper describes
+content-word target selection, the official supplement has ratings for
+polyfunctional spellings such as `the`, `and`, `he`, `of`, and `to`; the
+source-list rule therefore does not determine the grammatical role of a
+particular occurrence in a poem.
+
+Matching uses exact normalized observed form before an enabled lemma fallback.
+Source entries whose mean is `NA`, unmatched forms, and ineligible forms remain
+missing rather than becoming age zero. The relationship coefficients require
+at least three paired types and do not establish causation.
+
+Describe the result as retrospective normative lexical AoA evidence among
+matched tokens. It is not a grade-level, difficulty, familiarity,
+comprehension, intelligence, literary-quality, reader-response, or cognitive
+diagnostic measure. Age-of-acquisition results are not diagnostic of cognitive
+impairment or decline.
 
 ### Comparing the three VAD scales
 
@@ -401,14 +448,19 @@ files plus:
 - seven `frequency_*` CSV/JSON files when the optional module is enabled:
   summary, distribution, structure, POS, terms, token audit, and complete
   result.
+- eight `aoa_*` CSV/JSON files when the optional module is enabled: summary,
+  distribution, structure, POS, terms, relationships, token audit, and
+  complete result.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. Both JSON files are local machine-readable records.
 `poem_document.json` contains the original text, so protect it as research
 material. The concreteness exports retain source-row provenance but do not copy
 the full ratings workbook. The frequency exports likewise retain source-row
-provenance without copying the 74,286-row workbook. The full ZIP is the
-reproducibility record; the friendly summary is the reading aid.
+provenance without copying the 74,286-row workbook. AoA exports retain
+poem-specific source-row and response evidence without copying the 31,124-row
+workbook. The full ZIP is the reproducibility record; the friendly summary is
+the reading aid.
 
 ## Diagnostics and troubleshooting
 

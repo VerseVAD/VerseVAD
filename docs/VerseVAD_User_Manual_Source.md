@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence**: normative ratings and associations attached to matched words and phrases. Its optional concreteness and corpus-relative frequency modules remain separate lexical constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, and it does not replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**: normative ratings and associations attached to matched words and phrases. Its optional concreteness, corpus-relative frequency, and retrospective Age of Acquisition modules remain separate lexical constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, or replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile** and **Frequency & Rarity** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, and **Age of Acquisition** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -51,7 +51,11 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
 - optional normative lexical concreteness statistics, coverage, structural
   summaries, term rankings, and token audit from a local research workbook; and
 - optional SUBTLEX-US Zipf frequency statistics, coverage, rarity bands,
-  structural summaries, term rankings, and token audit.
+  structural summaries, term rankings, and token audit; and
+- optional Kuperman retrospective Age of Acquisition statistics, coverage,
+  source-response evidence, configurable orientation bands, structural
+  summaries, descriptive cross-module relationships, term rankings, and token
+  audit.
 
 ## What VerseVAD does not do
 
@@ -63,7 +67,7 @@ Ordinary use runs locally on this computer at `http://127.0.0.1:8501`. VerseVAD 
 
 The supplied lexicons remain under `source_lexicons/` and must not be renamed, edited, merged, or redistributed. VerseVAD reads them in place, records SHA-256 checksums, and stores derived project data separately.
 
-Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper and the Stage 3 SUBTLEX-US workbook must retain their exact paths and checksums. VerseVAD reads the workbooks in place and does not copy either full source into an export.
+Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper, Stage 3 SUBTLEX-US workbook, and Stage 4 Kuperman Age of Acquisition workbook and paper must retain their exact paths and checksums. VerseVAD reads the workbooks in place and does not copy any complete research source into an export.
 
 # 2. Installation, startup, and shutdown
 
@@ -100,13 +104,13 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 2. Enter a title or working label.
 3. Paste a short poem, or upload a UTF-8 `.txt` file.
 4. Keep the selected lexicons and default methodology for the first run.
-5. Optionally enable **Normative lexical concreteness** and/or **Frequency & rarity profile (SUBTLEX-US Zipf)** under **Choose Evidence**.
+5. Optionally enable **Normative lexical concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, and/or **Age of Acquisition profile (Kuperman et al. ratings)** under **Choose Evidence**.
 6. Keep both affective reporting views enabled.
 7. Click **Analyze this text**.
 8. In **Overview**, inspect coverage and warnings.
 9. In **VAD Profile**, compare all matched observations with stopwords excluded.
 10. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
-11. If enabled, inspect the separate **Concreteness Profile** and **Frequency & Rarity** tabs.
+11. If enabled, inspect the separate **Concreteness Profile**, **Frequency & Rarity**, and **Age of Acquisition** tabs.
 12. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
 13. In **Downloads**, save the readable summary or full audit bundle.
 
@@ -163,6 +167,34 @@ Its 74,286 word-form rows include corpus frequency, contextual diversity, source
 
 Zipf is a logarithmic, corpus-relative scale: approximately one point represents a tenfold frequency difference. The source is an American film and television subtitle corpus, not poetry. VerseVAD uses no `wordfreq` fallback, and unmatched forms remain missing.
 
+## Optional Kuperman Age of Acquisition resource
+
+The one-poem workspace can separately read the official Springer erratum
+supplement at:
+
+`resources/kuperman_2013_erratum_ESM1_official.xlsx`
+
+Its `Sheet1` contains 31,124 unique nonblank word rows: 31,105 with numeric
+mean ages and 19 whose numeric mean is unavailable. The expected workbook
+SHA-256 is
+`3f69a1332359de1cd4a7ccd3c4c3c2e39b388eeb171d6e90544709c3dc1a8a6e`.
+The local publisher paper is
+`resources/kuperman_stadthagen_gonzalez_brysbaert_2012_aoa_PAPER.pdf`, with
+expected SHA-256
+`fa72b2dd7980707de710b4dcb346d0368d5e2c21d657824a935ea4b8b8b80e1a`.
+
+The numeric means are adult retrospective estimates of acquisition age in
+years. VerseVAD retains source mean/SD, total and numeric response counts,
+source frequency when available, and the source `Dunno` field. It separately
+labels `OccurNum / OccurTotal` as the numeric-response proportion.
+
+The paper describes target selection using base forms most frequently used as
+nouns, verbs, or adjectives. The official supplement nevertheless has ratings
+for polyfunctional spellings such as `the`, `and`, `he`, `of`, and `to`.
+Source sampling and the contextual grammatical role of a poem occurrence are
+therefore separate. The optional contextual `NOUN`/`VERB`/`ADJ`/`ADV` scope
+remains available and off by default.
+
 # 5. How text becomes auditable matches
 
 ## Preserved original and processing representation
@@ -202,6 +234,13 @@ An exact surface match is never silently replaced by a lemma match. Lemma matchi
 The optional concreteness module has its own recorded sequence over the same tokens: longest exact source-supplied two-word expression within one physical line, exact normalized surface, lemma, then a documented conservative apostrophe or possessive fallback. Model-tagged proper nouns are excluded by default. Unmatched and ineligible tokens retain missing ratings.
 
 The optional frequency module likewise uses exact normalized observed word form before an enabled lemma fallback, followed only by documented conservative apostrophe or possessive fallbacks. This order preserves SUBTLEX-US word-form evidence. Model-tagged proper nouns are excluded by default, and unmatched or ineligible tokens retain missing Zipf values.
+
+The optional Age of Acquisition module uses exact normalized observed word form
+before an enabled lemma fallback, followed by documented conservative
+apostrophe or possessive fallbacks. A source row whose mean is `NA` remains
+visible as `source_entry_without_numeric_rating` but does not enter numeric
+summaries. Model-tagged proper nouns are excluded by default. Unmatched,
+ineligible, and source-unrated tokens retain missing ages rather than zero.
 
 ## Phrase-policy choices
 
@@ -372,6 +411,41 @@ The default scope considers all lexical tokens except model-tagged proper nouns.
 
 The default rare-to-very-common bands are VerseVAD orientation aids, not diagnostic literary categories. Read the median with the distribution, coverage, scope, unmatched forms, structure, and audit. The result describes corpus-relative lexical frequency evidence from an American subtitle corpus. It does not measure difficulty, sophistication, accessibility, intelligence, literary quality, or reader response.
 
+## Retrospective normative lexical Age of Acquisition
+
+When enabled, **Age of Acquisition** reports token-weighted mean, median,
+population SD, inclusive quartiles, IQR, range, token and unique normalized
+observed-form-type coverage, configurable early/middle/later bands,
+physical-line/stanza/POS summaries, source-response evidence,
+earliest/latest represented terms, and a complete token audit.
+
+The numeric values are source mean ages in years, based on adult retrospective
+estimates of when respondents believed they had learned a word well enough to
+understand it. The default early-at-or-below-5 and later-at-or-above-12 bands
+are VerseVAD orientation aids, not categories validated by the paper.
+Repetition contributes repeatedly.
+
+The default scope considers all lexical tokens except model-tagged proper
+nouns. **AoA content words only** is an optional, non-default contextual scope
+using exact model tags `NOUN`, `VERB`, `ADJ`, and `ADV`; it excludes `AUX` and
+function-word tags. This remains methodologically useful even though the source
+paper describes content-word target selection, because the official supplement
+contains rated polyfunctional spellings and a poem occurrence has its own
+contextual role.
+
+If Frequency or Concreteness is enabled in the same run, VerseVAD may report a
+descriptive Spearman relationship using unique paired normalized surface
+types. At least three paired types are required, multiword concreteness
+assignments are excluded, and the coefficient does not establish causation,
+difficulty, or a reader effect.
+
+Read the mean and median with coverage, dispersion, response counts, source
+SDs, structure, represented terms, and the audit. The result describes
+retrospective normative lexical AoA evidence. It does not measure grade level,
+difficulty, familiarity, comprehension, intelligence, literary value, or
+reader response. Age-of-acquisition results are not diagnostic of cognitive
+impairment or decline.
+
 ## Eight emotion associations
 
 NRC Emotion values are binary, multi-label associations. VerseVAD reports the eight emotions—anger, anticipation, disgust, fear, joy, sadness, surprise, and trust—in their own section. An entry can be associated with several categories, so percentages do not need to total 100 percent. Read the labeled denominator.
@@ -400,7 +474,11 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness and SUBTLEX-US frequency modules. VAD, categorical association, intensity, concreteness, and corpus-relative frequency answer different questions and remain separate. A concreteness-only or frequency-only one-poem run is allowed when the exact local workbook is available.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, and Kuperman Age of Acquisition modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, and retrospective lexical AoA answer different questions and remain separate. Any optional module can run by itself when its exact local workbook is available.
+
+Concreteness, Frequency, and AoA are currently temporary **One Poem** modules.
+They are not yet batched, persisted, aggregated, or exported by **Projects &
+Corpus**.
 
 Under **Advanced methodology settings**, choose:
 
@@ -416,7 +494,12 @@ Under **Advanced methodology settings**, choose:
 - whether frequency excludes model-tagged proper nouns;
 - whether frequency permits lemma fallback;
 - the frequency low-coverage caution threshold; and
-- whether frequency uses the non-default **Content words only** scope.
+- whether frequency uses the non-default **Content words only** scope;
+- AoA early and later orientation thresholds;
+- whether AoA excludes model-tagged proper nouns;
+- whether AoA permits lemma fallback;
+- the AoA low-coverage caution threshold; and
+- whether AoA uses the non-default contextual **Content words only** scope.
 
 Under **Stopword settings**, inspect or change the secondary-view policy. The all-matched result is always preserved even when only one view is displayed.
 
@@ -459,6 +542,23 @@ The source workbook is read-only. If it is missing, changed, malformed, or unsup
 This tab appears when the optional SUBTLEX-US module is enabled. It emphasizes the token-weighted median Zipf value and shows the mean, IQR, token/type coverage, configured bands, warnings, line and stanza patterns, model-assigned POS groups, lowest/highest represented terms, rare tail, complete token audit, and source/configuration provenance.
 
 The page identifies whether the default all-lexical-token scope or the non-default `NOUN`/`VERB`/`ADJ`/`ADV` scope was used. Exact observed form, lemma, documented fallback, unmatched, and ineligible decisions stay distinct. The source workbook is read-only; a missing, changed, malformed, or unsupported source prevents activation.
+
+## Age of Acquisition tab
+
+This tab appears when the optional Kuperman module is enabled. It shows
+source-age mean, median, dispersion, range, token/type coverage, configured
+early/middle/later bands, source-response evidence, warnings, line and stanza
+patterns, model-assigned POS groups, earliest/latest represented terms,
+complete token audit, and source/configuration provenance. When corresponding
+modules are enabled, it also shows descriptive type-level relationships with
+Frequency and Concreteness.
+
+The page identifies whether the default all-lexical-token scope or the
+non-default contextual `NOUN`/`VERB`/`ADJ`/`ADV` scope was used. Exact observed
+form, lemma, documented fallback, source-unrated, unmatched, and ineligible
+decisions stay distinct. It always displays the required non-diagnostic
+caution. The source workbook is read-only; a missing, changed, malformed, or
+unsupported source prevents activation.
 
 ## Evidence tab
 
@@ -685,8 +785,16 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `frequency_terms.csv` | Represented source terms, Zipf values, corpus counts, repetition, ranks, and source-row fields |
 | `frequency_token_audit.csv` | Every token's eligibility, POS, matching method, source row, Zipf value or missing value, and reason |
 | `frequency_result.json` | Complete structured frequency result, configuration, warnings, and provenance |
+| `aoa_summary.csv` | Source-age statistics, thresholds, coverage, response cautions, and source identity |
+| `aoa_distribution.csv` | Distribution-ready ages and configured early/middle/later band counts and proportions |
+| `aoa_by_structure.csv` | Physical-line and stanza summaries with eligible/matched counts and coverage |
+| `aoa_by_pos.csv` | Model-assigned part-of-speech summaries |
+| `aoa_terms.csv` | Represented source terms, ages, response evidence, repetition, ranks, and source-row fields |
+| `aoa_relationships.csv` | Optional descriptive unique-surface-type relationships with enabled Frequency and Concreteness results |
+| `aoa_token_audit.csv` | Every token's eligibility, POS, matching method, source row, age or missing value, source-response evidence, and reason |
+| `aoa_result.json` | Complete structured AoA result, configuration, warnings, relationships, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, and `frequency_result.json` contains the optional SUBTLEX-US result. `poem_document.json` includes the original text, so protect it as research material. Concreteness and frequency exports retain source-row provenance but do not copy either full research workbook. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, and `aoa_result.json` contains the optional Kuperman result. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, and AoA exports retain source-row provenance but do not copy any complete research workbook. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -770,6 +878,36 @@ The module also reports median, inclusive quartiles, and interquartile range. A 
 The frequency module uses the token-weighted median Zipf value as its primary
 summary. Empty eligible denominators remain missing; unmatched forms never
 receive zero.
+
+## Age of Acquisition statistics and coverage
+
+Let `a_i` be the source mean acquisition age in years assigned to matched
+lexical-token position `i`, and let `A` be the number of matched token
+positions with numeric source means.
+
+`mean_aoa = sum(a_i) / A`
+
+`SD_population = sqrt(sum((a_i - mean_aoa)^2) / A)`
+
+`aoa_token_coverage = matched numeric eligible lexical-token positions / eligible lexical-token positions`
+
+`aoa_type_coverage = matched numeric unique normalized observed forms / eligible unique normalized observed forms`
+
+The module also reports median, inclusive quartiles, IQR, range, and configured
+band proportions. Source entries with unavailable means remain auditable but
+do not enter `A`. Empty eligible denominators remain missing, and unmatched
+forms never receive age zero.
+
+For a source entry:
+
+`numeric_response_proportion = OccurNum / OccurTotal`
+
+`unknown_response_count = OccurTotal - OccurNum`
+
+These source-response fields do not change the poem's token weighting. When a
+cross-module relationship is available, Spearman's rank coefficient is
+computed over unique paired normalized surface types, with a minimum of three
+paired types.
 
 ## Part-of-speech share
 
@@ -866,12 +1004,14 @@ The divergence is substantial because the long work dominates the token-weighted
 | Affect match | A documented link between a token occurrence or phrase span and one lexicon entry |
 | Analysis run | One immutable calculation with declared text version, lexicons, recipe, scenario, and software version |
 | Analysis view | `all_matched` or `stopwords_excluded` |
+| Age of Acquisition rating | Adult retrospective source estimate, in years, of when a listed word was learned well enough to understand |
+| AoA orientation band | Configurable VerseVAD early/middle/later display aid, not a source-validated category |
 | Arousal | Normative activation associated with a lexical item |
 | Association | Binary lexicon membership for an emotion or sentiment category |
 | Approved user mapping | Scenario-pinned link from a form to a verified exact source entry, applied only after ordinary matching fails |
 | Concreteness rating | Source-supplied 1-5 normative rating for how abstract/language-based or concrete/experience-based a lexical item was judged |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
-| Content words only | Optional frequency scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
+| Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
 | Coverage | Proportion of eligible token positions represented by included matches |
 | Corpus-relative frequency | Frequency evidence tied to a named source corpus rather than a context-free property of a word |
 | Cumulative load | Length-sensitive sum of normalized lexical ratings or midpoint distances |
@@ -886,12 +1026,14 @@ The divergence is substantial because the long work dominates the token-weighted
 | Match observation | One included matched token occurrence or accepted phrase span |
 | Normalized form | Separate processing form used for lookup; it does not replace the original text |
 | Normalized VAD | Documented linear transformation to the common 0-1 display range |
+| Numeric-response proportion | For the AoA source, numeric responses divided by total responses; preserved separately from the source's `Dunno` label |
 | Phrase match | One accepted multi-token span linked to one source entry |
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens, independent of lexicon coverage |
 | Population SD | Dispersion of the complete selected matched set around its mean |
 | Protected word | A word retained despite appearing in the underlying standard stopword list |
 | Source value | The original value published by the lexicon |
 | Review scenario | Named, versioned set of append-only decision revisions pinned to an analysis |
+| Source-unrated AoA entry | A source word row whose mean is unavailable; retained in the audit with no numeric age |
 | Sentiment association | Broad positive or negative NRC Emotion label, reported separately from eight emotion categories |
 | Stopword | A common function word selected for exclusion from the secondary aggregate under the active policy |
 | Surface form | The exact form appearing in the preserved text |
@@ -955,10 +1097,18 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - Frequency POS scope and proper-name exclusion depend on model-generated tags; the non-default content-word scope excludes `AUX`.
 - An unmatched frequency form remains missing; VerseVAD does not substitute `wordfreq`.
 - Frequency is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
+- Kuperman AoA values are adult retrospective estimates, not directly observed acquisition dates, grade levels, or contextual difficulty scores.
+- The source paper's content-word sampling rule and a poem occurrence's contextual model POS are separate evidence.
+- AoA proper-name, POS, and lemma decisions can be uncertain for poetic language.
+- AoA source SD and response counts describe source-rating evidence, not the poem's distribution.
+- AoA early/middle/later thresholds are VerseVAD orientation aids rather than source-validated categories.
+- Optional AoA relationships are descriptive, require at least three paired surface types, and do not establish causation.
+- Age-of-acquisition results are not diagnostic of cognitive impairment or decline.
+- AoA is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum.
 
 The companion definitions guide is maintained from:
 

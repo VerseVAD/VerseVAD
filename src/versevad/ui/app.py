@@ -33,6 +33,7 @@ _application_was_reloaded = (
             "detailed_part_of_speech_views",
             "RESOURCE_ROOT",
             "FrequencyConfiguration",
+            "AoAConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -55,12 +56,15 @@ if _application_was_reloaded:
         "versevad.adapters.nrc_intensity",
         "versevad.adapters.concreteness",
         "versevad.adapters.subtlex_us",
+        "versevad.adapters.kuperman_aoa",
         "versevad.adapters",
         "versevad.analysis.phase2",
         "versevad.lexical_semantic.concreteness",
         "versevad.lexical_semantic.frequency",
+        "versevad.lexical_semantic.aoa",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
+        "versevad.exports.aoa",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -107,6 +111,7 @@ from versevad.lexical_semantic.concreteness import (
     ConcretenessConfiguration,
     ConcretenessModule,
 )
+from versevad.lexical_semantic.aoa import AoAConfiguration, AoAModule
 from versevad.lexical_semantic.frequency import (
     FrequencyConfiguration,
     FrequencyModule,
@@ -381,6 +386,26 @@ if workspace_page == "One Poem":
         else:
             st.info(frequency_status.message)
 
+        aoa_status = AoAModule(RESOURCE_ROOT).validate_resources()[0]
+        include_aoa = st.checkbox(
+            "Age of Acquisition profile (Kuperman et al. ratings)",
+            value=False,
+            disabled=not aoa_status.available,
+            key="include_aoa",
+            help=(
+                "Optional retrospective normative lexical ratings in years. "
+                "This is not word difficulty, grade level, or a diagnostic "
+                "measure."
+            ),
+        )
+        if aoa_status.available:
+            st.caption(
+                "Available locally. VerseVAD reads the official erratum "
+                "supplement in place and records its SHA-256."
+            )
+        else:
+            st.info(aoa_status.message)
+
         with st.expander("Advanced methodology settings"):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -541,6 +566,66 @@ if workspace_page == "One Poem":
                 "roughly ten times greater corpus frequency. The configurable "
                 "bands are orientation aids rather than universal categories."
             )
+            st.markdown("**Age of Acquisition settings**")
+            aoa_threshold_columns = st.columns(2)
+            early_acquired_max = aoa_threshold_columns[0].number_input(
+                "Early-acquired band: source mean age at or below",
+                min_value=0.0,
+                max_value=24.9,
+                value=5.0,
+                step=0.5,
+                key="aoa_early_max",
+                disabled=not include_aoa,
+            )
+            later_acquired_min = aoa_threshold_columns[1].number_input(
+                "Later-acquired band: source mean age at or above",
+                min_value=0.1,
+                max_value=25.0,
+                value=12.0,
+                step=0.5,
+                key="aoa_later_min",
+                disabled=not include_aoa,
+            )
+            aoa_policy_columns = st.columns(3)
+            exclude_aoa_proper_nouns = aoa_policy_columns[0].checkbox(
+                "Exclude AoA proper nouns",
+                value=True,
+                key="aoa_exclude_proper",
+                disabled=not include_aoa,
+            )
+            aoa_content_words_only = aoa_policy_columns[1].checkbox(
+                "AoA content words only",
+                value=False,
+                key="aoa_content_words_only",
+                disabled=not include_aoa,
+                help=(
+                    "Optional and off by default. Uses the poem occurrence's "
+                    "model tag and retains only NOUN, VERB, ADJ, and ADV. The "
+                    "paper's source-sampling rule does not make this contextual "
+                    "filter redundant."
+                ),
+            )
+            enable_aoa_lemma_fallback = aoa_policy_columns[2].checkbox(
+                "Allow AoA lemma fallback",
+                value=True,
+                key="aoa_lemma_fallback",
+                disabled=not include_aoa,
+            )
+            aoa_warning_threshold = st.number_input(
+                "AoA matched-token coverage caution threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.6,
+                step=0.05,
+                key="aoa_coverage_warning",
+                disabled=not include_aoa,
+            )
+            st.caption(
+                "The early/later bands are configurable VerseVAD orientation "
+                "aids, not source-paper categories. Age-of-acquisition results "
+                "are retrospective normative lexical evidence and are not "
+                "diagnostic of cognitive impairment or decline."
+            )
         st.markdown("**Stopword reporting**")
         reporting_columns = st.columns(2)
         show_all_matched = reporting_columns[0].checkbox(
@@ -604,12 +689,31 @@ if workspace_page == "One Poem":
         if include_frequency:
             st.warning(frequency_configuration_error)
 
+    aoa_configuration_error = ""
+    try:
+        aoa_configuration = AoAConfiguration(
+            early_acquired_max=float(early_acquired_max),
+            later_acquired_min=float(later_acquired_min),
+            exclude_proper_nouns=exclude_aoa_proper_nouns,
+            content_words_only=aoa_content_words_only,
+            enable_lemma_fallback=enable_aoa_lemma_fallback,
+            minimum_matched_tokens=int(minimum_matches),
+            low_coverage_warning_threshold=float(aoa_warning_threshold),
+        )
+    except ValueError as error:
+        aoa_configuration_error = str(error)
+        aoa_configuration = AoAConfiguration()
+        if include_aoa:
+            st.warning(aoa_configuration_error)
+
     if analyze_clicked:
         try:
             if concreteness_configuration_error:
                 raise ValueError(concreteness_configuration_error)
             if frequency_configuration_error:
                 raise ValueError(frequency_configuration_error)
+            if aoa_configuration_error:
+                raise ValueError(aoa_configuration_error)
             request = AnalysisRequest(
                 project_name=st.session_state["project_name"],
                 title=st.session_state["poem_title"],
@@ -625,6 +729,8 @@ if workspace_page == "One Poem":
                 concreteness_configuration=concreteness_configuration,
                 include_frequency=include_frequency,
                 frequency_configuration=frequency_configuration,
+                include_aoa=include_aoa,
+                aoa_configuration=aoa_configuration,
             )
             with st.spinner("Analyzing locally and preserving the audit trail…"):
                 st.session_state["workspace"] = run_workspace_analysis(
@@ -654,6 +760,7 @@ if workspace_page == "One Poem":
         or tuple(selected_lexicons) != workspace.request.lexicon_ids
         or include_concreteness != workspace.request.include_concreteness
         or include_frequency != workspace.request.include_frequency
+        or include_aoa != workspace.request.include_aoa
         or (
             include_concreteness
             and concreteness_configuration
@@ -663,6 +770,10 @@ if workspace_page == "One Poem":
             include_frequency
             and frequency_configuration
             != workspace.request.frequency_configuration
+        )
+        or (
+            include_aoa
+            and aoa_configuration != workspace.request.aoa_configuration
         )
     ):
         st.warning(
@@ -684,6 +795,7 @@ if workspace_page == "One Poem":
         language_tab,
         concreteness_tab,
         frequency_tab,
+        aoa_tab,
         vad_tab,
         emotion_tab,
         evidence_tab,
@@ -695,6 +807,7 @@ if workspace_page == "One Poem":
             "Language Profile",
             "Concreteness Profile",
             "Frequency & Rarity",
+            "Age of Acquisition",
             "VAD Profile",
             "Emotion Profile",
             "Evidence",
@@ -829,6 +942,38 @@ if workspace_page == "One Poem":
                 hide_index=True,
                 width="stretch",
             )
+        if workspace.aoa is not None:
+            aoa_summary = workspace.aoa.summary
+            st.markdown("**Age-of-acquisition coverage**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Resource": workspace.aoa.resource_status.display_name,
+                            "Scope": aoa_summary.scope_label,
+                            "Matched tokens": aoa_summary.matched_token_count,
+                            "Eligible tokens": aoa_summary.eligible_token_count,
+                            "Matched-token coverage": aoa_summary.token_coverage,
+                            "Matched unique words": (
+                                aoa_summary.matched_unique_type_count
+                            ),
+                            "Eligible unique words": (
+                                aoa_summary.eligible_unique_type_count
+                            ),
+                            "Unique-word coverage": (
+                                aoa_summary.unique_type_coverage
+                            ),
+                        }
+                    ]
+                ).style.format(
+                    {
+                        "Matched-token coverage": lambda value: _percentage(value),
+                        "Unique-word coverage": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
         if show_stopword_excluded:
             filtered_coverage = [
                 {
@@ -927,6 +1072,14 @@ if workspace_page == "One Poem":
                     warning.message,
                 )
                 for warning in workspace.frequency.module_result.warnings
+            )
+        if workspace.aoa is not None:
+            warnings.extend(
+                (
+                    "Age of Acquisition",
+                    warning.message,
+                )
+                for warning in workspace.aoa.module_result.warnings
             )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
@@ -1673,6 +1826,349 @@ if workspace_page == "One Poem":
                 st.write(f"**Citation:** {resource.citation}")
                 st.caption(resource.license_notice)
 
+    with aoa_tab:
+        aoa = workspace.aoa
+        if aoa is None:
+            st.subheader("Normative Lexical Age of Acquisition")
+            st.info(
+                "Age of Acquisition was not selected for this result. Enable "
+                "the optional Kuperman profile under Choose Evidence, then "
+                "analyze again."
+            )
+            if not aoa_status.available:
+                st.warning(aoa_status.message)
+        else:
+            summary = aoa.summary
+            stats = summary.statistics
+            st.subheader("Normative Lexical Age of Acquisition")
+            st.write(
+                "Kuperman ratings are retrospective estimates, in years, of "
+                "when respondents believed they learned each word. The poem "
+                "summary aggregates matched source means; it is not grade level, "
+                "word difficulty, intelligence, or familiarity."
+            )
+            st.warning(
+                "Age-of-acquisition results describe lexical patterns and are "
+                "not diagnostic of cognitive impairment or decline."
+            )
+            metric_columns = st.columns(5)
+            metric_columns[0].metric(
+                "Mean normative AoA",
+                _decimal(stats.mean),
+            )
+            metric_columns[1].metric(
+                "Median normative AoA",
+                _decimal(stats.median),
+            )
+            metric_columns[2].metric(
+                "Matched-token coverage",
+                _percentage(summary.token_coverage),
+            )
+            early_band = next(
+                band
+                for band in summary.bands
+                if band.band_id == "early_acquired"
+            )
+            later_band = next(
+                band
+                for band in summary.bands
+                if band.band_id == "later_acquired"
+            )
+            metric_columns[3].metric(
+                "Early-band share",
+                _percentage(early_band.proportion),
+            )
+            metric_columns[4].metric(
+                "Later-band share",
+                _percentage(later_band.proportion),
+            )
+            st.caption(
+                f"Scope: {summary.scope_label}. Values are token-weighted over "
+                f"{summary.matched_token_count:,} matched occurrences. "
+                f"Early means <= {aoa.configuration.early_acquired_max:g}; "
+                f"later means >= {aoa.configuration.later_acquired_min:g}. "
+                "These bands are configurable orientation aids."
+            )
+
+            st.markdown("**Distribution and source-response evidence**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Mean": stats.mean,
+                            "Median": stats.median,
+                            "Population SD": stats.population_standard_deviation,
+                            "Q1": stats.first_quartile,
+                            "Q3": stats.third_quartile,
+                            "IQR": summary.interquartile_range,
+                            "Minimum": stats.minimum,
+                            "Maximum": stats.maximum,
+                            "Minimum source numeric responses": (
+                                summary.minimum_source_numeric_responses
+                            ),
+                            "Low-response tokens (<5)": (
+                                summary.low_response_token_count
+                            ),
+                        }
+                    ]
+                ).style.format(
+                    {
+                        "Mean": lambda value: _decimal(value),
+                        "Median": lambda value: _decimal(value),
+                        "Population SD": lambda value: _decimal(value),
+                        "Q1": lambda value: _decimal(value),
+                        "Q3": lambda value: _decimal(value),
+                        "IQR": lambda value: _decimal(value),
+                        "Minimum": lambda value: _decimal(value),
+                        "Maximum": lambda value: _decimal(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            st.caption(
+                "Population SD above describes variation among the poem's "
+                "matched source means. Each source term's own Rating.SD and "
+                "response count are separate evidence in the term and audit tables."
+            )
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Band": band.label,
+                            "Lower": band.lower_bound,
+                            "Upper": band.upper_bound,
+                            "Matched tokens": band.token_count,
+                            "Proportion": band.proportion,
+                        }
+                        for band in summary.bands
+                    ]
+                ).style.format(
+                    {"Proportion": lambda value: _percentage(value)}
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+
+            if aoa.relationships:
+                st.markdown("**Relationships with other enabled modules**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Other measure": item.other_metric,
+                                "Paired surface types": item.pair_count,
+                                "Spearman rho": item.coefficient,
+                                "Weighting": item.weighting,
+                                "Note": item.note,
+                            }
+                            for item in aoa.relationships
+                        ]
+                    ).style.format(
+                        {"Spearman rho": lambda value: _decimal(value)}
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(
+                    "These are descriptive type-level associations only. A "
+                    "missing coefficient means too few paired types or no rank "
+                    "variation; no causal inference is made."
+                )
+
+            if aoa.module_result.warnings:
+                with st.expander(
+                    "Age-of-acquisition warnings and methodology notes "
+                    f"({len(aoa.module_result.warnings)})"
+                ):
+                    for warning in aoa.module_result.warnings:
+                        if warning.severity.value == "information":
+                            st.info(warning.message)
+                        else:
+                            st.warning(warning.message)
+
+            st.markdown("**Physical-line summaries**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Line": group.ordinal,
+                            "Text": group.source_text,
+                            "Eligible tokens": group.eligible_token_count,
+                            "Matched tokens": group.matched_token_count,
+                            "Coverage": group.token_coverage,
+                            "Mean normative AoA": group.statistics.mean,
+                            "Median normative AoA": group.statistics.median,
+                        }
+                        for group in aoa.line_summaries
+                    ]
+                ).style.format(
+                    {
+                        "Coverage": lambda value: _percentage(value),
+                        "Mean normative AoA": lambda value: _decimal(value),
+                        "Median normative AoA": lambda value: _decimal(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            with st.expander("Stanza and part-of-speech summaries"):
+                for heading, groups, first_column in (
+                    ("Stanzas", aoa.stanza_summaries, "Stanza"),
+                    (
+                        "Model part of speech",
+                        aoa.part_of_speech_summaries,
+                        "POS",
+                    ),
+                ):
+                    st.markdown(f"**{heading}**")
+                    rows = [
+                        {
+                            first_column: (
+                                group.ordinal
+                                if first_column == "Stanza"
+                                else group.label
+                            ),
+                            "Text": (
+                                group.source_text
+                                if first_column == "Stanza"
+                                else ""
+                            ),
+                            "Eligible tokens": group.eligible_token_count,
+                            "Matched tokens": group.matched_token_count,
+                            "Coverage": group.token_coverage,
+                            "Mean normative AoA": group.statistics.mean,
+                            "Median normative AoA": group.statistics.median,
+                        }
+                        for group in groups
+                    ]
+                    st.dataframe(
+                        pd.DataFrame(rows).style.format(
+                            {
+                                "Coverage": lambda value: _percentage(value),
+                                "Mean normative AoA": lambda value: _decimal(
+                                    value
+                                ),
+                                "Median normative AoA": lambda value: _decimal(
+                                    value
+                                ),
+                            }
+                        ),
+                        hide_index=True,
+                        width="stretch",
+                    )
+                st.caption(
+                    "POS labels are model-generated. The optional content-word "
+                    "scope uses the poem occurrence's contextual tag, not the "
+                    "paper's source-selection label."
+                )
+
+            early_column, late_column = st.columns(2)
+            for column, heading, terms in (
+                (
+                    early_column,
+                    "Earliest-acquired represented terms",
+                    aoa.earliest_acquired_terms,
+                ),
+                (
+                    late_column,
+                    "Latest-acquired represented terms",
+                    aoa.latest_acquired_terms,
+                ),
+            ):
+                with column:
+                    st.markdown(f"**{heading}**")
+                    st.dataframe(
+                        pd.DataFrame(
+                            [
+                                {
+                                    "Term": term.source_term,
+                                    "Mean age": term.mean_age,
+                                    "Source SD": (
+                                        term.source_rating_standard_deviation
+                                    ),
+                                    "Numeric responses": (
+                                        term.source_numeric_response_count
+                                    ),
+                                    "Token occurrences": (
+                                        term.matched_token_occurrences
+                                    ),
+                                }
+                                for term in terms
+                            ]
+                        ),
+                        hide_index=True,
+                        width="stretch",
+                    )
+
+            with st.expander(
+                f"Age-of-acquisition token audit ({len(aoa.token_audit):,} rows)"
+            ):
+                audit_frame = _frame(
+                    aoa.token_audit,
+                    {
+                        "surface_form": "Surface",
+                        "normalized_form": "Normalized surface",
+                        "lemma": "Model lemma",
+                        "part_of_speech": "POS",
+                        "line_number": "Line",
+                        "stanza_number": "Stanza",
+                        "eligible": "Eligible",
+                        "included": "Matched",
+                        "match_method": "Method",
+                        "matched_source_term": "Source entry",
+                        "mean_age": "Mean age",
+                        "source_rating_standard_deviation": "Source SD",
+                        "source_numeric_response_count": "Numeric responses",
+                        "source_numeric_response_proportion": (
+                            "Numeric-response proportion"
+                        ),
+                        "reason": "Why",
+                    },
+                )
+                st.dataframe(
+                    audit_frame[
+                        [
+                            "Surface",
+                            "Normalized surface",
+                            "Model lemma",
+                            "POS",
+                            "Line",
+                            "Stanza",
+                            "Eligible",
+                            "Matched",
+                            "Method",
+                            "Source entry",
+                            "Mean age",
+                            "Source SD",
+                            "Numeric responses",
+                            "Numeric-response proportion",
+                            "Why",
+                        ]
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                    height=420,
+                )
+            with st.expander(
+                "Age-of-acquisition resource and calculation provenance"
+            ):
+                provenance = aoa.module_result.provenance
+                resource = provenance.resources[0]
+                st.write(
+                    f"**Resource:** {resource.display_name}  \n"
+                    f"**Version:** {resource.version}  \n"
+                    f"**SHA-256:** `{resource.source_sha256}`  \n"
+                    f"**Adapter:** {resource.adapter_version}  \n"
+                    f"**Module:** {aoa.module_result.module_name} "
+                    f"{aoa.module_result.module_version}  \n"
+                    f"**Configuration:** `{provenance.configuration_id}`  \n"
+                    f"**Lookup policy:** {provenance.lookup_policy}  \n"
+                    f"**Inclusion policy:** {provenance.inclusion_policy}"
+                )
+                st.write(f"**Citation:** {resource.citation}")
+                st.caption(resource.license_notice)
+
     with vad_tab:
         visible_vad_views = set()
         if show_all_matched:
@@ -2303,8 +2799,8 @@ if workspace_page == "One Poem":
         else:
             st.info(
                 "No affective lexicon was selected. Optional-module matching is "
-                "available in the Concreteness Profile or Frequency & Rarity "
-                "token audits and downloads."
+                "available in the Concreteness, Frequency & Rarity, or Age of "
+                "Acquisition token audits and downloads."
             )
 
     with download_tab:
@@ -2349,7 +2845,9 @@ if workspace_page == "One Poem":
             "result files. When concreteness is selected, it also includes its "
             "summary, structural, POS, term, token-audit, and JSON files. When "
             "frequency is selected, it includes its summary, distribution, "
-            "structural, POS, term, token-audit, and JSON files."
+            "structural, POS, term, token-audit, and JSON files. When Age of "
+            "Acquisition is selected, it includes summary, distribution, "
+            "structural, POS, term, relationship, token-audit, and JSON files."
         )
 
     with help_tab:
@@ -2358,11 +2856,13 @@ if workspace_page == "One Poem":
             """
             1. **Coverage:** Is enough vocabulary represented to make the aggregate useful?
             2. **Concreteness:** Read the source 1-5 distribution with both coverage denominators and configured bands.
-            3. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
-            4. **Emotion associations:** Read category rates as overlapping lexical associations.
-            5. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
-            6. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
-            7. **Manifest:** Use this only when you need provenance or reproducibility details.
+            3. **Frequency:** Read median SUBTLEX-US Zipf with its named corpus and matched coverage.
+            4. **Age of Acquisition:** Read source means in years, response evidence, configured bands, and the non-diagnostic warning.
+            5. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
+            6. **Emotion associations:** Read category rates as overlapping lexical associations.
+            7. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
+            8. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
+            9. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
         st.info(
@@ -2383,7 +2883,9 @@ if workspace_page == "One Poem":
             ("Rated unique-word coverage", "The share of unique normalized observed surface forms assigned a source rating."),
             ("SUBTLEX-US Zipf frequency", "A logarithmic, corpus-relative word-form frequency value; one point is roughly a tenfold frequency difference."),
             ("Matched frequency coverage", "The share of eligible token occurrences or observed surface types that found a SUBTLEX-US entry; unmatched values stay missing."),
-            ("Content words only", "An optional frequency scope limited to model-tagged NOUN, VERB, ADJ, and ADV; it is off by default."),
+            ("Normative lexical AoA", "A matched retrospective source mean, in years, for when respondents believed they learned a word; it is not grade level or difficulty."),
+            ("AoA source SD", "Variation among source respondents for one word, kept distinct from variation among the poem's matched normative means."),
+            ("Content words only", "An optional frequency or AoA scope limited to model-tagged NOUN, VERB, ADJ, and ADV; it is off by default."),
             ("Association", "A binary category link; it is not an intensity or contextual interpretation."),
             ("Intensity", "A source rating for a supplied word-category pair; missing pairs stay missing."),
             ("Suppressed component", "A visible unigram candidate not counted because a preferred phrase was selected."),

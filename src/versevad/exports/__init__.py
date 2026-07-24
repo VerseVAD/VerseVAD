@@ -1,5 +1,16 @@
 """Auditable tabular, chart-data, and methods-report exports."""
 
+from versevad.exports.aoa import (
+    export_aoa_bundle,
+    export_aoa_by_pos_csv,
+    export_aoa_by_structure_csv,
+    export_aoa_distribution_csv,
+    export_aoa_json,
+    export_aoa_relationships_csv,
+    export_aoa_summary_csv,
+    export_aoa_terms_csv,
+    export_aoa_token_audit_csv,
+)
 from versevad.exports.concreteness import (
     export_concreteness_bundle,
     export_concreteness_by_pos_csv,
@@ -25,6 +36,15 @@ from versevad.exports.poem_document_json import export_poem_document_json
 
 __all__ = [
     "export_analysis_csv",
+    "export_aoa_bundle",
+    "export_aoa_by_pos_csv",
+    "export_aoa_by_structure_csv",
+    "export_aoa_distribution_csv",
+    "export_aoa_json",
+    "export_aoa_relationships_csv",
+    "export_aoa_summary_csv",
+    "export_aoa_terms_csv",
+    "export_aoa_token_audit_csv",
     "export_concreteness_bundle",
     "export_concreteness_by_pos_csv",
     "export_concreteness_by_structure_csv",

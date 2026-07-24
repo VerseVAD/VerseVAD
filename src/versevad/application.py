@@ -23,6 +23,7 @@ from versevad.adapters import (
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.core.documents import PoemDocument
 from versevad.core.modules import ModuleInput
+from versevad.exports.aoa import export_aoa_bundle
 from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.frequency import export_frequency_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
@@ -32,6 +33,13 @@ from versevad.lexical_semantic.concreteness import (
     ConcretenessConfiguration,
     ConcretenessModule,
     ConcretenessModuleError,
+)
+from versevad.lexical_semantic.aoa import (
+    AoAAnalysisResult,
+    AoAConfiguration,
+    AoAModule,
+    AoAModuleError,
+    attach_aoa_relationships,
 )
 from versevad.lexical_semantic.frequency import (
     FrequencyAnalysisResult,
@@ -157,6 +165,8 @@ class AnalysisRequest:
     )
     include_frequency: bool = False
     frequency_configuration: FrequencyConfiguration = FrequencyConfiguration()
+    include_aoa: bool = False
+    aoa_configuration: AoAConfiguration = AoAConfiguration()
 
 
 @dataclass(frozen=True)
@@ -168,6 +178,7 @@ class WorkspaceAnalysis:
     poem_document: PoemDocument | None = None
     concreteness: ConcretenessAnalysisResult | None = None
     frequency: FrequencyAnalysisResult | None = None
+    aoa: AoAAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -527,6 +538,7 @@ def run_workspace_analysis(
     resource_root: Path = RESOURCE_ROOT,
     concreteness_module: ConcretenessModule | None = None,
     frequency_module: FrequencyModule | None = None,
+    aoa_module: AoAModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -536,6 +548,7 @@ def run_workspace_analysis(
         not request.lexicon_ids
         and not request.include_concreteness
         and not request.include_frequency
+        and not request.include_aoa
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -623,6 +636,21 @@ def run_workspace_analysis(
             )
         except FrequencyModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
+    aoa = None
+    if request.include_aoa:
+        module = aoa_module or AoAModule(resource_root)
+        try:
+            aoa = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                request.aoa_configuration,
+            )
+            aoa = attach_aoa_relationships(
+                aoa,
+                frequency=frequency,
+                concreteness=concreteness,
+            )
+        except AoAModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
         request,
         document,
@@ -631,6 +659,7 @@ def run_workspace_analysis(
         poem_document,
         concreteness,
         frequency,
+        aoa,
     )
 
 
@@ -1220,6 +1249,12 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
             "in SUBTLEX-US. Zipf values are corpus-relative and do not measure "
             "difficulty, sophistication, accessibility, or literary quality."
         )
+    if workspace.aoa is not None:
+        notes.append(
+            "Age-of-acquisition results aggregate retrospective normative lexical "
+            "ratings in years. They are not grade level, difficulty, intelligence, "
+            "familiarity, or diagnostic evidence of cognitive impairment or decline."
+        )
     if workspace.request.scenario_version_id:
         notes.append(
             f"This is a reviewed scenario result pinned to "
@@ -1642,6 +1677,126 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     ),
                 }
             )
+    if workspace.aoa is not None:
+        aoa = workspace.aoa
+        summary = aoa.summary
+        stats = summary.statistics
+        for metric, value, unit, note in (
+            (
+                "Mean normative age of acquisition",
+                stats.mean,
+                "source mean age in years",
+                "Mean of matched retrospective source Rating.Mean values.",
+            ),
+            (
+                "Median normative age of acquisition",
+                stats.median,
+                "source mean age in years",
+                "Token-weighted median of matched retrospective source means.",
+            ),
+            (
+                "Population standard deviation",
+                stats.population_standard_deviation,
+                "years",
+                (
+                    "Variation among the poem's matched source means, not "
+                    "within-entry rater uncertainty."
+                ),
+            ),
+            (
+                "Interquartile range",
+                summary.interquartile_range,
+                "years",
+                "Inclusive quartiles among matched token occurrences.",
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Age of acquisition",
+                    "lexicon": aoa.resource_status.display_name,
+                    "analysis_view": summary.scope_label,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": (
+                        f"{summary.matched_token_count} matched eligible "
+                        "token occurrences"
+                    ),
+                    "plain_language_note": note,
+                }
+            )
+        for metric, value, denominator, note in (
+            (
+                "Matched-token coverage",
+                summary.token_coverage,
+                (
+                    f"{summary.matched_token_count} of "
+                    f"{summary.eligible_token_count} eligible token occurrences"
+                ),
+                "Unmatched and source-unrated observations remain missing.",
+            ),
+            (
+                "Matched unique-word coverage",
+                summary.unique_type_coverage,
+                (
+                    f"{summary.matched_unique_type_count} of "
+                    f"{summary.eligible_unique_type_count} normalized surface types"
+                ),
+                "The denominator uses observed surface types, not lemma types.",
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Age of acquisition",
+                    "lexicon": aoa.resource_status.display_name,
+                    "analysis_view": summary.scope_label,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": "proportion",
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
+        for band in summary.bands:
+            rows.append(
+                {
+                    "section": "Age of acquisition",
+                    "lexicon": aoa.resource_status.display_name,
+                    "analysis_view": summary.scope_label,
+                    "metric": f"Configured {band.label.casefold()} proportion",
+                    "value": band.proportion if band.proportion is not None else "",
+                    "unit_or_scale": "proportion",
+                    "denominator": (
+                        f"{summary.matched_token_count} matched token occurrences"
+                    ),
+                    "plain_language_note": (
+                        "Configurable VerseVAD orientation band; not a "
+                        "source-paper category."
+                    ),
+                }
+            )
+        for relationship in aoa.relationships:
+            rows.append(
+                {
+                    "section": "Age of acquisition",
+                    "lexicon": aoa.resource_status.display_name,
+                    "analysis_view": relationship.weighting,
+                    "metric": (
+                        f"Spearman relationship with "
+                        f"{relationship.other_metric}"
+                    ),
+                    "value": (
+                        relationship.coefficient
+                        if relationship.coefficient is not None
+                        else ""
+                    ),
+                    "unit_or_scale": "Spearman rho",
+                    "denominator": (
+                        f"{relationship.pair_count} paired normalized surface types"
+                    ),
+                    "plain_language_note": relationship.note,
+                }
+            )
     return _csv_bytes(fields, rows)
 
 
@@ -1651,7 +1806,7 @@ def csv_reading_guide() -> bytes:
         {
             "file": "scholar_summary.csv",
             "what_it_answers": "What are the principal readable results?",
-            "start_with": "Coverage, concreteness, median Zipf frequency, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
+            "start_with": "Coverage, concreteness, median Zipf frequency, normative AoA, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
             "important_caution": "Read every metric with its denominator and plain-language note.",
         },
         {
@@ -1731,6 +1886,54 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "Can software reproduce the complete frequency result and method?",
             "start_with": "module_result, configuration, summary, bands, structural summaries, token_audit, and resource provenance.",
             "important_caution": "No wordfreq value or alternate corpus is substituted for SUBTLEX-US.",
+        },
+        {
+            "file": "aoa_summary.csv",
+            "what_it_answers": "What is the poem's matched retrospective normative AoA profile?",
+            "start_with": "mean and median source age, coverage, response evidence, and the non-diagnostic warning.",
+            "important_caution": "AoA is not difficulty, grade level, intelligence, familiarity, or a diagnostic measure.",
+        },
+        {
+            "file": "aoa_distribution.csv",
+            "what_it_answers": "How do matched tokens fall into configured early, middle, and later orientation bands?",
+            "start_with": "label, bounds, token_count, and proportion.",
+            "important_caution": "These thresholds are VerseVAD orientation aids, not categories validated by the source paper.",
+        },
+        {
+            "file": "aoa_by_structure.csv",
+            "what_it_answers": "How do matched AoA means and medians vary by physical line and stanza?",
+            "start_with": "scope, ordinal, token_coverage, mean_normative_aoa, and median_normative_aoa.",
+            "important_caution": "Missing structural aggregates mean no eligible word had a numeric rating; they are not zero.",
+        },
+        {
+            "file": "aoa_by_pos.csv",
+            "what_it_answers": "How do AoA values and coverage vary by poem-specific model POS tag?",
+            "start_with": "label, matched_token_count, token_coverage, and mean_normative_aoa.",
+            "important_caution": "The optional content-word scope uses contextual model tags; source sampling is a separate matter.",
+        },
+        {
+            "file": "aoa_terms.csv",
+            "what_it_answers": "Which represented source terms have the earliest and latest normative mean ages?",
+            "start_with": "mean_age, source_rating_standard_deviation, source_numeric_response_count, and rank columns.",
+            "important_caution": "Source response evidence and term rankings do not establish contextual difficulty or reader experience.",
+        },
+        {
+            "file": "aoa_relationships.csv",
+            "what_it_answers": "What descriptive type-level relationships exist with enabled frequency or concreteness modules?",
+            "start_with": "pair_count, coefficient, method, weighting, and note.",
+            "important_caution": "Coefficients are descriptive, repeated occurrences are collapsed, and association is not causation.",
+        },
+        {
+            "file": "aoa_token_audit.csv",
+            "what_it_answers": "How was every token included, matched, excluded, source-unrated, or left unmatched?",
+            "start_with": "surface_form, part_of_speech, match_method, mean_age, response count, and reason.",
+            "important_caution": "Lemma fallbacks are explicit; unmatched, source-unrated, and ineligible rows carry no mean age.",
+        },
+        {
+            "file": "aoa_result.json",
+            "what_it_answers": "Can software reproduce the complete AoA result and method?",
+            "start_with": "module_result, configuration, summary, bands, relationships, token_audit, and resource provenance.",
+            "important_caution": "The official Kuperman source is kept separate from derivative and test-based AoA workbooks.",
         },
         {
             "file": "phase2_coverage.csv",
@@ -1814,6 +2017,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.frequency
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.aoa is not None:
+                for filename, content in export_aoa_bundle(
+                    workspace.aoa
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -1835,6 +2043,12 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "statistics, distribution bands, line/stanza and part-of-speech "
                 "summaries, rare-word rankings, token matching, scope, resource "
                 "provenance, and configuration.\n"
+                "When present, the age-of-acquisition files report retrospective "
+                "normative source means in years, response evidence, configured "
+                "bands, line/stanza and part-of-speech summaries, optional "
+                "descriptive type-level relationships, token matching, resource "
+                "provenance, and configuration. These results are not "
+                "diagnostic of cognitive impairment.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

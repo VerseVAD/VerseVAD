@@ -59,6 +59,11 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "frequency_token_audit.csv",
             "74,286 word-form rows",
             "NOUN, VERB, ADJ, and ADV",
+            "Age of Acquisition tab",
+            "Retrospective normative lexical Age of Acquisition",
+            "aoa_token_audit.csv",
+            "31,124 unique nonblank word rows",
+            "not diagnostic of cognitive impairment or decline",
         ):
             assert required in text
 
@@ -167,5 +172,9 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Content words only",
             "median SUBTLEX-US Zipf value of 4.3",
             "about one point represents a tenfold",
+            "Retrospective Normative Lexical Age of Acquisition",
+            "AoA orientation band",
+            "mean retrospective normative lexical AoA of 7.2 years",
+            "Numeric-response proportion",
         ):
             assert required in text

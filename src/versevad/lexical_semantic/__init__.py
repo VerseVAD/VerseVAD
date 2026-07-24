@@ -1,5 +1,16 @@
 """Independent lexical-semantic analysis modules."""
 
+from versevad.lexical_semantic.aoa import (
+    AOA_CONTENT_WORD_POS,
+    KUPERMAN_AOA_FILENAME,
+    KUPERMAN_AOA_SHA256,
+    AoAAnalysisResult,
+    AoAConfiguration,
+    AoAMatchMethod,
+    AoAModule,
+    AoAModuleError,
+    attach_aoa_relationships,
+)
 from versevad.lexical_semantic.concreteness import (
     BRYSBAERT_CONCRETENESS_FILENAME,
     BRYSBAERT_CONCRETENESS_SHA256,
@@ -21,8 +32,16 @@ from versevad.lexical_semantic.frequency import (
 )
 
 __all__ = [
+    "AOA_CONTENT_WORD_POS",
     "BRYSBAERT_CONCRETENESS_FILENAME",
     "BRYSBAERT_CONCRETENESS_SHA256",
+    "KUPERMAN_AOA_FILENAME",
+    "KUPERMAN_AOA_SHA256",
+    "AoAAnalysisResult",
+    "AoAConfiguration",
+    "AoAMatchMethod",
+    "AoAModule",
+    "AoAModuleError",
     "ConcretenessAnalysisResult",
     "ConcretenessConfiguration",
     "ConcretenessMatchMethod",
@@ -36,4 +55,5 @@ __all__ = [
     "FrequencyMatchMethod",
     "FrequencyModule",
     "FrequencyModuleError",
+    "attach_aoa_relationships",
 ]

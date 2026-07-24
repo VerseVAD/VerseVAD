@@ -159,10 +159,11 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert any("Analysis complete" in message.value for message in app.success)
     assert [tab.label for tab in app.tabs] == [
         "Overview",
-        "Language Profile",
-        "Concreteness Profile",
-        "Frequency & Rarity",
-        "VAD Profile",
+            "Language Profile",
+            "Concreteness Profile",
+            "Frequency & Rarity",
+            "Age of Acquisition",
+            "VAD Profile",
         "Emotion Profile",
         "Evidence",
         "Downloads",
@@ -230,6 +231,7 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
         "Language Profile",
         "Concreteness Profile",
         "Frequency & Rarity",
+        "Age of Acquisition",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -288,6 +290,7 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
         "Language Profile",
         "Concreteness Profile",
         "Frequency & Rarity",
+        "Age of Acquisition",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -304,6 +307,63 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
     assert median_metric.value != "—"
     assert any(
         "Content words only" in caption.value for caption in app.caption
+    )
+
+
+def test_interface_runs_optional_aoa_profile_and_contextual_scope_if_present() -> None:
+    resource = (
+        APP_PATH.parents[3]
+        / "resources"
+        / "kuperman_2013_erratum_ESM1_official.xlsx"
+    )
+    if not resource.is_file():
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("AoA interface validation")
+    app.text_area[0].input("The stone and slowly bending grass.")
+    app.multiselect[0].set_value([])
+    aoa = next(
+        field
+        for field in app.checkbox
+        if field.label
+        == "Age of Acquisition profile (Kuperman et al. ratings)"
+    )
+    assert not aoa.disabled
+    aoa.set_value(True)
+    app.run(timeout=90)
+    content_scope = next(
+        field
+        for field in app.checkbox
+        if field.label == "AoA content words only"
+    )
+    assert not content_scope.disabled
+    content_scope.set_value(True)
+    app.run(timeout=90)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert any("Analysis complete" in message.value for message in app.success)
+    assert any(
+        heading.value == "Normative Lexical Age of Acquisition"
+        for heading in app.subheader
+    )
+    mean_metric = next(
+        metric for metric in app.metric if metric.label == "Mean normative AoA"
+    )
+    assert mean_metric.value != "â€”"
+    assert any(
+        "Content words only" in caption.value for caption in app.caption
+    )
+    assert any(
+        "not diagnostic of cognitive impairment" in warning.value
+        for warning in app.warning
     )
 
 

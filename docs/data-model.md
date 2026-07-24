@@ -81,7 +81,18 @@ lookup, thresholds, coverage warning, ranking limits, and the non-default
 `content_words_only` scope. These records remain in memory and in one-poem
 exports; schema version 3 is unchanged.
 
-## Poetic Fingerprint expansion Stages 0-3
+Expansion Stage 4 adds an optional `AoAAnalysisResult` to the one-poem
+`WorkspaceAnalysis`. It contains a common `ModuleResult`, exact
+`AoAConfiguration`, resource status and validation, overall and grouped
+summaries, acquisition-orientation bands, source-response evidence, term
+summaries, optional descriptive relationships, and the complete
+`AoATokenRating` audit. Unmatched, ineligible, and source-unrated ages remain
+nullable. The configuration records proper-name policy, exact-before-lemma
+lookup, thresholds, coverage and source-response cautions, ranking limits, and
+the non-default contextual `content_words_only` scope. These records remain in
+memory and in one-poem exports; schema version 3 is unchanged.
+
+## Poetic Fingerprint expansion Stages 0-4
 
 Stage 0 adds an immutable, framework-independent common envelope for future
 optional modules:
@@ -150,7 +161,7 @@ provide calibrated per-edge confidence.
 preprocessing provenance to later optional modules. `poem_document.json`
 exports this record in the local one-poem audit bundle.
 
-Stage 2 and Stage 3 consume that exact immutable document through the common
+Stages 2, 3, and 4 consume that exact immutable document through the common
 module input. Their optional result models stay distinct:
 
 ```text
@@ -158,6 +169,7 @@ WorkspaceAnalysis
   poem_document: PoemDocument
   concreteness: ConcretenessAnalysisResult?
   frequency: FrequencyAnalysisResult?
+  aoa: AoAAnalysisResult?
 
 FrequencyAnalysisResult
   module_result: ModuleResult
@@ -167,6 +179,15 @@ FrequencyAnalysisResult
   POS, physical-line, and stanza summaries
   term rankings and rare tail
   token_audit: FrequencyTokenRating[]
+
+AoAAnalysisResult
+  module_result: ModuleResult
+  configuration: AoAConfiguration
+  resource_status and validation
+  summary, acquisition bands, and source-response evidence
+  POS, physical-line, and stanza summaries
+  term rankings and optional descriptive relationships
+  token_audit: AoATokenRating[]
 ```
 
 The frequency audit stores poem-specific POS and matching decisions separately
@@ -175,8 +196,16 @@ denominator includes only `NOUN`, `VERB`, `ADJ`, and `ADV`; `AUX` is explicitly
 ineligible in that scope. Exact word-form entries take priority over lemma
 entries, and no missing value is serialized as numeric zero.
 
-These records remain in memory and in the derived JSON export. Stage 1 does not
-add schema-3 database tables. The approved possible schema-4 tables remain
+The AoA audit retains source mean/SD, total and numeric response counts,
+derived unknown-response count and numeric-response proportion, source
+frequency when available, poem POS, and exact matching decisions. Its
+content-word denominator also uses only `NOUN`, `VERB`, `ADJ`, and `ADV`.
+Source entries without numeric means retain their source-row identity but do
+not contribute to aggregates. Optional relationships are type-level,
+descriptive, and nullable when fewer than three paired surface types exist.
+
+These records remain in memory and in the derived JSON exports. Stages 1-4 do
+not add schema-3 database tables. The approved possible schema-4 tables remain
 documented in
 [`poetic-fingerprint-stage0.md`](poetic-fingerprint-stage0.md); any migration
 still requires tested transactional backup and compatibility behavior.

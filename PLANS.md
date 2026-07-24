@@ -441,6 +441,69 @@ review required.
   guides have no clipped, overlapping, or broken content.
 - [x] Create the expansion Stage 3 source-control checkpoint.
 
+## Poetic Fingerprint expansion - Stage 4 age of acquisition
+
+- [x] Download and inspect the official Kuperman, Stadthagen-Gonzalez, and
+  Brysbaert erratum supplement and publisher paper without modifying either;
+  record their SHA-256 hashes, source structure, rating method, citation, and
+  usage limitations.
+- [x] Reconcile the paper's content-word sampling description with the actual
+  supplement, which includes rated polyfunctional forms that can occur as
+  function words in a poem; retain an optional contextual
+  `NOUN`/`VERB`/`ADJ`/`ADV` scope rather than assuming every exact spelling
+  match is a content-word use.
+- [x] Add a versioned, read-only Kuperman adapter and an independent optional
+  Age of Acquisition `AnalysisModule` using the shared immutable
+  `PoemDocument`.
+- [x] Apply exact normalized observed-form lookup before explicit lemma lookup,
+  followed only by documented conservative fallbacks; keep unrated and
+  unmatched observations missing and exclude model-tagged proper nouns by
+  default.
+- [x] Calculate mean, median, population dispersion, inclusive quartiles, IQR,
+  range, configurable early/later orientation bands, token/type coverage,
+  part-of-speech, line, stanza, term, and source-response summaries.
+- [x] Add optional non-default content-word-only analysis, descriptive
+  type-level relationships with enabled frequency and concreteness modules,
+  low-coverage and sparse-pair warnings, and stable longitudinal-ready metric
+  identifiers without adding a schema migration.
+- [x] Add optional one-poem interface controls, a dedicated Age of Acquisition
+  Profile, readable summary rows, and complete CSV/JSON audit exports.
+- [x] Add synthetic adapter, matching, missing/malformed-resource, Unicode,
+  proper-name, function-word-scope, repetition, empty-input, low-coverage,
+  deterministic, relationship, configuration, export, and optional
+  local-source contract tests.
+- [x] Update methodology, architecture, user guidance, validation notes,
+  changelog, local resource instructions, and both rendered Word guides with
+  exact beginner-friendly test steps and the required non-diagnostic warning.
+- [~] Run the complete automated suite, all synthetic demonstrations,
+  diagnostics, source checks, lock-file check, and full PDF/Word render review.
+- [x] Create the expansion Stage 4 source-control checkpoint.
+
+### Expansion Stage 4 exit criteria
+
+- [x] The pinned official supplement passes its exact read-only adapter
+  contract in place, retains its recorded source checksum, and preserves the
+  19 source entries without numeric AoA ratings as unavailable values.
+- [x] Exact word forms take priority over lemma matches; fallbacks,
+  proper-name exclusions, optional contextual content-word exclusions,
+  low-response evidence, and unmatched tokens remain explicit in the audit.
+- [x] Empty and wholly unmatched inputs produce missing aggregates and missing
+  coverage rates rather than zero or an invented acquisition age.
+- [x] Configurable early/later bands are identified as VerseVAD orientation
+  aids, and source response counts and uncertainty remain distinct from the
+  poem-level dispersion of matched normative means.
+- [x] Results are described as retrospective normative lexical AoA evidence,
+  not word difficulty, grade level, intelligence, familiarity, comprehension,
+  or evidence of cognitive impairment or decline.
+- [x] Kuperman ratings are not combined with the separate derivative and
+  test-based AoA workbooks; existing affective, concreteness, and frequency
+  behavior, database schema 3, private texts, and local research resources
+  remain unchanged and excluded from source control.
+- [~] All automated and local validation checks pass, the downloaded paper has
+  been visually verified page by page, and both Word guides have no clipped,
+  overlapping, or broken content.
+- [x] Create the expansion Stage 4 source-control checkpoint.
+
 ## Phase 6 - Scholarly diagnostics
 
 - [ ] Add anomaly candidates and structured close-reading prompts.

@@ -13,7 +13,8 @@ resources/
   subtlexus1.zip
   subtlex-us/
     SUBTLEX-US frequency list with PoS and Zipf information.xlsx
-  aoa/
+  kuperman_2013_erratum_ESM1_official.xlsx
+  kuperman_stadthagen_gonzalez_brysbaert_2012_aoa_PAPER.pdf
   pronunciation/
 ```
 
@@ -53,3 +54,29 @@ Each resource adapter must:
 The implemented frequency module uses only the pinned official SUBTLEX-US
 Zipf workbook. VerseVAD does not use `wordfreq` as a fallback or alternate
 frequency source. Absent word forms remain unmatched with missing values.
+
+The optional Stage 4 Age of Acquisition module uses only the official
+Springer erratum supplement
+`resources/kuperman_2013_erratum_ESM1_official.xlsx`, expected at SHA-256
+`3f69a1332359de1cd4a7ccd3c4c3c2e39b388eeb171d6e90544709c3dc1a8a6e`.
+The locally retained publisher paper
+`resources/kuperman_stadthagen_gonzalez_brysbaert_2012_aoa_PAPER.pdf` is
+expected at SHA-256
+`fa72b2dd7980707de710b4dcb346d0368d5e2c21d657824a935ea4b8b8b80e1a`.
+Keep both filenames unchanged.
+
+The locally supplied `AoA_51715_words.xlsx`,
+`AoA_ratings_Kuperman_et_al_BRM_with_PoS.xlsx`, and
+`Master file with all values for test based AoA measures Biemiller.xlsx` are
+retained unchanged as comparison/reference resources. They are not combined
+with, substituted for, or read by the Stage 4 adapter. The 51,715-word file is
+a derived multi-source compilation; the `with_PoS` file adds a column to the
+official Kuperman rows; and the Biemiller file represents a distinct
+test-based construct.
+
+The Kuperman paper describes its target selection as base forms used most
+frequently as nouns, verbs, or adjectives. The official supplement nonetheless
+contains rated polyfunctional spellings such as `the`, `and`, `he`, `of`, and
+`to`. VerseVAD therefore keeps the optional contextual
+`NOUN`/`VERB`/`ADJ`/`ADV` scope available and off by default; source selection
+and a particular poem occurrence's model POS are not treated as equivalent.

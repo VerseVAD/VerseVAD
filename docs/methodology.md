@@ -180,6 +180,48 @@ subtitle corpus, not difficulty, sophistication, accessibility, intelligence,
 literary quality, or reader response. See
 [`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md).
 
+## Retrospective normative lexical Age of Acquisition
+
+The optional Stage 4 module reads the pinned official Kuperman,
+Stadthagen-Gonzalez, and Brysbaert supplement in place. Its numeric values are
+adult retrospective estimates of the age, in years, at which a source
+respondent believed they had learned a word well enough to understand it.
+They remain separate from affect, concreteness, frequency, difficulty, grade
+level, familiarity, comprehension, intelligence, and reader response.
+
+By default, every lexical token is eligible except model-tagged proper nouns.
+The optional, non-default **AoA content words only** scope restricts
+eligibility to exact contextual model tags `NOUN`, `VERB`, `ADJ`, and `ADV`.
+The paper describes its target selection as base forms used most frequently
+as nouns, verbs, or adjectives, but the official supplement also contains
+numeric ratings for polyfunctional spellings such as `the`, `and`, `he`, `of`,
+and `to`. Source-list construction and the contextual use of a spelling in a
+poem are therefore kept distinct.
+
+Matching uses exact normalized observed form first, then an explicitly enabled
+model lemma only when no exact form exists, followed by documented conservative
+apostrophe or possessive fallbacks. A source row whose mean is `NA` remains
+auditable but missing, as does every unmatched or ineligible token. No missing
+value becomes age zero or a neutral age.
+
+The module reports token-weighted mean, median, population standard deviation,
+inclusive quartiles, IQR, range, configurable early/middle/later orientation
+bands, token and unique observed-form-type coverage, physical-line/stanza/POS
+summaries, represented-term rankings, source-response evidence, and a complete
+audit. The default early-at-or-below-5 and later-at-or-above-12 thresholds are
+VerseVAD orientation aids, not source-published categories.
+
+When Frequency or Concreteness is enabled in the same One Poem run, the module
+may report a descriptive Spearman relationship after collapsing repeated
+occurrences to unique normalized surface types. It requires at least three
+paired types and excludes multiword concreteness assignments. The coefficient
+does not establish causation or a reader effect.
+
+Results must be described as retrospective normative lexical AoA evidence
+among matched tokens. They are not diagnostic of cognitive impairment or
+decline. See
+[`poetic-fingerprint-stage4.md`](poetic-fingerprint-stage4.md).
+
 ## Part-of-speech profile
 
 The linguistic profile is independent of lexicon matching. It counts every
