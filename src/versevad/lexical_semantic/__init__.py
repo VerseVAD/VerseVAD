@@ -9,6 +9,16 @@ from versevad.lexical_semantic.concreteness import (
     ConcretenessModule,
     ConcretenessModuleError,
 )
+from versevad.lexical_semantic.frequency import (
+    CONTENT_WORD_POS,
+    SUBTLEX_US_RELATIVE_PATH,
+    SUBTLEX_US_SHA256,
+    FrequencyAnalysisResult,
+    FrequencyConfiguration,
+    FrequencyMatchMethod,
+    FrequencyModule,
+    FrequencyModuleError,
+)
 
 __all__ = [
     "BRYSBAERT_CONCRETENESS_FILENAME",
@@ -18,4 +28,12 @@ __all__ = [
     "ConcretenessMatchMethod",
     "ConcretenessModule",
     "ConcretenessModuleError",
+    "CONTENT_WORD_POS",
+    "SUBTLEX_US_RELATIVE_PATH",
+    "SUBTLEX_US_SHA256",
+    "FrequencyAnalysisResult",
+    "FrequencyConfiguration",
+    "FrequencyMatchMethod",
+    "FrequencyModule",
+    "FrequencyModuleError",
 ]

@@ -141,6 +141,24 @@ made a public release.
 - Hand-calculated Stage 2 demonstration plus adapter, matching, Unicode,
   missing/empty, repetition, configuration, deterministic, UI, and export
   regression tests.
+- Read-only official SUBTLEX-US workbook adapter with pinned SHA-256,
+  worksheet/header, row-count, lookup-key, numeric-relationship, source-POS,
+  and Zipf-range validation.
+- Optional framework-independent one-poem frequency module with exact observed
+  word-form priority, explicit lemma and conservative fallbacks, default
+  proper-name exclusion, missing unmatched values, and complete provenance.
+- Token-weighted median Zipf as the primary frequency summary, plus mean,
+  inclusive quartiles, IQR, population SD, range, configurable orientation
+  bands, token/type coverage, physical-line/stanza/POS summaries, term
+  rankings, rare tail, and warnings.
+- A non-default frequency scope limited to exact model tags `NOUN`, `VERB`,
+  `ADJ`, and `ADV`, excluding `AUX` and function-word tags with every decision
+  retained in the token audit.
+- Dedicated Frequency & Rarity profile, frequency-only or mixed one-poem runs,
+  readable summary rows, six UTF-8 CSV files, and a structured JSON result.
+- Hand-calculated Stage 3 demonstration plus adapter, matching, Unicode,
+  proper-name, repetition, all-common, empty/unmatched, configuration,
+  deterministic, UI, content-scope, and export regression tests.
 
 ### Changed
 
@@ -188,6 +206,9 @@ made a public release.
 - Project development version advanced to `0.8.0.dev0`; Stage 2 remains
   additive, in memory, and leaves database schema 3 and affective results
   unchanged.
+- Project development version advanced to `0.9.0.dev0`; Stage 3 remains
+  additive and in memory, uses only the pinned SUBTLEX-US Zipf source, and
+  leaves database schema 3 and existing analyses unchanged.
 
 ### Fixed
 

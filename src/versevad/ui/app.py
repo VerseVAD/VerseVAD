@@ -32,6 +32,7 @@ _application_was_reloaded = (
             "part_of_speech_views",
             "detailed_part_of_speech_views",
             "RESOURCE_ROOT",
+            "FrequencyConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -53,10 +54,13 @@ if _application_was_reloaded:
         "versevad.adapters.nrc_emotion",
         "versevad.adapters.nrc_intensity",
         "versevad.adapters.concreteness",
+        "versevad.adapters.subtlex_us",
         "versevad.adapters",
         "versevad.analysis.phase2",
         "versevad.lexical_semantic.concreteness",
+        "versevad.lexical_semantic.frequency",
         "versevad.exports.concreteness",
+        "versevad.exports.frequency",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -102,6 +106,10 @@ from versevad.diagnostics import run_self_test
 from versevad.lexical_semantic.concreteness import (
     ConcretenessConfiguration,
     ConcretenessModule,
+)
+from versevad.lexical_semantic.frequency import (
+    FrequencyConfiguration,
+    FrequencyModule,
 )
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
@@ -353,6 +361,26 @@ if workspace_page == "One Poem":
         else:
             st.info(concreteness_status.message)
 
+        frequency_status = FrequencyModule(RESOURCE_ROOT).validate_resources()[0]
+        include_frequency = st.checkbox(
+            "Frequency & rarity profile (SUBTLEX-US Zipf)",
+            value=False,
+            disabled=not frequency_status.available,
+            key="include_frequency",
+            help=(
+                "Describes corpus-relative word-form frequency using the "
+                "official local SUBTLEX-US Zipf workbook. No wordfreq fallback "
+                "is used."
+            ),
+        )
+        if frequency_status.available:
+            st.caption(
+                "Available locally. Zipf values come from the pinned official "
+                "SUBTLEX-US workbook, read in place with its SHA-256 recorded."
+            )
+        else:
+            st.info(frequency_status.message)
+
         with st.expander("Advanced methodology settings"):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -428,6 +456,91 @@ if workspace_page == "One Poem":
                 "VerseVAD orientation aids, not categories or validity cutoffs "
                 "defined by the source paper."
             )
+            st.markdown("**Frequency & rarity settings**")
+            frequency_threshold_columns = st.columns(4)
+            rare_below = frequency_threshold_columns[0].number_input(
+                "Rare: Zipf below",
+                min_value=1.0,
+                max_value=7.0,
+                value=3.0,
+                step=0.1,
+                key="frequency_rare_below",
+                disabled=not include_frequency,
+            )
+            uncommon_below = frequency_threshold_columns[1].number_input(
+                "Uncommon: below",
+                min_value=1.1,
+                max_value=7.2,
+                value=4.0,
+                step=0.1,
+                key="frequency_uncommon_below",
+                disabled=not include_frequency,
+            )
+            moderately_common_below = frequency_threshold_columns[
+                2
+            ].number_input(
+                "Moderately common: below",
+                min_value=1.2,
+                max_value=7.4,
+                value=5.0,
+                step=0.1,
+                key="frequency_moderate_below",
+                disabled=not include_frequency,
+            )
+            very_common_min = frequency_threshold_columns[3].number_input(
+                "Very common: at or above",
+                min_value=1.3,
+                max_value=8.0,
+                value=6.0,
+                step=0.1,
+                key="frequency_very_common_min",
+                disabled=not include_frequency,
+            )
+            frequency_policy_columns = st.columns(3)
+            exclude_frequency_proper_nouns = frequency_policy_columns[
+                0
+            ].checkbox(
+                "Exclude frequency proper nouns",
+                value=True,
+                key="frequency_exclude_proper",
+                disabled=not include_frequency,
+            )
+            frequency_content_words_only = frequency_policy_columns[
+                1
+            ].checkbox(
+                "Content words only",
+                value=False,
+                key="frequency_content_words_only",
+                disabled=not include_frequency,
+                help=(
+                    "Optional and off by default. Limits eligible tokens to "
+                    "model-tagged NOUN, VERB, ADJ, and ADV; excludes determiners, "
+                    "prepositions, conjunctions, pronouns, auxiliaries, and "
+                    "punctuation."
+                ),
+            )
+            enable_frequency_lemma_fallback = frequency_policy_columns[
+                2
+            ].checkbox(
+                "Allow explicit lemma fallback",
+                value=True,
+                key="frequency_lemma_fallback",
+                disabled=not include_frequency,
+            )
+            frequency_warning_threshold = st.number_input(
+                "Frequency matched-token coverage caution threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.6,
+                step=0.05,
+                key="frequency_coverage_warning",
+                disabled=not include_frequency,
+            )
+            st.caption(
+                "Median Zipf is primary. Each one-point increase represents "
+                "roughly ten times greater corpus frequency. The configurable "
+                "bands are orientation aids rather than universal categories."
+            )
         st.markdown("**Stopword reporting**")
         reporting_columns = st.columns(2)
         show_all_matched = reporting_columns[0].checkbox(
@@ -472,10 +585,31 @@ if workspace_page == "One Poem":
         if include_concreteness:
             st.warning(concreteness_configuration_error)
 
+    frequency_configuration_error = ""
+    try:
+        frequency_configuration = FrequencyConfiguration(
+            rare_below=float(rare_below),
+            uncommon_below=float(uncommon_below),
+            moderately_common_below=float(moderately_common_below),
+            very_common_min=float(very_common_min),
+            exclude_proper_nouns=exclude_frequency_proper_nouns,
+            content_words_only=frequency_content_words_only,
+            enable_lemma_fallback=enable_frequency_lemma_fallback,
+            minimum_matched_tokens=int(minimum_matches),
+            low_coverage_warning_threshold=float(frequency_warning_threshold),
+        )
+    except ValueError as error:
+        frequency_configuration_error = str(error)
+        frequency_configuration = FrequencyConfiguration()
+        if include_frequency:
+            st.warning(frequency_configuration_error)
+
     if analyze_clicked:
         try:
             if concreteness_configuration_error:
                 raise ValueError(concreteness_configuration_error)
+            if frequency_configuration_error:
+                raise ValueError(frequency_configuration_error)
             request = AnalysisRequest(
                 project_name=st.session_state["project_name"],
                 title=st.session_state["poem_title"],
@@ -489,6 +623,8 @@ if workspace_page == "One Poem":
                 custom_stopword_removals=stopword_settings.custom_removals,
                 include_concreteness=include_concreteness,
                 concreteness_configuration=concreteness_configuration,
+                include_frequency=include_frequency,
+                frequency_configuration=frequency_configuration,
             )
             with st.spinner("Analyzing locally and preserving the audit trail…"):
                 st.session_state["workspace"] = run_workspace_analysis(
@@ -517,10 +653,16 @@ if workspace_page == "One Poem":
         st.session_state["poem_text"] != workspace.request.original_text
         or tuple(selected_lexicons) != workspace.request.lexicon_ids
         or include_concreteness != workspace.request.include_concreteness
+        or include_frequency != workspace.request.include_frequency
         or (
             include_concreteness
             and concreteness_configuration
             != workspace.request.concreteness_configuration
+        )
+        or (
+            include_frequency
+            and frequency_configuration
+            != workspace.request.frequency_configuration
         )
     ):
         st.warning(
@@ -541,6 +683,7 @@ if workspace_page == "One Poem":
         overview_tab,
         language_tab,
         concreteness_tab,
+        frequency_tab,
         vad_tab,
         emotion_tab,
         evidence_tab,
@@ -551,6 +694,7 @@ if workspace_page == "One Poem":
             "Overview",
             "Language Profile",
             "Concreteness Profile",
+            "Frequency & Rarity",
             "VAD Profile",
             "Emotion Profile",
             "Evidence",
@@ -617,6 +761,38 @@ if workspace_page == "One Poem":
             st.info(
                 "No affective lexicon was selected for this result. Optional "
                 "module coverage is reported separately below."
+            )
+        if workspace.frequency is not None:
+            frequency_summary = workspace.frequency.summary
+            st.markdown("**SUBTLEX-US frequency coverage**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Resource": workspace.frequency.resource_status.display_name,
+                            "Scope": frequency_summary.scope_label,
+                            "Matched tokens": frequency_summary.matched_token_count,
+                            "Eligible tokens": frequency_summary.eligible_token_count,
+                            "Matched-token coverage": frequency_summary.token_coverage,
+                            "Matched unique words": (
+                                frequency_summary.matched_unique_type_count
+                            ),
+                            "Eligible unique words": (
+                                frequency_summary.eligible_unique_type_count
+                            ),
+                            "Unique-word coverage": (
+                                frequency_summary.unique_type_coverage
+                            ),
+                        }
+                    ]
+                ).style.format(
+                    {
+                        "Matched-token coverage": lambda value: _percentage(value),
+                        "Unique-word coverage": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
             )
         if workspace.concreteness is not None:
             concrete_summary = workspace.concreteness.summary
@@ -743,6 +919,14 @@ if workspace_page == "One Poem":
                     warning.message,
                 )
                 for warning in workspace.concreteness.module_result.warnings
+            )
+        if workspace.frequency is not None:
+            warnings.extend(
+                (
+                    "Frequency",
+                    warning.message,
+                )
+                for warning in workspace.frequency.module_result.warnings
             )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
@@ -1157,6 +1341,332 @@ if workspace_page == "One Poem":
                     f"{concreteness.module_result.module_version}  \n"
                     f"**Configuration:** "
                     f"`{provenance.configuration_id}`  \n"
+                    f"**Lookup policy:** {provenance.lookup_policy}  \n"
+                    f"**Inclusion policy:** {provenance.inclusion_policy}"
+                )
+                st.write(f"**Citation:** {resource.citation}")
+                st.caption(resource.license_notice)
+
+    with frequency_tab:
+        frequency = workspace.frequency
+        if frequency is None:
+            st.subheader("SUBTLEX-US Lexical Frequency & Rarity")
+            st.info(
+                "Frequency & rarity was not selected for this result. Enable "
+                "the optional SUBTLEX-US Zipf module above and analyze again."
+            )
+            if not frequency_status.available:
+                st.warning(frequency_status.message)
+        else:
+            summary = frequency.summary
+            statistics = summary.statistics
+            st.subheader("SUBTLEX-US Lexical Frequency & Rarity")
+            st.markdown(
+                '<div class="verse-callout"><strong>Primary reading:</strong> '
+                "Median Zipf describes the central corpus-relative frequency "
+                "among matched eligible token occurrences. The scale is "
+                "logarithmic: one Zipf point is roughly a tenfold frequency "
+                "difference. It does not measure difficulty, sophistication, "
+                "accessibility, or literary quality.</div>",
+                unsafe_allow_html=True,
+            )
+            metric_columns = st.columns(5)
+            metric_columns[0].metric(
+                "Median Zipf (primary)", _decimal(statistics.median)
+            )
+            metric_columns[1].metric("Mean Zipf", _decimal(statistics.mean))
+            metric_columns[2].metric(
+                "Interquartile range", _decimal(summary.interquartile_range)
+            )
+            metric_columns[3].metric(
+                "Matched-token coverage", _percentage(summary.token_coverage)
+            )
+            metric_columns[4].metric(
+                "Unique-word coverage",
+                _percentage(summary.unique_type_coverage),
+            )
+            st.caption(
+                f"Active scope: **{summary.scope_label}**. "
+                f"{summary.matched_token_count:,} of "
+                f"{summary.eligible_token_count:,} eligible token occurrences "
+                "matched. Unmatched words remain missing rather than Zipf zero."
+            )
+
+            st.markdown("**Configured Zipf distribution**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Band": band.label,
+                            "Lower bound": band.lower_bound,
+                            "Upper bound": band.upper_bound,
+                            "Matched tokens": band.token_count,
+                            "Proportion": band.proportion,
+                        }
+                        for band in summary.bands
+                    ]
+                ).style.format(
+                    {
+                        "Lower bound": lambda value: (
+                            "" if pd.isna(value) else f"{value:.2f}"
+                        ),
+                        "Upper bound": lambda value: (
+                            "" if pd.isna(value) else f"{value:.2f}"
+                        ),
+                        "Proportion": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            st.caption(
+                "Default orientation: rare <3, uncommon 3-<4, moderately "
+                "common 4-<5, common 5-<6, and very common >=6. These "
+                "configurable labels are not universal linguistic categories."
+            )
+
+            if frequency.module_result.warnings:
+                with st.expander(
+                    "Frequency warnings and methodology notes "
+                    f"({len(frequency.module_result.warnings)})"
+                ):
+                    for warning in frequency.module_result.warnings:
+                        if warning.severity.value == "information":
+                            st.info(warning.message)
+                        else:
+                            st.warning(warning.message)
+
+            st.markdown("**Physical-line summaries**")
+            line_rows = [
+                {
+                    "Line": group.ordinal,
+                    "Text": group.source_text,
+                    "Eligible tokens": group.eligible_token_count,
+                    "Matched tokens": group.matched_token_count,
+                    "Coverage": group.token_coverage,
+                    "Median Zipf": group.statistics.median,
+                    "Mean Zipf": group.statistics.mean,
+                }
+                for group in frequency.line_summaries
+            ]
+            st.dataframe(
+                pd.DataFrame(
+                    line_rows,
+                    columns=[
+                        "Line",
+                        "Text",
+                        "Eligible tokens",
+                        "Matched tokens",
+                        "Coverage",
+                        "Median Zipf",
+                        "Mean Zipf",
+                    ],
+                ).style.format(
+                    {
+                        "Coverage": lambda value: _percentage(value),
+                        "Median Zipf": lambda value: _decimal(value),
+                        "Mean Zipf": lambda value: _decimal(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            with st.expander("Stanza and part-of-speech summaries"):
+                stanza_rows = [
+                    {
+                        "Stanza": group.ordinal,
+                        "Text": group.source_text,
+                        "Eligible tokens": group.eligible_token_count,
+                        "Matched tokens": group.matched_token_count,
+                        "Coverage": group.token_coverage,
+                        "Median Zipf": group.statistics.median,
+                        "Mean Zipf": group.statistics.mean,
+                    }
+                    for group in frequency.stanza_summaries
+                ]
+                st.markdown("**Stanzas**")
+                st.dataframe(
+                    pd.DataFrame(
+                        stanza_rows,
+                        columns=[
+                            "Stanza",
+                            "Text",
+                            "Eligible tokens",
+                            "Matched tokens",
+                            "Coverage",
+                            "Median Zipf",
+                            "Mean Zipf",
+                        ],
+                    ).style.format(
+                        {
+                            "Coverage": lambda value: _percentage(value),
+                            "Median Zipf": lambda value: _decimal(value),
+                            "Mean Zipf": lambda value: _decimal(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                pos_rows = [
+                    {
+                        "POS": group.label,
+                        "Eligible tokens": group.eligible_token_count,
+                        "Matched tokens": group.matched_token_count,
+                        "Coverage": group.token_coverage,
+                        "Median Zipf": group.statistics.median,
+                        "Mean Zipf": group.statistics.mean,
+                    }
+                    for group in frequency.part_of_speech_summaries
+                ]
+                st.markdown("**Part of speech**")
+                st.dataframe(
+                    pd.DataFrame(
+                        pos_rows,
+                        columns=[
+                            "POS",
+                            "Eligible tokens",
+                            "Matched tokens",
+                            "Coverage",
+                            "Median Zipf",
+                            "Mean Zipf",
+                        ],
+                    ).style.format(
+                        {
+                            "Coverage": lambda value: _percentage(value),
+                            "Median Zipf": lambda value: _decimal(value),
+                            "Mean Zipf": lambda value: _decimal(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(
+                    "POS labels are model-generated. When Content words only "
+                    "is active, only NOUN, VERB, ADJ, and ADV are eligible."
+                )
+
+            low_column, high_column = st.columns(2)
+            with low_column:
+                st.markdown("**Lowest-frequency represented terms**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Term": term.source_term,
+                                "Zipf": term.zipf_value,
+                                "Token occurrences": (
+                                    term.matched_token_occurrences
+                                ),
+                                "Frequency per million": (
+                                    term.frequency_per_million
+                                ),
+                            }
+                            for term in frequency.lowest_frequency_terms
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+            with high_column:
+                st.markdown("**Highest-frequency represented terms**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Term": term.source_term,
+                                "Zipf": term.zipf_value,
+                                "Token occurrences": (
+                                    term.matched_token_occurrences
+                                ),
+                                "Frequency per million": (
+                                    term.frequency_per_million
+                                ),
+                            }
+                            for term in frequency.highest_frequency_terms
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+            with st.expander(
+                f"Rare-word tail ({len(frequency.rare_word_tail):,} represented terms)"
+            ):
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Term": term.source_term,
+                                "Zipf": term.zipf_value,
+                                "Token occurrences": (
+                                    term.matched_token_occurrences
+                                ),
+                                "Model POS in poem": " | ".join(
+                                    term.part_of_speech_tags
+                                ),
+                            }
+                            for term in frequency.rare_word_tail
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+            with st.expander(
+                f"Frequency token audit ({len(frequency.token_audit):,} rows)"
+            ):
+                audit_frame = _frame(
+                    frequency.token_audit,
+                    {
+                        "surface_form": "Surface",
+                        "normalized_form": "Normalized surface",
+                        "lemma": "Model lemma",
+                        "part_of_speech": "POS",
+                        "line_number": "Line",
+                        "stanza_number": "Stanza",
+                        "eligible": "Eligible",
+                        "included": "Matched",
+                        "match_method": "Method",
+                        "matched_source_term": "Source entry",
+                        "zipf_value": "Zipf",
+                        "frequency_count": "Corpus count",
+                        "contextual_diversity_count": "Film count",
+                        "reason": "Why",
+                    },
+                )
+                st.dataframe(
+                    audit_frame[
+                        [
+                            "Surface",
+                            "Normalized surface",
+                            "Model lemma",
+                            "POS",
+                            "Line",
+                            "Stanza",
+                            "Eligible",
+                            "Matched",
+                            "Method",
+                            "Source entry",
+                            "Zipf",
+                            "Corpus count",
+                            "Film count",
+                            "Why",
+                        ]
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                    height=420,
+                )
+            with st.expander("Frequency resource and calculation provenance"):
+                provenance = frequency.module_result.provenance
+                resource = provenance.resources[0]
+                st.write(
+                    f"**Resource:** {resource.display_name}  \n"
+                    f"**Version:** {resource.version}  \n"
+                    f"**SHA-256:** `{resource.source_sha256}`  \n"
+                    f"**Adapter:** {resource.adapter_version}  \n"
+                    f"**Module:** {frequency.module_result.module_name} "
+                    f"{frequency.module_result.module_version}  \n"
+                    f"**Configuration:** `{provenance.configuration_id}`  \n"
                     f"**Lookup policy:** {provenance.lookup_policy}  \n"
                     f"**Inclusion policy:** {provenance.inclusion_policy}"
                 )
@@ -1792,8 +2302,9 @@ if workspace_page == "One Poem":
             st.success("Every lexical token matched each selected lexicon under this policy.")
         else:
             st.info(
-                "No affective lexicon was selected. Concreteness matching is "
-                "available in the Concreteness Profile token audit and downloads."
+                "No affective lexicon was selected. Optional-module matching is "
+                "available in the Concreteness Profile or Frequency & Rarity "
+                "token audits and downloads."
             )
 
     with download_tab:
@@ -1836,7 +2347,9 @@ if workspace_page == "One Poem":
             "guide, match audit, coverage, VAD, association, intensity, comparison, "
             "reproducibility-manifest, shared poem document, and complete JSON "
             "result files. When concreteness is selected, it also includes its "
-            "summary, structural, POS, term, token-audit, and JSON files."
+            "summary, structural, POS, term, token-audit, and JSON files. When "
+            "frequency is selected, it includes its summary, distribution, "
+            "structural, POS, term, token-audit, and JSON files."
         )
 
     with help_tab:
@@ -1852,6 +2365,11 @@ if workspace_page == "One Poem":
             7. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
+        st.info(
+            "When Frequency & Rarity is selected, read median SUBTLEX-US Zipf "
+            "after coverage and concreteness, then inspect configured bands and "
+            "the rare-word audit before moving to VAD."
+        )
         st.subheader("What the Main Terms Mean")
         definitions = [
             ("Coverage", "The share of eligible lexical tokens that found a source entry."),
@@ -1863,6 +2381,9 @@ if workspace_page == "One Poem":
             ("Normative lexical concreteness", "A matched source rating from 1 (very abstract or language-based) to 5 (very concrete or experience-based)."),
             ("Rated-token coverage", "The share of eligible lexical token occurrences assigned a source rating; missing tokens stay missing."),
             ("Rated unique-word coverage", "The share of unique normalized observed surface forms assigned a source rating."),
+            ("SUBTLEX-US Zipf frequency", "A logarithmic, corpus-relative word-form frequency value; one point is roughly a tenfold frequency difference."),
+            ("Matched frequency coverage", "The share of eligible token occurrences or observed surface types that found a SUBTLEX-US entry; unmatched values stay missing."),
+            ("Content words only", "An optional frequency scope limited to model-tagged NOUN, VERB, ADJ, and ADV; it is off by default."),
             ("Association", "A binary category link; it is not an intensity or contextual interpretation."),
             ("Intensity", "A source rating for a supplied word-category pair; missing pairs stay missing."),
             ("Suppressed component", "A visible unigram candidate not counted because a preferred phrase was selected."),

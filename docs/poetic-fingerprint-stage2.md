@@ -37,8 +37,8 @@ Ratings use the original 1-5 scale, where the study elicited judgments from
 very abstract or language-based to very concrete or experience-based.
 
 The workbook's `SUBTLEX` column is retained as source-row provenance only. It
-is not VerseVAD's planned lexical-frequency analysis. That later module will
-use a separately installed and versioned SUBTLEX-US resource and will not use
+is not VerseVAD's lexical-frequency analysis. Stage 3 uses a separately
+installed and pinned official SUBTLEX-US Zipf resource and does not use
 `wordfreq`.
 
 ## Adapter contract

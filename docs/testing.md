@@ -98,6 +98,25 @@ of the 28-page user manual and 21-page Values and Terminology Guide are
 recorded in
 [`poetic-fingerprint-stage2-validation.md`](poetic-fingerprint-stage2-validation.md).
 
+Stage 3 adds `python -m versevad.frequency_validation`. It creates a temporary
+synthetic SUBTLEX-US-shaped workbook and verifies exact observed-form priority,
+lemma fallback, an unmatched form, 5/6 token coverage, token-weighted median
+Zipf 4.0, token-weighted mean Zipf 3.4, and an optional scope containing only
+model-tagged `NOUN`, `VERB`, `ADJ`, and `ADV`. The generated workbook checksum
+must remain unchanged.
+
+Stage 3 also adds local-source contract, malformed-source, source `#N/A`,
+Unicode, proper-name, repetition, all-common, empty/unmatched, threshold,
+deterministic, configuration, UI, and export coverage. The strict
+content-word test verifies that `DET`, `ADP`, `CCONJ`, `SCONJ`, `PRON`, and
+`AUX` remain ineligible and missing under that non-default scope.
+
+The Stage 3 completion suite passed `159 passed` on 2026-07-23. All
+demonstrations, all 11 diagnostics, source and lock checks, and visual
+inspection of the 30-page User Manual and 23-page Values and Terminology Guide
+are recorded in
+[`poetic-fingerprint-stage3-validation.md`](poetic-fingerprint-stage3-validation.md).
+
 ## Validation performed
 
 The read-only inspection utility validated all five selected source files for

@@ -28,6 +28,9 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     assert "Concreteness profile (Brysbaert et al. ratings)" in [
         field.label for field in app.checkbox
     ]
+    assert "Frequency & rarity profile (SUBTLEX-US Zipf)" in [
+        field.label for field in app.checkbox
+    ]
     assert not app.tabs
 
 
@@ -158,6 +161,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Overview",
         "Language Profile",
         "Concreteness Profile",
+        "Frequency & Rarity",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -225,6 +229,7 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
         "Overview",
         "Language Profile",
         "Concreteness Profile",
+        "Frequency & Rarity",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -238,6 +243,68 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
     assert ("Lexicons analyzed", "0") in [
         (metric.label, metric.value) for metric in app.metric
     ]
+
+
+def test_interface_runs_optional_frequency_profile_and_content_scope_if_present() -> None:
+    resource = (
+        APP_PATH.parents[3]
+        / "resources"
+        / "subtlex-us"
+        / "SUBTLEX-US frequency list with PoS and Zipf information.xlsx"
+    )
+    if not resource.is_file():
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("Frequency interface validation")
+    app.text_area[0].input("The stone runs swiftly and the bright grass bends.")
+    app.multiselect[0].set_value([])
+    frequency = next(
+        field
+        for field in app.checkbox
+        if field.label == "Frequency & rarity profile (SUBTLEX-US Zipf)"
+    )
+    assert not frequency.disabled
+    frequency.set_value(True)
+    app.run(timeout=90)
+    content_scope = next(
+        field for field in app.checkbox if field.label == "Content words only"
+    )
+    assert not content_scope.disabled
+    content_scope.set_value(True)
+    app.run(timeout=90)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert any("Analysis complete" in message.value for message in app.success)
+    assert [tab.label for tab in app.tabs] == [
+        "Overview",
+        "Language Profile",
+        "Concreteness Profile",
+        "Frequency & Rarity",
+        "VAD Profile",
+        "Emotion Profile",
+        "Evidence",
+        "Downloads",
+        "How to Read",
+    ]
+    assert any(
+        heading.value == "SUBTLEX-US Lexical Frequency & Rarity"
+        for heading in app.subheader
+    )
+    median_metric = next(
+        metric for metric in app.metric if metric.label == "Median Zipf (primary)"
+    )
+    assert median_metric.value != "—"
+    assert any(
+        "Content words only" in caption.value for caption in app.caption
+    )
 
 
 def test_windows_helpers_are_local_and_telemetry_disabled() -> None:

@@ -71,7 +71,17 @@ tokens share a stable match-group identity. Missing ratings remain nullable
 and never become numeric placeholders. These records are in memory and in
 one-poem exports only; schema version 3 remains unchanged.
 
-## Poetic Fingerprint expansion Stages 0-2
+Expansion Stage 3 adds an optional `FrequencyAnalysisResult` to the one-poem
+`WorkspaceAnalysis`. It contains a common `ModuleResult`, exact
+`FrequencyConfiguration`, resource status and validation, overall and grouped
+summaries, frequency bands, term summaries, and the complete
+`FrequencyTokenRating` audit. Unmatched and ineligible Zipf values remain
+nullable. The configuration records proper-name policy, exact-before-lemma
+lookup, thresholds, coverage warning, ranking limits, and the non-default
+`content_words_only` scope. These records remain in memory and in one-poem
+exports; schema version 3 is unchanged.
+
+## Poetic Fingerprint expansion Stages 0-3
 
 Stage 0 adds an immutable, framework-independent common envelope for future
 optional modules:
@@ -139,6 +149,31 @@ provide calibrated per-edge confidence.
 `ModuleInput.from_poem_document` supplies the exact same source, tokens, and
 preprocessing provenance to later optional modules. `poem_document.json`
 exports this record in the local one-poem audit bundle.
+
+Stage 2 and Stage 3 consume that exact immutable document through the common
+module input. Their optional result models stay distinct:
+
+```text
+WorkspaceAnalysis
+  poem_document: PoemDocument
+  concreteness: ConcretenessAnalysisResult?
+  frequency: FrequencyAnalysisResult?
+
+FrequencyAnalysisResult
+  module_result: ModuleResult
+  configuration: FrequencyConfiguration
+  resource_status and validation
+  summary and frequency bands
+  POS, physical-line, and stanza summaries
+  term rankings and rare tail
+  token_audit: FrequencyTokenRating[]
+```
+
+The frequency audit stores poem-specific POS and matching decisions separately
+from the source workbook's POS provenance. The optional content-word
+denominator includes only `NOUN`, `VERB`, `ADJ`, and `ADV`; `AUX` is explicitly
+ineligible in that scope. Exact word-form entries take priority over lemma
+entries, and no missing value is serialized as numeric zero.
 
 These records remain in memory and in the derived JSON export. Stage 1 does not
 add schema-3 database tables. The approved possible schema-4 tables remain

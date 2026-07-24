@@ -53,7 +53,12 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Concreteness Profile",
             "Normative lexical concreteness",
             "concreteness_token_audit.csv",
-            "39,954-row ratings workbook",
+            "39,954 rows",
+            "Frequency & Rarity",
+            "Content words only",
+            "frequency_token_audit.csv",
+            "74,286 word-form rows",
+            "NOUN, VERB, ADJ, and ADV",
         ):
             assert required in text
 
@@ -158,5 +163,9 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Normative Lexical Concreteness",
             "Concreteness orientation band",
             "mean normative lexical concreteness of 3.7",
+            "SUBTLEX-US Zipf Frequency and Rarity",
+            "Content words only",
+            "median SUBTLEX-US Zipf value of 4.3",
+            "about one point represents a tenfold",
         ):
             assert required in text

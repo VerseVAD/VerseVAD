@@ -24,6 +24,7 @@ from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.core.documents import PoemDocument
 from versevad.core.modules import ModuleInput
 from versevad.exports.concreteness import export_concreteness_bundle
+from versevad.exports.frequency import export_frequency_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.poem_document_json import export_poem_document_json
 from versevad.lexical_semantic.concreteness import (
@@ -31,6 +32,12 @@ from versevad.lexical_semantic.concreteness import (
     ConcretenessConfiguration,
     ConcretenessModule,
     ConcretenessModuleError,
+)
+from versevad.lexical_semantic.frequency import (
+    FrequencyAnalysisResult,
+    FrequencyConfiguration,
+    FrequencyModule,
+    FrequencyModuleError,
 )
 from versevad.models import (
     CrossLexiconComparison,
@@ -148,6 +155,8 @@ class AnalysisRequest:
     concreteness_configuration: ConcretenessConfiguration = (
         ConcretenessConfiguration()
     )
+    include_frequency: bool = False
+    frequency_configuration: FrequencyConfiguration = FrequencyConfiguration()
 
 
 @dataclass(frozen=True)
@@ -158,6 +167,7 @@ class WorkspaceAnalysis:
     comparison: CrossLexiconComparison
     poem_document: PoemDocument | None = None
     concreteness: ConcretenessAnalysisResult | None = None
+    frequency: FrequencyAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -516,12 +526,17 @@ def run_workspace_analysis(
     source_root: Path = SOURCE_ROOT,
     resource_root: Path = RESOURCE_ROOT,
     concreteness_module: ConcretenessModule | None = None,
+    frequency_module: FrequencyModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
     if not request.original_text.strip():
         raise WorkspaceAnalysisError("Paste a poem or choose a UTF-8 text file before analyzing.")
-    if not request.lexicon_ids and not request.include_concreteness:
+    if (
+        not request.lexicon_ids
+        and not request.include_concreteness
+        and not request.include_frequency
+    ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
         )
@@ -598,6 +613,16 @@ def run_workspace_analysis(
             )
         except ConcretenessModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
+    frequency = None
+    if request.include_frequency:
+        module = frequency_module or FrequencyModule(resource_root)
+        try:
+            frequency = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                request.frequency_configuration,
+            )
+        except FrequencyModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
         request,
         document,
@@ -605,6 +630,7 @@ def run_workspace_analysis(
         comparison,
         poem_document,
         concreteness,
+        frequency,
     )
 
 
@@ -1188,6 +1214,12 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
             "the source 1-5 scale. They do not measure imagery success, "
             "readability, literary quality, intelligence, or comprehension."
         )
+    if workspace.frequency is not None:
+        notes.append(
+            "Frequency results describe how represented word forms are distributed "
+            "in SUBTLEX-US. Zipf values are corpus-relative and do not measure "
+            "difficulty, sophistication, accessibility, or literary quality."
+        )
     if workspace.request.scenario_version_id:
         notes.append(
             f"This is a reviewed scenario result pinned to "
@@ -1515,6 +1547,101 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     "plain_language_note": note,
                 }
             )
+    if workspace.frequency is not None:
+        frequency = workspace.frequency
+        summary = frequency.summary
+        stats = summary.statistics
+        for metric, value, unit, note in (
+            (
+                "Median SUBTLEX-US Zipf frequency",
+                stats.median,
+                "SUBTLEX-US Zipf",
+                "Primary token-weighted summary; the Zipf scale is logarithmic.",
+            ),
+            (
+                "Mean SUBTLEX-US Zipf frequency",
+                stats.mean,
+                "SUBTLEX-US Zipf",
+                "Rare outliers can pull the mean downward.",
+            ),
+            (
+                "Population standard deviation",
+                stats.population_standard_deviation,
+                "Zipf points",
+                "Population, not sample, standard deviation.",
+            ),
+            (
+                "Interquartile range",
+                summary.interquartile_range,
+                "Zipf points",
+                "Inclusive quartiles among matched token occurrences.",
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Lexical frequency",
+                    "lexicon": frequency.resource_status.display_name,
+                    "analysis_view": summary.scope_label,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": (
+                        f"{summary.matched_token_count} matched eligible "
+                        "token occurrences"
+                    ),
+                    "plain_language_note": note,
+                }
+            )
+        for metric, value, denominator, note in (
+            (
+                "Matched-token coverage",
+                summary.token_coverage,
+                (
+                    f"{summary.matched_token_count} of "
+                    f"{summary.eligible_token_count} eligible token occurrences"
+                ),
+                "Unmatched observations remain missing rather than Zipf zero.",
+            ),
+            (
+                "Matched unique-word coverage",
+                summary.unique_type_coverage,
+                (
+                    f"{summary.matched_unique_type_count} of "
+                    f"{summary.eligible_unique_type_count} normalized surface types"
+                ),
+                "The denominator uses observed surface types, not lemma types.",
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Lexical frequency",
+                    "lexicon": frequency.resource_status.display_name,
+                    "analysis_view": summary.scope_label,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": "proportion",
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
+        for band in summary.bands:
+            rows.append(
+                {
+                    "section": "Lexical frequency",
+                    "lexicon": frequency.resource_status.display_name,
+                    "analysis_view": summary.scope_label,
+                    "metric": f"Configured {band.label.casefold()} proportion",
+                    "value": band.proportion if band.proportion is not None else "",
+                    "unit_or_scale": "proportion",
+                    "denominator": (
+                        f"{summary.matched_token_count} matched token occurrences"
+                    ),
+                    "plain_language_note": (
+                        "Configurable VerseVAD orientation band; not a universal "
+                        "linguistic category."
+                    ),
+                }
+            )
     return _csv_bytes(fields, rows)
 
 
@@ -1524,7 +1651,7 @@ def csv_reading_guide() -> bytes:
         {
             "file": "scholar_summary.csv",
             "what_it_answers": "What are the principal readable results?",
-            "start_with": "Coverage, concreteness, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
+            "start_with": "Coverage, concreteness, median Zipf frequency, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
             "important_caution": "Read every metric with its denominator and plain-language note.",
         },
         {
@@ -1562,6 +1689,48 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "Can software reproduce the complete concreteness result and method?",
             "start_with": "module_result, configuration, summary, structural summaries, token_audit, and resource provenance.",
             "important_caution": "Thresholds are configurable VerseVAD orientation aids, not categories validated by the source paper.",
+        },
+        {
+            "file": "frequency_summary.csv",
+            "what_it_answers": "What is the poem's corpus-relative lexical-frequency profile?",
+            "start_with": "median Zipf, matched-token coverage, analysis scope, mean, and dispersion.",
+            "important_caution": "SUBTLEX-US Zipf values describe an American subtitle corpus; they do not measure difficulty, sophistication, accessibility, or quality.",
+        },
+        {
+            "file": "frequency_distribution.csv",
+            "what_it_answers": "How do matched tokens fall into the configured Zipf orientation bands?",
+            "start_with": "label, bounds, token_count, and proportion.",
+            "important_caution": "These configurable labels are interface aids, not universal linguistic categories.",
+        },
+        {
+            "file": "frequency_by_structure.csv",
+            "what_it_answers": "How do median and mean Zipf values vary by physical line and stanza?",
+            "start_with": "scope, ordinal, token_coverage, median_zipf, and mean_zipf.",
+            "important_caution": "Missing structural aggregates mean no eligible word matched there; they are not Zipf zero.",
+        },
+        {
+            "file": "frequency_by_pos.csv",
+            "what_it_answers": "How do Zipf values and coverage vary by poem-specific model POS tag?",
+            "start_with": "label, matched_token_count, token_coverage, and median_zipf.",
+            "important_caution": "POS labels are model outputs; the optional content-word scope is limited to NOUN, VERB, ADJ, and ADV.",
+        },
+        {
+            "file": "frequency_terms.csv",
+            "what_it_answers": "Which represented source terms are least and most frequent?",
+            "start_with": "zipf_value, matched_token_occurrences, lowest_frequency_rank, and rare_tail_rank.",
+            "important_caution": "Low frequency is corpus-relative and does not imply difficulty or literary merit.",
+        },
+        {
+            "file": "frequency_token_audit.csv",
+            "what_it_answers": "How was every token included, matched, excluded, or left unmatched?",
+            "start_with": "surface_form, part_of_speech, eligible, match_method, matched_source_term, and zipf_value.",
+            "important_caution": "Lemma fallbacks are explicit; unmatched and ineligible rows carry no Zipf value.",
+        },
+        {
+            "file": "frequency_result.json",
+            "what_it_answers": "Can software reproduce the complete frequency result and method?",
+            "start_with": "module_result, configuration, summary, bands, structural summaries, token_audit, and resource provenance.",
+            "important_caution": "No wordfreq value or alternate corpus is substituted for SUBTLEX-US.",
         },
         {
             "file": "phase2_coverage.csv",
@@ -1640,6 +1809,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.concreteness
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.frequency is not None:
+                for filename, content in export_frequency_bundle(
+                    workspace.frequency
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -1657,6 +1831,10 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "When present, the concreteness files report normative lexical "
                 "concreteness, line/stanza and part-of-speech summaries, term "
                 "rankings, token matching, resource provenance, and configuration.\n"
+                "When present, the frequency files report SUBTLEX-US Zipf "
+                "statistics, distribution bands, line/stanza and part-of-speech "
+                "summaries, rare-word rankings, token matching, scope, resource "
+                "provenance, and configuration.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

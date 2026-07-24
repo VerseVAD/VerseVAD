@@ -7,7 +7,8 @@ and **Lexicon Explorer**. One-poem analyses remain temporary unless downloaded.
 Corpus projects, preserved text versions, metadata, completed results, and
 versioned review scenarios persist in the local `projects` database. One-poem
 analysis can also enable the optional local normative lexical concreteness
-module when the exact ratings workbook is installed under `resources/`.
+module and/or the optional SUBTLEX-US Zipf frequency module when their exact
+local workbooks are installed under `resources/`.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -51,7 +52,8 @@ reinstall dependencies or deliberately update the software.
 3. Leave all five lexicons selected for a broad first look, or remove sources
    that are outside the current question.
 4. Under **Choose Evidence**, optionally enable **Normative lexical
-   concreteness**. It can run with the affective sources or by itself.
+   concreteness** and/or **Frequency & rarity profile (SUBTLEX-US Zipf)**.
+   Either can run with the affective sources or by itself.
 5. Leave **Advanced methodology settings** closed for the default
    phrase-preferred and standard stopword analysis. Open it when you
    deliberately want a different phrase policy, sparse-result threshold, or
@@ -82,13 +84,17 @@ Use this order:
 4. **Emotion Profile** — read the eight emotion associations, positive/negative
    sentiment associations, and numeric intensities as three separately labeled
    kinds of evidence.
-5. **Evidence** — inspect which surface forms, phrases, lemmas, exclusions, or
+5. **Concreteness Profile** — when enabled, read source-scale statistics with
+   coverage, dispersion, terms, structure, and the token audit.
+6. **Frequency & Rarity** — when enabled, read the primary median SUBTLEX-US
+   Zipf value with its distribution, coverage, scope, and audit.
+7. **Evidence** — inspect which surface forms, phrases, lemmas, exclusions, or
    approved mappings contributed;
    filter the table when a result needs explanation. Review unmatched
    vocabulary for coverage gaps and historically or poetically unusual words.
-6. **Downloads** — start with the friendly scholar summary. Use the full audit
+8. **Downloads** — start with the friendly scholar summary. Use the full audit
    ZIP when reproducing or closely reviewing the calculation.
-7. **How to Read** — return here for definitions and a reminder of the intended
+9. **How to Read** — return here for definitions and a reminder of the intended
    scholarly language.
 
 ### Coverage
@@ -162,6 +168,45 @@ tokens. It does not measure imagery quality, readability, cognition, or
 whether the poem itself is abstract or concrete. Always read coverage,
 dispersion, terms, and line/stanza evidence before interpreting the mean.
 Unmatched tokens remain missing.
+
+### Corpus-relative lexical frequency and rarity
+
+Under **Choose Evidence**, enable **Frequency & rarity profile (SUBTLEX-US
+Zipf)** to analyze observed word forms against the pinned official local
+SUBTLEX-US workbook. It can run with affective lexicons and concreteness or by
+itself. The dedicated **Frequency & Rarity** tab reports:
+
+- the token-weighted median Zipf value as the primary summary;
+- mean, population SD, inclusive quartiles, IQR, minimum, maximum, and range;
+- token and unique normalized observed-form-type coverage;
+- configurable rare-to-very-common orientation bands;
+- physical-line, stanza, and model-assigned POS summaries;
+- lowest/highest represented terms and a rare-word tail; and
+- a complete audit with source counts, exact/lemma/fallback/unmatched methods,
+  eligibility, and reasons.
+
+Zipf is logarithmic: a one-point difference is approximately a tenfold
+frequency difference in the source corpus. The default bands (rare below 3,
+uncommon 3 to below 4, moderately common 4 to below 5, common 5 to below 6,
+and very common at least 6) are VerseVAD orientation aids.
+
+The default frequency scope uses all lexical tokens except model-tagged proper
+nouns. The optional **Content words only** setting is off by default. When
+enabled, it includes only exact model tags `NOUN`, `VERB`, `ADJ`, and `ADV`.
+It excludes determiners, prepositions/adpositions, conjunctions, pronouns,
+auxiliaries, punctuation, and all other tags. Proper nouns remain excluded by
+the default name policy. This differs from the broad Language Profile, which
+groups `VERB` and `AUX` together under **Verb**; the restricted frequency scope
+specifically excludes `AUX`.
+
+The module matches the exact normalized observed form before an enabled lemma
+fallback. An unmatched form has no Zipf value; it never becomes zero and
+VerseVAD does not substitute `wordfreq`. POS and lemma fields are
+model-generated and may require inspection for poetry.
+
+Describe the result as corpus-relative lexical frequency evidence in an
+American subtitle corpus. Do not turn it into a claim that a poem is easy,
+difficult, sophisticated, accessible, intelligent, or high quality.
 
 ### Comparing the three VAD scales
 
@@ -353,13 +398,17 @@ files plus:
   configuration/provenance, coverage, and warnings.
 - six `concreteness_*` CSV/JSON files when the optional module is enabled:
   summary, structure, POS, terms, token audit, and complete result.
+- seven `frequency_*` CSV/JSON files when the optional module is enabled:
+  summary, distribution, structure, POS, terms, token audit, and complete
+  result.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. Both JSON files are local machine-readable records.
 `poem_document.json` contains the original text, so protect it as research
 material. The concreteness exports retain source-row provenance but do not copy
-the full ratings workbook. The full ZIP is the reproducibility record; the
-friendly summary is the reading aid.
+the full ratings workbook. The frequency exports likewise retain source-row
+provenance without copying the 74,286-row workbook. The full ZIP is the
+reproducibility record; the friendly summary is the reading aid.
 
 ## Diagnostics and troubleshooting
 

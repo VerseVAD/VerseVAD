@@ -1,7 +1,7 @@
 # Architecture Decision: Local Modular Python Application
 
 Status: accepted; the Phase 5 local workspace and Poetic Fingerprint expansion
-Stage 2 concreteness module have been validated.
+Stage 3 frequency module have been validated.
 
 Date: 2026-07-23
 
@@ -81,11 +81,20 @@ Streamlit page only presents these tested application results. Stage 2 remains
 in memory and does not change database schema 3. See
 [`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md).
 
-The future lexical-frequency module will use one explicitly versioned local
-SUBTLEX-US source. It will not use `wordfreq` as a fallback. The formal
-centroid/region emotional-profile classifier is also deferred; the existing
-Emotion Profile workspace must not be represented as though it already
-implements that model.
+Expansion Stage 3 advances the development package to `0.9.0.dev0`. Its
+read-only SUBTLEX-US workbook adapter and independent frequency module consume
+the same shared document without changing it. The optional one-poem path adds
+a primary token-weighted median Zipf value, distribution, coverage,
+structural/POS groups, term rankings, warnings, provenance, and token-level
+audit exports. A non-default scope restricts eligibility to exact model tags
+`NOUN`, `VERB`, `ADJ`, and `ADV`; it does not adopt the Language Profile's
+broader `VERB`/`AUX` display grouping. Stage 3 uses no `wordfreq` fallback,
+remains in memory, and does not change database schema 3. See
+[`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md).
+
+The formal centroid/region emotional-profile classifier is deferred; the
+existing Emotion Profile workspace must not be represented as though it
+already implements that model.
 
 ## Why this fits VerseVAD
 

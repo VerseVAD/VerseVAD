@@ -139,6 +139,47 @@ quality, readability, cognition, or a declaration that a poem is concrete or
 abstract. See
 [`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md).
 
+## Corpus-relative lexical frequency and rarity
+
+The optional Stage 3 module reads the pinned official SUBTLEX-US workbook in
+place and retains its published word-form counts, contextual-diversity fields,
+and Zipf values. It remains separate from affective ratings and concreteness.
+No `wordfreq` or alternate corpus value is substituted.
+
+By default, every lexical token is eligible except model-tagged proper nouns.
+Punctuation, numbers, and other non-lexical tokens remain in the audit but
+outside the denominator. The optional, non-default **Content words only**
+scope restricts eligibility to exact model tags `NOUN`, `VERB`, `ADJ`, and
+`ADV`. It excludes determiners (`DET`), adpositions/prepositions (`ADP`),
+coordinating and subordinating conjunctions (`CCONJ`, `SCONJ`), pronouns
+(`PRON`), auxiliaries (`AUX`), punctuation, and every other tag. `PROPN`
+remains excluded under the default proper-name policy.
+
+This strict scope must not be confused with the broad Language Profile:
+the latter groups `VERB` and `AUX` together under **Verb** for a readable
+quantity/share view, whereas the frequency restriction deliberately excludes
+`AUX`. Both rely on model-generated POS tags that can be uncertain in poetry.
+
+Matching uses exact normalized observed word form first, then an explicitly
+enabled normalized lemma only when the observed form is absent, followed by
+documented conservative apostrophe or possessive fallbacks. An exact form is
+never replaced by a lemma. Unmatched and ineligible tokens have missing
+frequency values rather than zero.
+
+The token-weighted median Zipf value is the primary summary. The module also
+reports the mean, population standard deviation, inclusive quartiles, IQR,
+range, configurable bands, token and unique observed-form-type coverage,
+physical-line/stanza/POS summaries, term rankings, and a complete audit.
+Repetition contributes repeatedly. Empty denominators remain missing.
+
+Zipf is logarithmic: about one point represents a tenfold corpus-frequency
+difference. The default rare-to-very-common bands are configurable VerseVAD
+orientation aids, not source-published literary categories. Results must be
+described as corpus-relative lexical frequency evidence from an American
+subtitle corpus, not difficulty, sophistication, accessibility, intelligence,
+literary quality, or reader response. See
+[`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md).
+
 ## Part-of-speech profile
 
 The linguistic profile is independent of lexicon matching. It counts every

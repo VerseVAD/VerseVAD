@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence**: normative ratings and associations attached to matched words and phrases. Its optional concreteness module remains a separate normative lexical construct. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, and it does not replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**: normative ratings and associations attached to matched words and phrases. Its optional concreteness and corpus-relative frequency modules remain separate lexical constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, and it does not replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile** and **Frequency & Rarity** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -47,9 +47,11 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
 - the largest midpoint-centered lexical contributors;
 - work-level and collection-level corpus comparisons;
 - named, versioned review scenarios for flags, exclusions, and approved mappings;
-- source provenance and uncertainty fields in Lexicon Explorer.
+- source provenance and uncertainty fields in Lexicon Explorer;
 - optional normative lexical concreteness statistics, coverage, structural
-  summaries, term rankings, and token audit from a local research workbook.
+  summaries, term rankings, and token audit from a local research workbook; and
+- optional SUBTLEX-US Zipf frequency statistics, coverage, rarity bands,
+  structural summaries, term rankings, and token audit.
 
 ## What VerseVAD does not do
 
@@ -61,7 +63,7 @@ Ordinary use runs locally on this computer at `http://127.0.0.1:8501`. VerseVAD 
 
 The supplied lexicons remain under `source_lexicons/` and must not be renamed, edited, merged, or redistributed. VerseVAD reads them in place, records SHA-256 checksums, and stores derived project data separately.
 
-Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper must retain their exact filenames and checksums. VerseVAD reads the workbook in place and does not copy the full ratings source into an export.
+Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper and the Stage 3 SUBTLEX-US workbook must retain their exact paths and checksums. VerseVAD reads the workbooks in place and does not copy either full source into an export.
 
 # 2. Installation, startup, and shutdown
 
@@ -98,13 +100,13 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 2. Enter a title or working label.
 3. Paste a short poem, or upload a UTF-8 `.txt` file.
 4. Keep the selected lexicons and default methodology for the first run.
-5. Optionally enable **Normative lexical concreteness** under **Choose Evidence**.
+5. Optionally enable **Normative lexical concreteness** and/or **Frequency & rarity profile (SUBTLEX-US Zipf)** under **Choose Evidence**.
 6. Keep both affective reporting views enabled.
 7. Click **Analyze this text**.
 8. In **Overview**, inspect coverage and warnings.
 9. In **VAD Profile**, compare all matched observations with stopwords excluded.
 10. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
-11. If enabled, inspect the separate **Concreteness Profile**.
+11. If enabled, inspect the separate **Concreteness Profile** and **Frequency & Rarity** tabs.
 12. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
 13. In **Downloads**, save the readable summary or full audit bundle.
 
@@ -149,7 +151,17 @@ Keep these exact local files:
 - `resources/brysbaert_warriner_kuperman_concreteness_DATA.xlsx`
 - `resources/brysbaert_warriner_kuperman_concreteness_PAPER.pdf`
 
-The workbook's `SUBTLEX` field is retained as source-row provenance. It is not the planned VerseVAD lexical-frequency module; that later module will use a separately installed, versioned SUBTLEX-US resource and will not use `wordfreq`.
+The workbook's `SUBTLEX` field is retained as source-row provenance. It is not VerseVAD's lexical-frequency module.
+
+## Optional SUBTLEX-US frequency resource
+
+The one-poem workspace can separately read the official SUBTLEX-US workbook at:
+
+`resources/subtlex-us/SUBTLEX-US frequency list with PoS and Zipf information.xlsx`
+
+Its 74,286 word-form rows include corpus frequency, contextual diversity, source POS provenance, and Zipf values. The expected workbook SHA-256 is `3a8cb93a4e28988c2ce722a63f6b8d394acdc42ebe2ab6e1f0e484ee0d4167a7`.
+
+Zipf is a logarithmic, corpus-relative scale: approximately one point represents a tenfold frequency difference. The source is an American film and television subtitle corpus, not poetry. VerseVAD uses no `wordfreq` fallback, and unmatched forms remain missing.
 
 # 5. How text becomes auditable matches
 
@@ -172,7 +184,7 @@ For one-poem analysis, VerseVAD creates one immutable shared document and reuses
 
 Poetic lines/stanzas and model sentences are distinct layers. VerseVAD retains both when they disagree. Lemma, POS, morphology, sentence, dependency, and optional named-entity values are statistical-model output, not corrected literary facts.
 
-Named-entity recognition is disabled by default. The installed small English model has no usable vector vocabulary, so model out-of-vocabulary counts remain missing instead of becoming zero or classifying every lexical token as OOV. This model status is separate from affective-lexicon coverage and future SUBTLEX-US coverage.
+Named-entity recognition is disabled by default. The installed small English model has no usable vector vocabulary, so model out-of-vocabulary counts remain missing instead of becoming zero or classifying every lexical token as OOV. This model status is separate from affective-lexicon, concreteness, and SUBTLEX-US coverage.
 
 ## Main matching order
 
@@ -188,6 +200,8 @@ Named-entity recognition is disabled by default. The installed small English mod
 An exact surface match is never silently replaced by a lemma match. Lemma matching is explicitly labeled because model-proposed lemmas can be wrong for poetic, historical, or unusual language.
 
 The optional concreteness module has its own recorded sequence over the same tokens: longest exact source-supplied two-word expression within one physical line, exact normalized surface, lemma, then a documented conservative apostrophe or possessive fallback. Model-tagged proper nouns are excluded by default. Unmatched and ineligible tokens retain missing ratings.
+
+The optional frequency module likewise uses exact normalized observed word form before an enabled lemma fallback, followed only by documented conservative apostrophe or possessive fallbacks. This order preserves SUBTLEX-US word-form evidence. Model-tagged proper nouns are excluded by default, and unmatched or ineligible tokens retain missing Zipf values.
 
 ## Phrase-policy choices
 
@@ -350,6 +364,14 @@ The default bands at or below 2.0 and at or above 4.0 are configurable VerseVAD 
 
 Read the mean with coverage, dispersion, terms, and structural evidence. The result describes normative lexical concreteness evidence among represented vocabulary. It does not measure imagery quality, readability, cognition, literary value, or whether the poem itself is abstract or concrete.
 
+## Corpus-relative lexical frequency and rarity
+
+When enabled, **Frequency & Rarity** reports the token-weighted median SUBTLEX-US Zipf value as its primary summary. It also reports the mean, population SD, inclusive quartiles, IQR, range, token and unique observed-form-type coverage, configurable bands, physical-line/stanza/POS summaries, lowest/highest terms, a rare-word tail, and a complete token audit.
+
+The default scope considers all lexical tokens except model-tagged proper nouns. **Content words only** is an optional, non-default scope. It includes only exact model tags `NOUN`, `VERB`, `ADJ`, and `ADV`. It excludes determiners (`DET`), prepositions/adpositions (`ADP`), conjunctions (`CCONJ`, `SCONJ`), pronouns (`PRON`), auxiliaries (`AUX`), punctuation, and all other tags. This differs from the broad Language Profile, which groups `VERB` and `AUX` together under **Verb**.
+
+The default rare-to-very-common bands are VerseVAD orientation aids, not diagnostic literary categories. Read the median with the distribution, coverage, scope, unmatched forms, structure, and audit. The result describes corpus-relative lexical frequency evidence from an American subtitle corpus. It does not measure difficulty, sophistication, accessibility, intelligence, literary quality, or reader response.
+
 ## Eight emotion associations
 
 NRC Emotion values are binary, multi-label associations. VerseVAD reports the eight emotions—anger, anticipation, disgust, fear, joy, sadness, surprise, and trust—in their own section. An entry can be associated with several categories, so percentages do not need to total 100 percent. Read the labeled denominator.
@@ -378,7 +400,7 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness module. VAD, categorical association, intensity, and concreteness resources answer different questions and remain separate. A concreteness-only one-poem run is allowed when the exact workbook is available.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness and SUBTLEX-US frequency modules. VAD, categorical association, intensity, concreteness, and corpus-relative frequency answer different questions and remain separate. A concreteness-only or frequency-only one-poem run is allowed when the exact local workbook is available.
 
 Under **Advanced methodology settings**, choose:
 
@@ -389,7 +411,12 @@ Under **Advanced methodology settings**, choose:
 - concreteness lower and upper orientation thresholds;
 - whether concreteness excludes model-tagged proper nouns;
 - whether source-supplied concreteness phrases are activated; and
-- the concreteness low-coverage caution threshold.
+- the concreteness low-coverage caution threshold;
+- the four frequency orientation thresholds;
+- whether frequency excludes model-tagged proper nouns;
+- whether frequency permits lemma fallback;
+- the frequency low-coverage caution threshold; and
+- whether frequency uses the non-default **Content words only** scope.
 
 Under **Stopword settings**, inspect or change the secondary-view policy. The all-matched result is always preserved even when only one view is displayed.
 
@@ -426,6 +453,12 @@ The eight emotion associations, positive/negative sentiment associations, and nu
 This tab appears as the dedicated home for the optional result. It shows overall 1-5 source-scale statistics, token/type coverage, configured bands, warnings, line and stanza patterns, model-assigned POS groups, represented term extremes, a token audit, and source/configuration provenance. Exact surface, exact phrase, lemma, documented fallback, unmatched, and ineligible rows stay distinct.
 
 The source workbook is read-only. If it is missing, changed, malformed, or unsupported, the checkbox is unavailable and VerseVAD presents a plain-language status instead of partially activating the module.
+
+## Frequency & Rarity tab
+
+This tab appears when the optional SUBTLEX-US module is enabled. It emphasizes the token-weighted median Zipf value and shows the mean, IQR, token/type coverage, configured bands, warnings, line and stanza patterns, model-assigned POS groups, lowest/highest represented terms, rare tail, complete token audit, and source/configuration provenance.
+
+The page identifies whether the default all-lexical-token scope or the non-default `NOUN`/`VERB`/`ADJ`/`ADV` scope was used. Exact observed form, lemma, documented fallback, unmatched, and ineligible decisions stay distinct. The source workbook is read-only; a missing, changed, malformed, or unsupported source prevents activation.
 
 ## Evidence tab
 
@@ -645,8 +678,15 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `concreteness_terms.csv` | Represented source terms, ratings, repetition, ranks, and source-row fields |
 | `concreteness_token_audit.csv` | Every token's eligibility, matching method, group, source row, rating or missing value, and reason |
 | `concreteness_result.json` | Complete structured concreteness result, configuration, warnings, and provenance |
+| `frequency_summary.csv` | Median-first Zipf summary, dispersion, range, scope, bands, token/type coverage, and source identity |
+| `frequency_distribution.csv` | Distribution-ready Zipf values and configured band counts/proportions |
+| `frequency_by_structure.csv` | Physical-line and stanza summaries with eligible/matched counts and coverage |
+| `frequency_by_pos.csv` | Model-assigned part-of-speech summaries |
+| `frequency_terms.csv` | Represented source terms, Zipf values, corpus counts, repetition, ranks, and source-row fields |
+| `frequency_token_audit.csv` | Every token's eligibility, POS, matching method, source row, Zipf value or missing value, and reason |
+| `frequency_result.json` | Complete structured frequency result, configuration, warnings, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, and `concreteness_result.json` contains the optional normative lexical concreteness result. `poem_document.json` includes the original text, so protect it as research material. Concreteness exports retain source-row provenance but do not copy the 39,954-row ratings workbook. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, and `frequency_result.json` contains the optional SUBTLEX-US result. `poem_document.json` includes the original text, so protect it as research material. Concreteness and frequency exports retain source-row provenance but do not copy either full research workbook. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -718,6 +758,18 @@ Let `c_i` be the original 1-5 concreteness rating assigned to rated lexical-toke
 `concreteness_type_coverage = rated unique normalized-surface types / eligible unique normalized-surface types`
 
 The module also reports median, inclusive quartiles, and interquartile range. A source-supplied two-word expression assigns its rating to each of its two covered token positions for these token-weighted formulas; both audit rows retain one shared match-group ID. Empty denominators remain missing.
+
+**SUBTLEX-US token coverage**
+
+`frequency_token_coverage = matched eligible lexical-token positions / eligible lexical-token positions`
+
+**SUBTLEX-US observed-form type coverage**
+
+`frequency_type_coverage = matched unique normalized observed forms / eligible unique normalized observed forms`
+
+The frequency module uses the token-weighted median Zipf value as its primary
+summary. Empty eligible denominators remain missing; unmatched forms never
+receive zero.
 
 ## Part-of-speech share
 
@@ -819,7 +871,9 @@ The divergence is substantial because the long work dominates the token-weighted
 | Approved user mapping | Scenario-pinned link from a form to a verified exact source entry, applied only after ordinary matching fails |
 | Concreteness rating | Source-supplied 1-5 normative rating for how abstract/language-based or concrete/experience-based a lexical item was judged |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
+| Content words only | Optional frequency scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
 | Coverage | Proportion of eligible token positions represented by included matches |
+| Corpus-relative frequency | Frequency evidence tied to a named source corpus rather than a context-free property of a word |
 | Cumulative load | Length-sensitive sum of normalized lexical ratings or midpoint distances |
 | Dominance | Normative control, power, or agency associated with a lexical item |
 | Eligible token | A lexical token allowed into the matching denominator under the declared recipe |
@@ -849,6 +903,7 @@ The divergence is substantial because the long work dominates the token-weighted
 | Unmatched | No accepted lexicon entry was assigned; the value remains missing |
 | Valence | Normative pleasantness or unpleasantness associated with a lexical item |
 | Work-weighted | Every eligible work-level mean contributes equally |
+| Zipf value | Logarithmic SUBTLEX-US word-form frequency value; about one point represents a tenfold source-corpus frequency difference |
 
 # 14. Troubleshooting and limitations
 
@@ -895,10 +950,15 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - Concreteness orientation thresholds are VerseVAD aids rather than validated source categories.
 - Default concreteness proper-name exclusion depends on a model tag that can be uncertain for poetic capitalization and syntax.
 - Concreteness is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
+- SUBTLEX-US describes American subtitle usage, not poetry, historical English, or a universal language.
+- Zipf bands are VerseVAD orientation aids and do not measure difficulty, sophistication, accessibility, intelligence, or literary quality.
+- Frequency POS scope and proper-name exclusion depend on model-generated tags; the non-default content-word scope excludes `AUX`.
+- An unmatched frequency form remains missing; VerseVAD does not substitute `wordfreq`.
+- Frequency is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum.
 
 The companion definitions guide is maintained from:
 

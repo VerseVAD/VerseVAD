@@ -231,3 +231,22 @@ Its adapter is read-only and the full workbook is never copied into VerseVAD
 exports. See
 [`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md) for the exact
 source contract, matching policy, citation, calculations, and limitations.
+
+## Optional local SUBTLEX-US frequency resource
+
+Poetic Fingerprint Stage 3 uses a separate optional official SUBTLEX-US
+workbook under `resources/`; it is not one of the five affective lexicons and
+is not pooled with their values. The inspected `out1g` worksheet contains
+74,286 unique word-form rows with Zipf values ranging from approximately 1.593
+to 7.621. The analysis workbook is:
+
+`resources/subtlex-us/SUBTLEX-US frequency list with PoS and Zipf information.xlsx`
+
+Its SHA-256 is
+`3a8cb93a4e28988c2ce722a63f6b8d394acdc42ebe2ab6e1f0e484ee0d4167a7`.
+The adapter is read-only, unmatched values remain missing, and the full
+workbook is never copied into exports. VerseVAD does not use `wordfreq` as an
+alternate or fallback. See
+[`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md) for the exact
+source contract, word-form-first matching, optional content-word scope,
+calculations, citation, and limitations.

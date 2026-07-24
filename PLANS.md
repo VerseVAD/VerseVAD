@@ -389,6 +389,58 @@ review required.
   no clipped, overlapping, or broken content.
 - [x] Create the expansion Stage 2 source-control checkpoint.
 
+## Poetic Fingerprint expansion - Stage 3 lexical frequency and rarity
+
+- [x] Download the official Ghent University SUBTLEX-US Zipf workbook and
+  methodological papers into the ignored local `resources/` directory; inspect
+  them without modification and record filenames, SHA-256 hashes, source
+  structure, scale, citation, and limitations.
+- [x] Add a versioned, read-only SUBTLEX-US adapter and an independent
+  Frequency `AnalysisModule` using the shared immutable `PoemDocument`.
+- [x] Apply exact normalized word-form lookup before explicit lemma lookup,
+  followed only by documented conservative fallbacks; leave absent forms
+  unmatched rather than assigning frequency zero, and exclude model-tagged
+  proper nouns by default.
+- [x] Calculate token-weighted median Zipf frequency as the primary summary,
+  plus mean, population standard deviation, inclusive quartiles, IQR, range,
+  configurable rarity/commonness bands, token/type coverage, content-word-only
+  summaries, an optional non-default `NOUN`/`VERB`/`ADJ`/`ADV`-only analysis
+  scope, POS/line/stanza summaries, term rankings, and warnings.
+- [x] Add optional one-poem interface controls, a dedicated Frequency & Rarity
+  Profile, readable summary rows, distribution-ready data, and complete
+  CSV/JSON audit exports.
+- [x] Add synthetic adapter, matching, missing-resource, malformed-resource,
+  Unicode, proper-name, repetition, empty-input, low-coverage, deterministic,
+  configuration, export, and optional local-source contract tests.
+- [x] Update methodology, architecture, user guidance, validation notes,
+  changelog, and both rendered Word guides with exact beginner-friendly test
+  steps and corpus-relative interpretation limits.
+- [x] Run the complete automated suite, all synthetic demonstrations,
+  diagnostics, source checks, lock-file check, and full document render review.
+- [x] Create the expansion Stage 3 source-control checkpoint.
+
+### Expansion Stage 3 exit criteria
+
+- [x] The pinned official SUBTLEX-US source passes its exact read-only adapter
+  contract in place and retains its recorded source checksum.
+- [x] Exact word forms take priority over lemma matches; fallbacks,
+  proper-name exclusions, and unmatched tokens remain explicit in the audit.
+- [x] Empty and wholly unmatched inputs produce missing aggregates and missing
+  coverage rates rather than zero or invented Zipf scores.
+- [x] Median Zipf frequency is emphasized, the logarithmic 1-7 scale and
+  corpus dependence are explained, and configurable bands are identified as
+  VerseVAD orientation aids.
+- [x] Results are described as corpus-relative lexical frequency evidence, not
+  difficulty, sophistication, accessibility, intelligence, or literary quality.
+- [x] No `wordfreq` dependency or fallback is introduced, and values from
+  different frequency resources are not combined.
+- [x] Existing affective and concreteness results, review behavior, database
+  schema 3, source lexicons, private texts, and local research resources remain
+  unchanged and excluded from source control.
+- [x] All automated and local validation checks pass, and both rendered Word
+  guides have no clipped, overlapping, or broken content.
+- [x] Create the expansion Stage 3 source-control checkpoint.
+
 ## Phase 6 - Scholarly diagnostics
 
 - [ ] Add anomaly candidates and structured close-reading prompts.
