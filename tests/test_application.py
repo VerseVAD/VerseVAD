@@ -436,3 +436,44 @@ def test_workspace_can_run_phonology_and_automatically_include_pronunciation(
             "phonological_sounds.csv",
             "rhyme_result.json",
         } <= names
+
+
+def test_workspace_can_run_lexical_style_without_external_resources(
+    tmp_path,
+    preprocessor,
+) -> None:
+    request = AnalysisRequest(
+        project_name="Lexical-style-only workspace",
+        title="Lexical style",
+        original_text="red blue red\ngreen blue\n\nyellow red",
+        lexicon_ids=(),
+        include_lexical_style=True,
+    )
+
+    workspace = run_workspace_analysis(
+        request,
+        preprocessor=preprocessor,
+        resource_root=tmp_path,
+    )
+
+    assert workspace.results == ()
+    assert workspace.lexical_style is not None
+    assert workspace.lexical_style.summary.lexical_token_count == 7
+    assert [
+        item.word_count for item in workspace.lexical_style.line_summaries
+    ] == [3, 2, 0, 2]
+    summary_rows = _csv_rows(scholar_summary_csv(workspace))
+    assert any(
+        row["section"] == "Lexical diversity and word counts"
+        and row["metric"] == "Lexical token count"
+        for row in summary_rows
+    )
+    with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
+        assert {
+            "lexical_style_summary.csv",
+            "lexical_style_word_lengths.csv",
+            "lexical_style_lines.csv",
+            "lexical_style_stanzas.csv",
+            "lexical_style_token_audit.csv",
+            "lexical_style_result.json",
+        } <= set(bundle.namelist())

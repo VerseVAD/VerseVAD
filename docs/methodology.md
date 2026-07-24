@@ -576,3 +576,39 @@ endings.
 Results describe local dictionary-, spelling-, and text-based evidence, not a
 definitive rhyme, performed reading, dialect, perceptual sound effect, or
 authorial intention.
+
+## Narrowed Stage 10 lexical diversity, word length, and word counts
+
+The scholar skipped the broader planned visible-structure and syntax/lineation
+stages. This narrower module therefore reports no typography, punctuation,
+approximate-refrain, syntactic-complexity, enjambment, or end-stopping
+classification.
+
+One word-count unit is one shared-preprocessing lexical token. Punctuation and
+numeric tokens are excluded. Physical blank lines remain in the line audit
+with count zero because they are observed structural separators. This token
+policy may differ from an editor's orthographic convention for contractions or
+hyphenated expressions, so the exact surfaces and token IDs remain auditable.
+
+Lexical-diversity types are normalized observed surface forms. Lemmas are
+retained separately and are never substituted. Plain TTR is descriptive and
+length-sensitive. MATTR averages TTR across every overlapping configured
+window. HD-D sums each type's hypergeometric probability of appearing at least
+once in a configured without-replacement sample and divides by the sample
+size. MTLD averages forward and reverse token-sequence factorization at a
+configured TTR threshold.
+
+The defaults are MATTR window 50, HD-D sample 42, and MTLD threshold 0.72.
+MATTR or HD-D remains missing when the poem is shorter than its configured
+denominator; an undefined bidirectional MTLD also remains missing. Results are
+comparable only when token policy and all parameters agree. Short poems can
+remain unstable even when a formula is available.
+
+Word length counts Unicode alphabetic characters in the exact lexical-token
+surface. Apostrophes, hyphens, and other punctuation do not add to the count.
+A lexical token with no alphabetic characters remains in structural word
+counts but receives no length rather than length zero.
+
+The module reports textual observations, not literary quality, vocabulary
+knowledge, intelligence, education, comprehension, reader effect, or
+authorial intention.

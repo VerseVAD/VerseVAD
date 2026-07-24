@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "versevad"
-version = "0.13.0.dev0"
+version = "0.14.0.dev0"
 description = "Transparent local lexical-evidence analysis for literary texts"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
@@ -28,6 +28,7 @@ versevad-aoa-demo = "versevad.aoa_validation:main"
 versevad-pronunciation-demo = "versevad.pronunciation_validation:main"
 versevad-meter-demo = "versevad.meter_validation:main"
 versevad-phonology-demo = "versevad.phonology_validation:main"
+versevad-lexical-style-demo = "versevad.lexical_style_validation:main"
 versevad-diagnose = "versevad.diagnostics:main"
 
 [dependency-groups]

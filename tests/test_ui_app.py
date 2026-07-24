@@ -160,6 +160,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert [tab.label for tab in app.tabs] == [
         "Overview",
             "Language Profile",
+            "Lexical Style",
             "Concreteness Profile",
             "Frequency & Rarity",
             "Age of Acquisition",
@@ -198,6 +199,37 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     )
 
 
+def test_interface_runs_optional_lexical_style_without_a_resource() -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=60).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("Lexical style interface validation")
+    app.text_area[0].input("red blue red\ngreen blue\n\nyellow red")
+    app.multiselect[0].set_value([])
+    lexical_style = next(
+        field
+        for field in app.checkbox
+        if field.label
+        == "Lexical diversity, word length & structural word counts"
+    )
+    lexical_style.set_value(True)
+    app.run(timeout=60)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=60)
+
+    assert not app.exception
+    assert any("Analysis complete" in message.value for message in app.success)
+    assert any("Lexical Diversity" in heading.value for heading in app.subheader)
+    assert any("Words by Physical Line" in heading.value for heading in app.subheader)
+    assert any("Words by Stanza" in heading.value for heading in app.subheader)
+    assert ("Lexical tokens", "7") in [
+        (metric.label, metric.value) for metric in app.metric
+    ]
+
+
 def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -> None:
     resource = (
         APP_PATH.parents[3]
@@ -232,6 +264,7 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
     assert [tab.label for tab in app.tabs] == [
         "Overview",
         "Language Profile",
+        "Lexical Style",
         "Concreteness Profile",
         "Frequency & Rarity",
         "Age of Acquisition",
@@ -294,6 +327,7 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
     assert [tab.label for tab in app.tabs] == [
         "Overview",
         "Language Profile",
+        "Lexical Style",
         "Concreteness Profile",
         "Frequency & Rarity",
         "Age of Acquisition",

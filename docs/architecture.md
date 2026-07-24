@@ -310,6 +310,28 @@ Stage 7 is also an in-memory One Poem result. Later persistence must retain its
 Stage 5 dependency configuration, exact source hashes, method configuration,
 line/pair audit, coverage, and immutable result identity.
 
+### Narrowed lexical style
+
+The scholar explicitly skipped the broader Stage 8 visible-structure and Stage
+9 syntax/lineation modules. Narrowed Stage 10 is a framework-independent
+`LexicalStyleModule` under `versevad.lexical_style`. It consumes the existing
+`ModuleInput` and shared `PoemDocument`; it does not run another tokenizer or
+load an external lexical resource.
+
+The typed result separates configuration, document summary,
+alphabetic-character distribution, physical-line summaries, stanza summaries,
+token audit, coverage, warnings, and provenance. Lexical diversity uses
+normalized observed surface forms while keeping lemmas separate. Line and
+stanza word counts are direct projections of the same token IDs and structural
+IDs already present in the poem document.
+
+Application services, the One Poem interface, the scholar summary, and six
+exports consume the typed result rather than recalculating diversity or
+counts. Stage 10 remains an in-memory One Poem result. The later project/corpus
+runner should invoke this same module and persist its envelope, configuration,
+structural summaries, and audit instead of implementing a second calculation
+path.
+
 ### Interface scale
 
 The final specification contains many specialist views. Progressive disclosure

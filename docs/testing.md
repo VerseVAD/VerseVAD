@@ -339,3 +339,31 @@ structural, required-content, table-geometry, numbering, and accessibility
 checks and opened/paginated in Microsoft Word at 42 and 28 pages. Page-image
 visual inspection could not be completed because LibreOffice is absent and
 the local Word PDF exporter stalled before creating a PDF.
+
+The narrowed Stage 10 suite adds pure lexical-diversity, structural word-count,
+application, UI, export, and synthetic-validation tests. The direct command is:
+
+```powershell
+.\.venv\Scripts\python.exe -m versevad.lexical_style_validation
+```
+
+The hand-calculated fixture checks `4/7` surface TTR, MATTR `14/15`, HD-D
+`86/105`, mean/median alphabetic word length 4, physical-line word counts
+`3, 2, 0, 2`, and stanza counts `5, 2`. A separate repeated-token fixture
+checks bidirectional MTLD 4 at threshold 0.72.
+
+Automated coverage also verifies missing short-window/sample results,
+all-unique undefined MTLD, invalid configuration refusal, surface/lemma
+separation, punctuation/numeric exclusion, line/stanza reconciliation,
+resource-free module behavior, all six exports, the One Poem interface, and
+unchanged existing modules. See
+[`poetic-fingerprint-stage10-validation.md`](poetic-fingerprint-stage10-validation.md)
+for exact beginner steps and limitations.
+
+The Stage 10 completion suite passed `225 passed` on 2026-07-24. All nine
+direct synthetic demonstrations, all 11 diagnostics, read-only source/resource
+checks, the 86-package offline lock check, and `git diff --check` passed. Both
+rebuilt Word guides passed structural/content and accessibility checks and
+opened/paginated in Microsoft Word at 44 and 30 pages. The canonical page-image
+renderer was attempted but remains unavailable because LibreOffice is not
+installed; the already observed local Word PDF-export stall was not repeated.

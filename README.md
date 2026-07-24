@@ -26,7 +26,7 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion Stage 7 is also complete. Stage 0 added
+The Poetic Fingerprint expansion's narrowed Stage 10 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
@@ -65,10 +65,15 @@ masculine/feminine/multisyllabic evidence, graded slant and eye-rhyme
 comparisons, internal rhyme, exact refrains, phonemic alliteration, assonance,
 consonance, coverage, and line/pair audit evidence. These are local
 dictionary-, spelling-, and text-based observations, not definitive performed
-rhyme or dialect. Concreteness, Frequency, Age of Acquisition, Pronunciation &
-Prosody, Meter & Rhythm, and Rhyme & Sound remain temporary One Poem modules
-and are not yet persisted or aggregated in Projects & Corpus. A formal
-centroid/region-based emotional-profile classifier remains explicitly deferred.
+rhyme or dialect. At the scholar's direction, the broader visible-structure
+and syntax/lineation stages were skipped. Narrowed Stage 10 adds normalized
+observed surface-form diversity with configurable MATTR, HD-D, and
+bidirectional MTLD, Unicode alphabetic-character word length, and lexical-token
+counts for every preserved physical line and stanza. Concreteness, Frequency,
+Age of Acquisition, Pronunciation & Prosody, Meter & Rhythm, Rhyme & Sound, and
+Lexical Style remain temporary One Poem modules and are not yet persisted or
+aggregated in Projects & Corpus. A formal centroid/region-based emotional-
+profile classifier remains explicitly deferred.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
@@ -104,6 +109,8 @@ See:
 - [Poetic Fingerprint Stage 6 validation](docs/poetic-fingerprint-stage6-validation.md)
 - [Poetic Fingerprint Stage 7 rhyme and phonological patterns](docs/poetic-fingerprint-stage7.md)
 - [Poetic Fingerprint Stage 7 validation](docs/poetic-fingerprint-stage7-validation.md)
+- [Poetic Fingerprint Stage 10 narrowed lexical style](docs/poetic-fingerprint-stage10.md)
+- [Poetic Fingerprint Stage 10 validation](docs/poetic-fingerprint-stage10-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

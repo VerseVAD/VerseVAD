@@ -240,6 +240,22 @@ made a public release.
   files, and beginner guidance.
 - Hand-calculated Stage 7 validation plus engine, application, UI, export,
   ambiguity, missingness, determinism, and regression tests.
+- Resource-free narrowed Stage 10 lexical-style engine over the shared
+  `PoemDocument`, with normalized observed surface-form diversity, configurable
+  MATTR, HD-D, bidirectional MTLD, descriptive TTR, and explicit missing-value
+  behavior for unavailable denominators.
+- Unicode alphabetic-character word-length statistics/distribution plus
+  lexical-token counts for every preserved physical line and stanza, retaining
+  blank separator lines with count zero and a complete token audit.
+- Optional Lexical Style One Poem workflow, transparent advanced parameters,
+  scholar summary, six UTF-8 CSV/JSON audit files, local validation command,
+  and beginner guidance.
+- Narrowed Stage 10 completion validation: 225 automated tests, all nine direct
+  synthetic demonstrations, all 11 diagnostics, read-only lexicon and
+  installed-resource checks, the 86-package offline lock check, and rebuilt
+  Word guides passing structural/accessibility tests plus local Word opening
+  and pagination. Page-image rendering remains unavailable because LibreOffice
+  is absent.
 - Stage 7 completion validation: 215 automated tests, every synthetic
   demonstration, all 11 diagnostics, read-only lexicon/source checks, the
   pinned CMUdict contract, the 86-package offline lock check, and rebuilt Word
@@ -253,6 +269,10 @@ made a public release.
   the user's direction while preserving all 40 fixed meter candidates,
   line-level stress alignment, deviations, coverage, and exports.
 - Project development version advanced to `0.13.0.dev0`.
+- The broader planned Stage 8 visible-structure and Stage 9 syntax/lineation
+  work was skipped at the scholar's direction; only line/stanza word counts
+  were carried into the narrowed lexical-style stage.
+- Project development version advanced to `0.14.0.dev0`.
 
 - The lexicon inspector now distinguishes duplicate source keys from
   case-insensitive lookup collisions.

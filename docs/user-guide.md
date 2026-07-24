@@ -566,6 +566,39 @@ Use language such as “the dictionary-based ending evidence produced an ABAB
 exact-rhyme scheme among four analyzable endings.” Do not write that VerseVAD
 proved how the poem must be pronounced, performed, heard, or intended.
 
+## Lexical Style
+
+In **One Poem**, select **Lexical diversity, word length & structural word
+counts** and analyze. The option is off by default and requires no external
+dataset.
+
+Open **Lexical Style** to read:
+
+1. lexical-token and normalized observed surface-type counts;
+2. MATTR with its configured overlapping-window size;
+3. HD-D with its configured without-replacement sample size;
+4. bidirectional MTLD with its configured type-token-ratio threshold;
+5. alphabetic-character word-length statistics and distribution;
+6. lexical-token word count for every preserved physical line, including
+   blank separator rows with zero; and
+7. lexical-token word count and nonblank line count for every stanza.
+
+The module uses the shared preprocessing token unit. Punctuation and numeric
+tokens are excluded, but a contraction or hyphenated expression may follow the
+shared model-token policy rather than an editor's orthographic convention.
+Inspect the token audit when that distinction matters.
+
+MATTR and HD-D remain missing when the poem is shorter than the configured
+window or sample. MTLD can also remain missing when no finite bidirectional
+factorization exists. Do not compare poems using different parameters or
+token policies. Plain TTR is shown only as a length-sensitive descriptive
+value.
+
+Use language such as “using a 50-token MATTR window, the poem's normalized
+observed surface forms produced MATTR = [value].” Do not describe lexical
+diversity or word length as proof of literary quality, intelligence,
+vocabulary knowledge, education, reader comprehension, or authorial intention.
+
 ## Diagnostics and troubleshooting
 
 Under **Installation Check**, click **Run self-test** in the app sidebar at any

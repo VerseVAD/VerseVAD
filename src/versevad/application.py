@@ -26,6 +26,7 @@ from versevad.core.modules import ModuleInput
 from versevad.exports.aoa import export_aoa_bundle
 from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.frequency import export_frequency_bundle
+from versevad.exports.lexical_style import export_lexical_style_bundle
 from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.phonology import export_phonological_bundle
@@ -49,6 +50,12 @@ from versevad.lexical_semantic.frequency import (
     FrequencyConfiguration,
     FrequencyModule,
     FrequencyModuleError,
+)
+from versevad.lexical_style import (
+    LexicalStyleAnalysisResult,
+    LexicalStyleConfiguration,
+    LexicalStyleModule,
+    LexicalStyleModuleError,
 )
 from versevad.models import (
     CrossLexiconComparison,
@@ -198,6 +205,10 @@ class AnalysisRequest:
     phonological_configuration: PhonologicalConfiguration = (
         PhonologicalConfiguration()
     )
+    include_lexical_style: bool = False
+    lexical_style_configuration: LexicalStyleConfiguration = (
+        LexicalStyleConfiguration()
+    )
 
 
 @dataclass(frozen=True)
@@ -213,6 +224,7 @@ class WorkspaceAnalysis:
     pronunciation: PronunciationAnalysisResult | None = None
     meter: MeterAnalysisResult | None = None
     phonology: PhonologicalAnalysisResult | None = None
+    lexical_style: LexicalStyleAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -576,6 +588,7 @@ def run_workspace_analysis(
     pronunciation_module: PronunciationModule | None = None,
     meter_module: MeterModule | None = None,
     phonological_module: PhonologicalModule | None = None,
+    lexical_style_module: LexicalStyleModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -589,6 +602,7 @@ def run_workspace_analysis(
         and not request.include_pronunciation
         and not request.include_meter
         and not request.include_phonology
+        and not request.include_lexical_style
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -736,6 +750,16 @@ def run_workspace_analysis(
             )
         except PhonologicalModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
+    lexical_style = None
+    if request.include_lexical_style:
+        module = lexical_style_module or LexicalStyleModule()
+        try:
+            lexical_style = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                request.lexical_style_configuration,
+            )
+        except LexicalStyleModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
         request=request,
         document=document,
@@ -748,6 +772,7 @@ def run_workspace_analysis(
         pronunciation=pronunciation,
         meter=meter,
         phonology=phonology,
+        lexical_style=lexical_style,
     )
 
 
@@ -1343,6 +1368,13 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
             "ratings in years. They are not grade level, difficulty, intelligence, "
             "familiarity, or diagnostic evidence of cognitive impairment or decline."
         )
+    if workspace.lexical_style is not None:
+        notes.append(
+            "Lexical-diversity, word-length, and structural word-count results "
+            "describe normalized observed surface forms and shared-preprocessing "
+            "lexical tokens. They do not measure literary quality, vocabulary "
+            "knowledge, or reader ability."
+        )
     if workspace.phonology is not None:
         notes.append(
             "Rhyme and recurring-sound results are derived from local dictionary "
@@ -1891,6 +1923,92 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     "plain_language_note": relationship.note,
                 }
             )
+    if workspace.lexical_style is not None:
+        lexical_style = workspace.lexical_style
+        summary = lexical_style.summary
+        configuration = lexical_style.configuration
+        for metric, value, unit, denominator, note in (
+            (
+                "Lexical token count",
+                summary.lexical_token_count,
+                "shared-preprocessing lexical tokens",
+                "complete preserved text",
+                "Punctuation and numeric tokens are excluded.",
+            ),
+            (
+                "Normalized observed surface types",
+                summary.normalized_surface_type_count,
+                "normalized surface types",
+                f"{summary.lexical_token_count} lexical tokens",
+                "No lemma is silently substituted for an observed surface form.",
+            ),
+            (
+                "Moving-average type-token ratio",
+                summary.mattr,
+                "mean overlapping-window TTR",
+                (
+                    f"{summary.mattr_window_count} windows of "
+                    f"{configuration.mattr_window_size} lexical tokens"
+                ),
+                "Compare only results using the same window and word-unit policy.",
+            ),
+            (
+                "Hypergeometric distribution diversity",
+                summary.hdd,
+                "expected distinct-type proportion",
+                (
+                    f"without-replacement samples of "
+                    f"{configuration.hdd_sample_size} lexical tokens"
+                ),
+                "Compare only results using the same sample and word-unit policy.",
+            ),
+            (
+                "Measure of textual lexical diversity",
+                summary.mtld,
+                "mean lexical-token factor length",
+                (
+                    f"forward and reverse factorization at TTR "
+                    f"{configuration.mtld_threshold:g}"
+                ),
+                "Short poems can still yield unstable lexical-diversity estimates.",
+            ),
+            (
+                "Mean word length",
+                summary.mean_alphabetic_characters_per_token,
+                "Unicode alphabetic characters per lexical token",
+                (
+                    f"{summary.word_length_observation_count} lexical tokens "
+                    "with alphabetic-character lengths"
+                ),
+                "Punctuation marks inside a surface token are not counted as letters.",
+            ),
+            (
+                "Median words per nonblank line",
+                summary.nonblank_line_word_count_statistics.median,
+                "lexical tokens per nonblank physical line",
+                f"{summary.nonblank_line_count} nonblank physical lines",
+                "Blank separator lines remain visible with word count zero in the audit.",
+            ),
+            (
+                "Median words per stanza",
+                summary.stanza_word_count_statistics.median,
+                "lexical tokens per stanza",
+                f"{summary.stanza_count} stanzas",
+                "",
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Lexical diversity and word counts",
+                    "lexicon": "No external lexical resource",
+                    "analysis_view": configuration.scenario_id,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
     if workspace.pronunciation is not None:
         pronunciation = workspace.pronunciation
         summary = pronunciation.summary
@@ -2252,6 +2370,94 @@ def csv_reading_guide() -> bytes:
             "important_caution": "The official Kuperman source is kept separate from derivative and test-based AoA workbooks.",
         },
         {
+            "file": "lexical_style_summary.csv",
+            "what_it_answers": (
+                "What are the text-level lexical-diversity, character-length, "
+                "line-word-count, and stanza-word-count summaries?"
+            ),
+            "start_with": (
+                "lexical token/type counts, MATTR, HD-D, MTLD, word-length "
+                "statistics, and line/stanza medians."
+            ),
+            "important_caution": (
+                "Compare diversity values only with the same token policy and "
+                "configuration; short poems can yield unstable or unavailable values."
+            ),
+        },
+        {
+            "file": "lexical_style_word_lengths.csv",
+            "what_it_answers": (
+                "How are represented lexical-token surfaces distributed by "
+                "alphabetic-character length?"
+            ),
+            "start_with": (
+                "alphabetic_character_count, token_count, token_proportion, "
+                "and denominator."
+            ),
+            "important_caution": (
+                "Lengths count Unicode alphabetic characters, not syllables, bytes, "
+                "or punctuation marks."
+            ),
+        },
+        {
+            "file": "lexical_style_lines.csv",
+            "what_it_answers": (
+                "How many lexical tokens and normalized surface types occur on "
+                "each preserved physical line?"
+            ),
+            "start_with": (
+                "ordinal, source_text, is_blank, word_count, type count, and "
+                "mean word length."
+            ),
+            "important_caution": (
+                "Blank structural separator lines remain visible with word count "
+                "zero rather than being removed."
+            ),
+        },
+        {
+            "file": "lexical_style_stanzas.csv",
+            "what_it_answers": (
+                "How many lexical tokens and normalized surface types occur in "
+                "each preserved stanza?"
+            ),
+            "start_with": (
+                "ordinal, line_count, word_count, type count, and mean word length."
+            ),
+            "important_caution": (
+                "Counts use the shared preprocessing token unit and should not be "
+                "silently equated with an editor's orthographic word policy."
+            ),
+        },
+        {
+            "file": "lexical_style_token_audit.csv",
+            "what_it_answers": (
+                "Which tokens entered diversity, word-length, line, and stanza counts?"
+            ),
+            "start_with": (
+                "surface_form, normalized_surface_type, line/stanza, included, "
+                "alphabetic_character_count, and reason."
+            ),
+            "important_caution": (
+                "Lemmas remain separate evidence and never replace observed "
+                "surface types in this module."
+            ),
+        },
+        {
+            "file": "lexical_style_result.json",
+            "what_it_answers": (
+                "Can software reproduce the complete lexical-style result, "
+                "configuration, provenance, coverage, and warnings?"
+            ),
+            "start_with": (
+                "module_result, configuration, summary, distribution, structural "
+                "summaries, and token audit."
+            ),
+            "important_caution": (
+                "A lexical-diversity statistic is a configured textual descriptor, "
+                "not a judgment of literary quality or reader ability."
+            ),
+        },
+        {
             "file": "pronunciation_summary.csv",
             "what_it_answers": "What dictionary-based syllable, lexical-stress, and coverage summaries are available?",
             "start_with": "resolved-token coverage, complete-line coverage, syllables per word and line, and stress density.",
@@ -2455,6 +2661,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.phonology
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.lexical_style is not None:
+                for filename, content in export_lexical_style_bundle(
+                    workspace.lexical_style
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -2499,6 +2710,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "coverage, line-level evidence, and configuration. They derive "
                 "from dictionary pronunciations and spelling, not a performed "
                 "reading or definitive rhyme judgment.\n"
+                "When present, the lexical-style files report normalized observed "
+                "surface-form diversity, alphabetic-character word lengths, and "
+                "lexical-token counts for every preserved physical line and stanza. "
+                "MATTR, HD-D, and MTLD retain their exact configured parameters, "
+                "and unavailable short-text values remain missing.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

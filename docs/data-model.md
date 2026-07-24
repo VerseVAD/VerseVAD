@@ -426,6 +426,36 @@ family score, repetition and eye-rime thresholds, coverage warning, pair cap,
 scenario ID, and stable configuration ID. Provenance links the result to the
 exact Stage 5 source hashes and pronunciation configuration.
 
+The current narrowed Stage 10 path is:
+
+```text
+LexicalStyleAnalysisResult -> ModuleResult
+ -> LexicalTokenAudit(s)
+ -> StructuralWordCountSummary line/stanza rows
+ -> WordLengthDistributionRow(s) -> LexicalStyleSummary
+ -> TokenOccurrence(s) + PoemDocument structural units
+```
+
+`LexicalTokenAudit` preserves token ID and position, exact surface, normalized
+observed surface type, separate lemma, model POS, source offsets, line/stanza
+identity, inclusion, alphabetic-character length, and reason. An excluded token
+or unavailable character length cannot carry a fabricated zero.
+
+`LexicalStyleSummary` records token/type counts, descriptive surface TTR,
+MATTR and its window/count, HD-D and its sample size, forward/reverse and mean
+MTLD plus threshold, complete word-length statistics, physical/nonblank line
+counts, stanza count, and structural word-count distributions.
+
+`LexicalStyleConfiguration` records the MATTR window, HD-D sample, MTLD
+threshold, short-text caution, scenario ID, and stable configuration ID.
+`ModuleProvenance` records that no external lookup occurred and pins the exact
+text hash, preprocessing recipe/model, token policy, and software version.
+
+These Stage 10 records are not yet persisted in database schema 3. Their JSON
+export is the current complete record. Later corpus integration should persist
+this result envelope and aggregate selected fields without duplicating the
+module calculations.
+
 ## Transaction and backup rules
 
 - Database migrations run inside transactions where SQLite permits it.

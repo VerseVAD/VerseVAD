@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, and transparent candidate-meter comparisons. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical-stress, and meter-fit results remain separate constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter or performed rhythm, or replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, transparent candidate-meter comparisons, phonological patterns, and lexical-style counts. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, rhyme/sound evidence, lexical diversity, word length, and structural word counts remain separate constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter or performed rhythm, or replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, and **Meter & Rhythm** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, **Meter & Rhythm**, **Rhyme & Sound**, and **Lexical Style** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -66,7 +66,10 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
 - optional exact end-rhyme schemes, perfect/identical and
   masculine/feminine/multisyllabic evidence, graded slant and eye rhyme,
   internal rhyme, refrains, phonemic alliteration, assonance, consonance,
-  line-ending coverage, and complete line/pair audit evidence.
+  line-ending coverage, and complete line/pair audit evidence; and
+- optional surface-form lexical diversity, alphabetic word length, and
+  physical-line and stanza word-count evidence with complete token and
+  structural audits.
 
 ## What VerseVAD does not do
 
@@ -600,6 +603,42 @@ Safe wording is: “The dictionary-based ending evidence produced an ABAB exact-
 rhyme scheme among four analyzable endings.” Do not claim that VerseVAD proved
 how the poem must be pronounced, performed, heard, or intended.
 
+## Lexical diversity, word length, and structural word counts
+
+The optional **Lexical Style** module uses the shared poetry-preserving
+processing record and requires no external dataset. The broader planned
+visible-structure and syntax/lineation modules were skipped at the scholar's
+direction.
+
+One counted word is one shared-preprocessing lexical token. Punctuation and
+numeric tokens are excluded. This word unit may differ from an editor's
+orthographic convention for a contraction or hyphenated expression, so the
+token audit preserves exact surfaces, offsets, and inclusion reasons.
+
+Lexical diversity uses normalized observed surface forms. Lemmas remain
+separate audit evidence and never silently replace the forms present in the
+poem. The module reports:
+
+- descriptive lexical-token, normalized surface-type, and plain TTR values;
+- MATTR across every overlapping configured token window;
+- HD-D as the expected distinct-type proportion in a configured
+  without-replacement sample;
+- forward/reverse and mean MTLD at a configured TTR threshold;
+- Unicode alphabetic-character word-length statistics and distribution;
+- one lexical-token count row for every preserved physical line, including
+  blank separators with zero; and
+- lexical-token and nonblank-line counts for every stanza.
+
+Defaults are MATTR window 50, HD-D sample 42, and MTLD threshold 0.72. MATTR
+and HD-D remain missing when the text is shorter than their configured
+denominator. Undefined MTLD remains missing rather than becoming infinity or
+zero.
+
+Safe wording is: “Using a 50-token MATTR window, the normalized observed
+surface forms produced MATTR = [value].” Do not treat lexical diversity or
+word length as proof of literary quality, vocabulary knowledge, intelligence,
+education, comprehension, or reader ability.
+
 ## Eight emotion associations
 
 NRC Emotion values are binary, multi-label associations. VerseVAD reports the eight emotions—anger, anticipation, disgust, fear, joy, sadness, surprise, and trust—in their own section. An entry can be associated with several categories, so percentages do not need to total 100 percent. Read the labeled denominator.
@@ -628,9 +667,10 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, and candidate-meter modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, and configured meter fit answer different questions and remain separate. Any optional module can run by itself when its exact local source is available; selecting meter automatically runs its pronunciation dependency.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound, or Lexical Style modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, configured meter fit, rhyme/sound evidence, and lexical diversity/word counts answer different questions and remain separate. Any optional module can run by itself; selecting meter or rhyme automatically runs its pronunciation dependency.
 
-Concreteness, Frequency, AoA, Pronunciation & Prosody, and Meter & Rhythm are currently temporary **One Poem** modules.
+Concreteness, Frequency, AoA, Pronunciation & Prosody, Meter & Rhythm, Rhyme &
+Sound, and Lexical Style are currently temporary **One Poem** modules.
 They are not yet batched, persisted, aggregated, or exported by **Projects &
 Corpus**.
 
@@ -654,6 +694,10 @@ Under **Advanced methodology settings**, choose:
 - whether AoA permits lemma fallback;
 - the AoA low-coverage caution threshold; and
 - whether AoA uses the non-default contextual **Content words only** scope;
+- the MATTR overlapping-window size;
+- the HD-D without-replacement sample size;
+- the MTLD TTR threshold;
+- the lexical-diversity short-text caution threshold;
 - poem-specific `word = ARPAbet phones | note` pronunciation overrides;
 - the pronunciation resolved-token coverage caution threshold;
 - minimum complete pronunciation lines; and
@@ -765,6 +809,22 @@ eye-rhyme evidence, and caution label.
 An unresolved line ending appears as `?` and reduces coverage. It receives no
 neutral value or fabricated rhyme label. Add a Stage 5 override only when you
 can document the intended pronunciation.
+
+## Lexical Style tab
+
+This tab appears when **Lexical diversity, word length & structural word
+counts** is enabled. It reports token/type totals, MATTR, HD-D, MTLD,
+alphabetic-character word-length statistics and distribution, and detailed
+word counts for each physical line and stanza.
+
+Read the displayed parameters and token policy before comparing results.
+Physical blank lines remain visible with word count zero. A missing MATTR or
+HD-D normally means the text is shorter than the configured window or sample;
+the module does not change the denominator silently.
+
+The line and stanza tables also show local surface-type counts, descriptive
+TTR, and mean/median alphabetic word length. These local TTR values are not
+length-resistant comparison statistics.
 
 ## Evidence tab
 
@@ -1016,8 +1076,14 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `rhyme_internal.csv` | Exact dictionary rhyme parts recurring between eligible words within one physical line |
 | `phonological_sounds.csv` | Recurring initial consonants, stressed vowels, and consonants with occurrence and line counts |
 | `rhyme_result.json` | Complete structured Stage 7 configuration, summary, stanza/line/pair evidence, sound families, coverage, warnings, and provenance |
+| `lexical_style_summary.csv` | Token/type and configured MATTR, HD-D, MTLD, word-length, and structural-count summaries |
+| `lexical_style_word_lengths.csv` | Exact alphabetic-character lengths with token counts and proportions |
+| `lexical_style_lines.csv` | Every preserved physical line with blank status, lexical-token count, surface types, local TTR, and word length |
+| `lexical_style_stanzas.csv` | Every preserved stanza with nonblank-line count, lexical-token count, surface types, local TTR, and word length |
+| `lexical_style_token_audit.csv` | Every token's exact/normalized surface, separate lemma, structural IDs, inclusion, alphabetic length or missing value, and reason |
+| `lexical_style_result.json` | Complete structured Stage 10 configuration, summaries, distribution, audit, coverage, warnings, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every Stage 6 line, fixed candidate, and method record, and `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, AoA, Pronunciation, Meter, and Rhyme & Sound exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every Stage 6 line, fixed candidate, and method record, `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record, and `lexical_style_result.json` contains every narrowed Stage 10 configuration, diversity/length summary, structural count, and token decision. `poem_document.json` includes the original text, so protect it as research material. Optional module exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -1147,6 +1213,36 @@ resolved syllables, and `S1`/`S2` primary/secondary stressed syllables.
 An observation resolves only from one dictionary pronunciation, prosodically
 agreeing alternatives, or a validated scholar override. Empty denominators and
 incomplete-line totals remain missing.
+
+## Lexical diversity, word length, and structural counts
+
+Let `N` be included shared-preprocessing lexical tokens and `V` normalized
+observed surface types.
+
+`surface_TTR = V / N`
+
+For configured MATTR window `w`:
+
+`MATTR(w) = mean(TTR of every overlapping w-token window)`
+
+For type frequency `f`, text length `N`, and configured HD-D sample `s`:
+
+`P(type observed) = 1 - C(N-f, s) / C(N, s)`
+
+`HD-D = sum(P(type observed) for each type) / s`
+
+MTLD counts token-sequence factors ending when cumulative TTR reaches the
+configured threshold, adds a proportional final factor, calculates forward
+and reverse values, and reports their mean.
+
+`mean_alphabetic_word_length = sum(Unicode alphabetic characters per represented lexical token) / represented length observations`
+
+`line_word_count = included lexical tokens assigned to the preserved physical line`
+
+`stanza_word_count = included lexical tokens assigned to the preserved stanza`
+
+Plain TTR is length-sensitive. MATTR, HD-D, and MTLD are comparable only under
+matching parameters and token policies. Unavailable values remain missing.
 
 ## Part-of-speech share
 
@@ -1296,8 +1392,11 @@ The divergence is substantial because the long work dominates the token-weighted
 | Graded slant evidence | Configured similarity across stressed vowel, final consonants, rhyme-part edit, stress alignment, and syllable count; not a probability |
 | Identical rhyme | Complete retained phonological endings agree, including repeated words or homophonic complete endings |
 | Internal rhyme | Exact dictionary rhyme parts recur between eligible words within one physical line |
+| HD-D | Expected distinct-type proportion in a configured without-replacement token sample |
 | Lemma | Model-proposed base form conditioned on part of speech |
 | Lemma-derived match | Match obtained from the lemma only after exact candidates fail |
+| Lexical-style word unit | Eligible lexical token represented by its normalized observed surface form, without lemma substitution |
+| MATTR | Mean type-token ratio across all overlapping token windows of a configured size |
 | Lexicon entry | A word or phrase and its source-supplied value or association |
 | Perfect rhyme | Robust line-ending rhyme parts agree while complete retained endings are not identical |
 | Rhyme scheme | Letter sequence formed only from robust perfect/identical groups; `x` is analyzable and ungrouped, `?` unresolved |
@@ -1313,6 +1412,7 @@ The divergence is substantial because the long work dominates the token-weighted
 | Prosodic consensus | Multiple exact dictionary candidates whose phone strings differ but syllable count and full lexical-stress sequence agree |
 | Meter fit | Configured 0-1 stress-alignment similarity; not a probability |
 | Meter line coverage | Analyzable eligible physical lines divided by all eligible physical lines |
+| MTLD | Mean forward/reverse sequential factor-length estimate at a configured TTR threshold |
 | Rule-based meter confidence | Configured category from evidence count, coverage, fit, candidate margin, and matching lines; not a calibrated probability |
 | Protected word | A word retained despite appearing in the underlying standard stopword list |
 | Scholar pronunciation override | Poem-specific validated ARPAbet phones with a required note, kept distinct from dictionary candidates |
@@ -1333,6 +1433,7 @@ The divergence is substantial because the long work dominates the token-weighted
 | Valence | Normative pleasantness or unpleasantness associated with a lexical item |
 | Work-weighted | Every eligible work-level mean contributes equally |
 | Zipf value | Logarithmic SUBTLEX-US word-form frequency value; about one point represents a tenfold source-corpus frequency difference |
+| Alphabetic word length | Number of Unicode alphabetic characters in the preserved surface token |
 
 # 14. Troubleshooting and limitations
 

@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, candidate-meter, rhyme, and recurring-sound evidence. Concreteness, SUBTLEX-US frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, and rhyme/sound evidence are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, candidate-meter, rhyme, recurring-sound, lexical-diversity, word-length, and structural word-count evidence. These constructs are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
 
 [[PAGEBREAK]]
 
@@ -15,7 +15,7 @@
 1. The one-minute mental model
 2. A safe reading order
 3. Valence, arousal, and dominance
-4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, dictionary pronunciation, candidate meter, rhyme, and recurring sounds
+4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, dictionary pronunciation, candidate meter, rhyme, recurring sounds, lexical diversity, word length, and structural word counts
 5. Tokens, types, phrases, lemmas, and matches
 6. Part-of-speech profiles
 7. Coverage and unmatched vocabulary
@@ -55,7 +55,7 @@ For every analysis, read the results in this order:
 1. **Confirm the text and lexicons.** Make sure you analyzed the intended version and sources.
 2. **Read coverage.** Determine how much eligible vocabulary was represented.
 3. **Read warnings.** Note sparse evidence, lemma reliance, review exclusions, or other methodological cautions.
-4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, dictionary pronunciation/lexical stress, candidate-meter fit, and rhyme/recurring-sound evidence are different kinds of evidence.
+4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, dictionary pronunciation/lexical stress, candidate-meter fit, rhyme/recurring-sound evidence, and lexical-style evidence are different kinds of evidence.
 5. **Choose one analysis view.** Compare all matched observations with stopwords excluded; do not merge them.
 6. **Choose one weighting.** Token weighting answers a repetition-sensitive question; type weighting answers a vocabulary-sensitive question.
 7. **Inspect dispersion and contributors.** A mean alone can conceal mixed ratings or one repeated influential word.
@@ -365,6 +365,51 @@ rhyme scheme among four analyzable endings.”
 
 Avoid: “VerseVAD proved these words rhyme in every dialect,” “the slant score
 is a probability,” or “this sound pattern proves the poet's intention.”
+
+## Lexical Diversity, Word Length, and Structural Word Counts
+
+The optional one-poem lexical-style module uses the shared tokenizer but does
+not depend on an external lexicon. Its lexical-style word unit is an eligible
+lexical token represented by its normalized observed surface form. It never
+silently substitutes a lemma for diversity counting.
+
+Plain type-token ratio is:
+
+`TTR = distinct normalized observed forms / normalized observed-form tokens`
+
+Because plain TTR changes strongly with sample length, VerseVAD also reports:
+
+- **MATTR**, the mean TTR across every overlapping window of a configured size;
+- **HD-D**, the expected distinct-type proportion in a configured
+  without-replacement sample;
+- **MTLD**, the mean of forward and reverse sequential factor-length estimates
+  at a configured TTR threshold.
+
+`MATTR(w) = mean(TTR of every overlapping w-token window)`
+
+For type frequency `f`, text length `N`, and sample size `s`:
+
+`P(type observed) = 1 - C(N - f, s) / C(N, s)`
+
+`HD-D = sum(P(type observed) for each type) / s`
+
+Defaults are MATTR window 50, HD-D sample 42, and MTLD threshold 0.72. MATTR
+and HD-D remain missing when the text is shorter than their configured
+denominator. Undefined MTLD remains missing. These missing values are not
+converted to zero.
+
+Word length is the count of Unicode alphabetic characters in the preserved
+surface token. Internal apostrophes and hyphens therefore do not add
+characters. Physical blank lines remain in the line table with word count
+zero. Stanzas are nonblank line blocks separated by one or more blank lines;
+consecutive blank lines do not create empty stanzas.
+
+Safe wording: “Using normalized observed surface forms and a 50-token MATTR
+window, the text had MATTR 0.74 across 181 eligible lexical tokens.”
+
+Avoid: “The poem has a vocabulary richness of 74%,” comparisons made under
+different settings, or treating line and stanza word counts as interpretations
+of poetic form.
 
 # 5. Tokens, Types, Phrases, Lemmas, and Matches
 
@@ -976,6 +1021,40 @@ exact-rhyme scheme plus separately labeled graded or orthographic
 relationships. The result does not establish every dialect, performed reading,
 perceptual effect, or authorial intention.
 
+## Example K: Lexical Diversity and Structural Word Counts
+
+Suppose the preserved text is:
+
+```text
+red blue red
+green blue
+
+yellow red
+```
+
+The lexical-style token sequence has 7 normalized observed surface-form tokens
+and 4 types. Therefore:
+
+`TTR = 4 / 7 = approximately 0.571`
+
+With an intentionally small three-token MATTR window for this worked example,
+the five window TTR values are `2/3, 1, 1, 1, 1`, so:
+
+`MATTR(3) = 14 / 15 = approximately 0.933`
+
+With HD-D sample size 3:
+
+`HD-D(3) = 86 / 105 = approximately 0.819`
+
+Alphabetic word lengths are `3, 4, 3, 5, 4, 6, 3`, giving mean and median word
+length 4. Line word counts are `3, 2, 0, 2`; stanza word counts are `5, 2`.
+The blank line remains visible with count zero and separates the two stanzas.
+
+Interpretation: these are explicit lexical-form and structural counts under the
+recorded settings. The deliberately short MATTR and HD-D denominators make the
+arithmetic inspectable; compare real analyses only when their configurations
+and token policies agree.
+
 # 18. How to Report a Result
 
 Include these elements for every numeric claim:
@@ -993,6 +1072,8 @@ Include these elements for every numeric claim:
   and fit threshold when relevant;
 - rhyme/sound configuration, analyzable-ending denominator, scheme notation,
   and slant threshold when relevant;
+- lexical-style word unit, MATTR window, HD-D sample size, MTLD threshold, and
+  eligible token denominator when relevant;
 - matched observations or relevant denominator;
 - coverage;
 - scenario name and exact scenario version if reviewed;
@@ -1031,7 +1112,10 @@ Include these elements for every numeric claim:
 | Graded slant evidence | Configured similarity across stressed vowel, final consonants, rhyme-part edit, stress alignment, and syllable count; not a probability |
 | Identical rhyme | Complete retained phonological endings agree, including repeated words or homophonic complete endings |
 | Internal rhyme | Exact dictionary rhyme parts recur between eligible words within one physical line |
+| HD-D | Expected distinct-type proportion in a configured without-replacement token sample |
 | Lemma | Model-proposed base form conditioned on part of speech |
+| Lexical-style word unit | Eligible lexical token represented by its normalized observed surface form, without lemma substitution |
+| MATTR | Mean type-token ratio across all overlapping token windows of a configured size |
 | Lexical stress digit | CMUdict `0` unstressed, `1` primary, or `2` secondary lexical stress; not a metrical beat |
 | Map decision | Scenario decision linking a form to a verified exact source entry |
 | Match observation | One included token occurrence or accepted phrase span |
@@ -1039,6 +1123,7 @@ Include these elements for every numeric claim:
 | Meter fit | Configured 0-1 stress-alignment similarity; not a probability |
 | Meter line coverage | Analyzable eligible physical lines divided by all eligible physical lines |
 | Median | Middle sorted value |
+| MTLD | Mean forward/reverse sequential factor-length estimate at a configured TTR threshold |
 | Normalized VAD | Documented linear transformation to the common 0-to-1 display range |
 | Numeric-response proportion | For the AoA source, numeric responses divided by total responses; preserved separately from the source's `Dunno` label |
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens |
@@ -1063,6 +1148,7 @@ Include these elements for every numeric claim:
 | Type | One distinct matched lexicon entry in the declared unit |
 | Type-weighted | Every distinct matched entry contributes once |
 | Unmatched | No accepted entry; value remains missing |
+| Alphabetic word length | Number of Unicode alphabetic characters in the preserved surface token |
 | Source POS tag(s) | Model-generated grammatical tag; displayed Noun merges NOUN/PROPN and Verb merges VERB/AUX |
 | Valence | Normative pleasantness or unpleasantness associated with a lexical item |
 | Work-weighted | Every eligible work-level mean contributes equally |

@@ -698,11 +698,61 @@ review required.
 
 ## Later Poetic Fingerprint stages from the expansion brief
 
-- [ ] Stage 8: visible poetic structure.
-- [ ] Stage 9: syntax and lineation.
-- [ ] Stage 10: lexical style.
+- [x] Stage 8 broader visible poetic structure skipped at the scholar's
+  direction on 2026-07-24. Only line/stanza lexical-token counts move into the
+  narrowed Stage 10 work.
+- [x] Stage 9 syntax, enjambment, end-stopping, and lineation skipped at the
+  scholar's direction on 2026-07-24.
+- [x] Stage 10 narrowed lexical style: lexical diversity, alphabetic-character
+  word length, physical-line word counts, and stanza word counts.
 - [ ] Stage 11: corpus and longitudinal analysis.
 - [ ] Stage 12: visualization and reporting.
+
+## Poetic Fingerprint expansion - Stage 10 narrowed lexical style
+
+- [x] Record Stage 8 visible-structure and Stage 9 syntax/lineation as skipped
+  without implementing their punctuation, typography, repetition, syntactic,
+  enjambment, or end-stopping classifiers.
+- [x] Add a resource-free, framework-independent `LexicalStyleModule` over the
+  shared `PoemDocument`; do not tokenize the poem again.
+- [x] Use normalized observed surface forms for diversity; preserve lemmas in
+  the audit without silently substituting them.
+- [x] Add configurable MATTR, HD-D, and bidirectional MTLD plus descriptive
+  token/type counts and plain TTR.
+- [x] Keep MATTR/HD-D missing when the poem is shorter than their configured
+  denominators and keep undefined MTLD missing rather than infinite or neutral.
+- [x] Add Unicode alphabetic-character word-length statistics and distribution;
+  do not count punctuation inside a token as a letter.
+- [x] Add one row for every preserved physical line, including blank separators
+  with zero lexical tokens, plus stanza word-count summaries.
+- [x] Add stable provenance, configuration IDs, coverage, warnings, token audit,
+  six CSV/JSON exports, scholar summary, reading guide, and ZIP integration.
+- [x] Add an optional, off-by-default One Poem checkbox and dedicated **Lexical
+  Style** tab with transparent advanced parameters.
+- [x] Add hand-calculated synthetic tests and a local validation command.
+- [x] Update methodology, architecture, data model, user guidance, testing,
+  changelog, roadmap, and both Word guides.
+- [x] Run the complete suite, synthetic demonstrations, diagnostics, source
+  checks, lock-file check, Word structural/accessibility checks, and document
+  render verification where the installed tools permit.
+- [x] Create the expansion Stage 10 source-control checkpoint.
+
+### Expansion Stage 10 exit criteria
+
+- [x] The shared lexical-token word unit and its contraction/hyphenation
+  implications are plainly documented.
+- [x] Plain TTR is labeled length-sensitive and not promoted as the primary
+  cross-text comparison measure.
+- [x] MATTR window, HD-D sample size, MTLD threshold, token policy, and missing
+  conditions are recorded on every result.
+- [x] Line and stanza counts reconcile to the document count, and blank physical
+  lines remain visible.
+- [x] No literary-quality, intelligence, vocabulary-knowledge, education,
+  comprehension, or reader-effect claim is made.
+- [x] Existing affective, concreteness, frequency, AoA, pronunciation, meter,
+  rhyme, review, database, export, and resource behavior remains unchanged.
+- [x] All automated/local software and Word documentation checks pass.
+- [x] Create the expansion Stage 10 source-control checkpoint.
 
 ## Cross-cutting later work - Scholarly diagnostics
 

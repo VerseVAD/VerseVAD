@@ -37,6 +37,7 @@ _application_was_reloaded = (
             "PronunciationConfiguration",
             "MeterConfiguration",
             "PhonologicalConfiguration",
+            "LexicalStyleConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -71,12 +72,15 @@ if _application_was_reloaded:
         "versevad.prosody",
         "versevad.phonology.rhyme",
         "versevad.phonology",
+        "versevad.lexical_style.profile",
+        "versevad.lexical_style",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
         "versevad.exports.aoa",
         "versevad.exports.pronunciation",
         "versevad.exports.meter",
         "versevad.exports.phonology",
+        "versevad.exports.lexical_style",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -128,6 +132,7 @@ from versevad.lexical_semantic.frequency import (
     FrequencyConfiguration,
     FrequencyModule,
 )
+from versevad.lexical_style import LexicalStyleConfiguration
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
 from versevad.prosody.pronunciation import (
@@ -425,6 +430,21 @@ if workspace_page == "One Poem":
         else:
             st.info(aoa_status.message)
 
+        include_lexical_style = st.checkbox(
+            "Lexical diversity, word length & structural word counts",
+            value=False,
+            key="include_lexical_style",
+            help=(
+                "Reports normalized observed surface-form diversity, "
+                "alphabetic-character word lengths, and lexical-token counts "
+                "for each preserved physical line and stanza."
+            ),
+        )
+        st.caption(
+            "Optional and off by default. This module needs no external dataset "
+            "and reuses the shared poetry-preserving processing record."
+        )
+
         pronunciation_statuses = PronunciationModule(
             RESOURCE_ROOT
         ).validate_resources()
@@ -710,6 +730,49 @@ if workspace_page == "One Poem":
                 "are retrospective normative lexical evidence and are not "
                 "diagnostic of cognitive impairment or decline."
             )
+            st.markdown("**Lexical diversity and word-count settings**")
+            lexical_style_columns = st.columns(4)
+            lexical_style_mattr_window = lexical_style_columns[0].number_input(
+                "MATTR window size",
+                min_value=2,
+                max_value=1000,
+                value=50,
+                step=1,
+                key="lexical_style_mattr_window",
+                disabled=not include_lexical_style,
+            )
+            lexical_style_hdd_sample = lexical_style_columns[1].number_input(
+                "HD-D sample size",
+                min_value=2,
+                max_value=1000,
+                value=42,
+                step=1,
+                key="lexical_style_hdd_sample",
+                disabled=not include_lexical_style,
+            )
+            lexical_style_mtld_threshold = lexical_style_columns[2].number_input(
+                "MTLD TTR threshold",
+                min_value=0.01,
+                max_value=0.99,
+                value=0.72,
+                step=0.01,
+                key="lexical_style_mtld_threshold",
+                disabled=not include_lexical_style,
+            )
+            lexical_style_short_warning = lexical_style_columns[3].number_input(
+                "Short-text caution below",
+                min_value=2,
+                max_value=1000,
+                value=50,
+                step=1,
+                key="lexical_style_short_warning",
+                disabled=not include_lexical_style,
+            )
+            st.caption(
+                "MATTR and HD-D remain missing when the poem is shorter than "
+                "their configured denominators. Compare texts only when these "
+                "parameters and the lexical-token policy match."
+            )
             st.markdown("**Pronunciation & prosody-foundation settings**")
             pronunciation_overrides_text = st.text_area(
                 "Poem-specific pronunciation overrides",
@@ -940,6 +1003,20 @@ if workspace_page == "One Poem":
         if include_aoa:
             st.warning(aoa_configuration_error)
 
+    lexical_style_configuration_error = ""
+    try:
+        lexical_style_configuration = LexicalStyleConfiguration(
+            mattr_window_size=int(lexical_style_mattr_window),
+            hdd_sample_size=int(lexical_style_hdd_sample),
+            mtld_threshold=float(lexical_style_mtld_threshold),
+            short_text_warning_threshold=int(lexical_style_short_warning),
+        )
+    except ValueError as error:
+        lexical_style_configuration_error = str(error)
+        lexical_style_configuration = LexicalStyleConfiguration()
+        if include_lexical_style:
+            st.warning(lexical_style_configuration_error)
+
     pronunciation_configuration_error = ""
     try:
         pronunciation_configuration = PronunciationConfiguration(
@@ -1000,6 +1077,8 @@ if workspace_page == "One Poem":
                 raise ValueError(frequency_configuration_error)
             if aoa_configuration_error:
                 raise ValueError(aoa_configuration_error)
+            if lexical_style_configuration_error:
+                raise ValueError(lexical_style_configuration_error)
             if pronunciation_configuration_error:
                 raise ValueError(pronunciation_configuration_error)
             if meter_configuration_error:
@@ -1023,6 +1102,8 @@ if workspace_page == "One Poem":
                 frequency_configuration=frequency_configuration,
                 include_aoa=include_aoa,
                 aoa_configuration=aoa_configuration,
+                include_lexical_style=include_lexical_style,
+                lexical_style_configuration=lexical_style_configuration,
                 include_pronunciation=include_pronunciation,
                 pronunciation_configuration=pronunciation_configuration,
                 include_meter=include_meter,
@@ -1062,6 +1143,7 @@ if workspace_page == "One Poem":
         or include_pronunciation != workspace.request.include_pronunciation
         or include_meter != workspace.request.include_meter
         or include_phonology != workspace.request.include_phonology
+        or include_lexical_style != workspace.request.include_lexical_style
         or (
             include_concreteness
             and concreteness_configuration
@@ -1075,6 +1157,11 @@ if workspace_page == "One Poem":
         or (
             include_aoa
             and aoa_configuration != workspace.request.aoa_configuration
+        )
+        or (
+            include_lexical_style
+            and lexical_style_configuration
+            != workspace.request.lexical_style_configuration
         )
         or (
             (include_pronunciation or include_meter or include_phonology)
@@ -1108,6 +1195,7 @@ if workspace_page == "One Poem":
     (
         overview_tab,
         language_tab,
+        lexical_style_tab,
         concreteness_tab,
         frequency_tab,
         aoa_tab,
@@ -1123,6 +1211,7 @@ if workspace_page == "One Poem":
         [
             "Overview",
             "Language Profile",
+            "Lexical Style",
             "Concreteness Profile",
             "Frequency & Rarity",
             "Age of Acquisition",
@@ -1471,6 +1560,11 @@ if workspace_page == "One Poem":
                 ("Rhyme & Sound", warning.message)
                 for warning in workspace.phonology.module_result.warnings
             )
+        if workspace.lexical_style is not None:
+            warnings.extend(
+                ("Lexical Style", warning.message)
+                for warning in workspace.lexical_style.module_result.warnings
+            )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
                 for lexicon, warning in warnings:
@@ -1592,6 +1686,176 @@ if workspace_page == "One Poem":
             )
         else:
             st.info("This text contains no eligible lexical tokens to profile.")
+
+    with lexical_style_tab:
+        lexical_style = workspace.lexical_style
+        if lexical_style is None:
+            st.info(
+                "Lexical Style was not selected for this result. Enable "
+                "Lexical diversity, word length & structural word counts under "
+                "Choose Evidence, then run the analysis again."
+            )
+        else:
+            summary = lexical_style.summary
+            configuration = lexical_style.configuration
+            st.subheader("Lexical Diversity")
+            st.write(
+                "These measures use normalized observed surface forms. Lemmas "
+                "remain visible in the audit but never silently replace the "
+                "word forms present in the poem."
+            )
+            diversity_columns = st.columns(5)
+            diversity_columns[0].metric(
+                "Lexical tokens",
+                f"{summary.lexical_token_count:,}",
+            )
+            diversity_columns[1].metric(
+                "Surface types",
+                f"{summary.normalized_surface_type_count:,}",
+            )
+            diversity_columns[2].metric(
+                f"MATTR ({configuration.mattr_window_size})",
+                _decimal(summary.mattr),
+            )
+            diversity_columns[3].metric(
+                f"HD-D ({configuration.hdd_sample_size})",
+                _decimal(summary.hdd),
+            )
+            diversity_columns[4].metric(
+                f"MTLD ({configuration.mtld_threshold:g})",
+                _decimal(summary.mtld),
+            )
+            st.caption(
+                "MATTR averages overlapping fixed-window type-token ratios. "
+                "HD-D estimates the expected distinct-type proportion in a "
+                "without-replacement sample. MTLD reports the mean forward/reverse "
+                "token-sequence length that maintains the configured TTR threshold. "
+                "A missing value means the configured calculation was unavailable."
+            )
+            st.warning(
+                "Lexical diversity is a configured textual descriptor, not a "
+                "measure of literary quality, vocabulary knowledge, intelligence, "
+                "or reader ability. Compare only matching configurations and "
+                "word-unit policies."
+            )
+
+            st.subheader("Word Length")
+            word_length_columns = st.columns(4)
+            word_length_columns[0].metric(
+                "Mean letters",
+                _decimal(summary.mean_alphabetic_characters_per_token),
+            )
+            word_length_columns[1].metric(
+                "Median letters",
+                _decimal(summary.median_alphabetic_characters_per_token),
+            )
+            word_length_columns[2].metric(
+                "Minimum",
+                _decimal(summary.minimum_alphabetic_characters),
+            )
+            word_length_columns[3].metric(
+                "Maximum",
+                _decimal(summary.maximum_alphabetic_characters),
+            )
+            st.caption(
+                "Word length counts Unicode alphabetic characters in each "
+                "included lexical-token surface. It does not count punctuation "
+                "marks, bytes, or syllables."
+            )
+            length_frame = _frame(
+                lexical_style.word_length_distribution,
+                {
+                    "alphabetic_character_count": "Alphabetic characters",
+                    "token_count": "Token count",
+                    "token_proportion": "Token proportion",
+                },
+            )
+            if not length_frame.empty:
+                st.bar_chart(
+                    length_frame.set_index("Alphabetic characters")[["Token count"]],
+                    height=260,
+                )
+                st.dataframe(
+                    length_frame.style.format(
+                        {"Token proportion": lambda value: _percentage(value)}
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+            st.subheader("Words by Physical Line")
+            st.write(
+                "Every preserved physical line remains visible. Blank stanza "
+                "separators therefore appear with word count zero."
+            )
+            line_frame = _frame(
+                lexical_style.line_summaries,
+                {
+                    "ordinal": "Line",
+                    "source_text": "Source text",
+                    "is_blank": "Blank separator",
+                    "word_count": "Word count (lexical tokens)",
+                    "normalized_surface_type_count": "Surface types",
+                    "surface_type_token_ratio": "Line TTR",
+                    "mean_alphabetic_characters_per_token": "Mean letters",
+                    "median_alphabetic_characters_per_token": "Median letters",
+                },
+            )
+            st.dataframe(
+                line_frame.style.format(
+                    {
+                        "Line TTR": lambda value: _decimal(value),
+                        "Mean letters": lambda value: _decimal(value),
+                        "Median letters": lambda value: _decimal(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+                height=360,
+            )
+
+            st.subheader("Words by Stanza")
+            stanza_frame = _frame(
+                lexical_style.stanza_summaries,
+                {
+                    "ordinal": "Stanza",
+                    "line_count": "Nonblank lines",
+                    "word_count": "Word count (lexical tokens)",
+                    "normalized_surface_type_count": "Surface types",
+                    "surface_type_token_ratio": "Stanza TTR",
+                    "mean_alphabetic_characters_per_token": "Mean letters",
+                    "median_alphabetic_characters_per_token": "Median letters",
+                },
+            )
+            st.dataframe(
+                stanza_frame.style.format(
+                    {
+                        "Stanza TTR": lambda value: _decimal(value),
+                        "Mean letters": lambda value: _decimal(value),
+                        "Median letters": lambda value: _decimal(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            with st.expander(
+                "Lexical-style methodology, coverage, and warnings"
+            ):
+                st.write(
+                    f"Configuration: `{configuration.configuration_id}` · "
+                    f"Scenario: `{configuration.scenario_id}`"
+                )
+                for coverage in lexical_style.module_result.coverage:
+                    st.write(
+                        f"**{coverage.coverage_id}:** "
+                        f"{coverage.matched_count}/{coverage.eligible_count} "
+                        f"({_percentage(coverage.coverage_rate)}) — {coverage.note}"
+                    )
+                for warning in lexical_style.module_result.warnings:
+                    if warning.severity.value == "information":
+                        st.info(warning.message)
+                    else:
+                        st.warning(warning.message)
 
     with concreteness_tab:
         concreteness = workspace.concreteness
@@ -3916,7 +4180,9 @@ if workspace_page == "One Poem":
             "candidates, line and alignment audits, summary, and JSON files. "
             "When Rhyme & Sound is selected, it includes whole-poem and stanza "
             "schemes, line and ending-pair evidence, internal rhyme, recurring "
-            "sound families, coverage, summary, and JSON files."
+            "sound families, coverage, summary, and JSON files. When Lexical "
+            "Style is selected, it includes diversity and word-length summaries, "
+            "line and stanza word counts, token audit, and JSON files."
         )
 
     with help_tab:
@@ -3927,14 +4193,15 @@ if workspace_page == "One Poem":
             2. **Concreteness:** Read the source 1-5 distribution with both coverage denominators and configured bands.
             3. **Frequency:** Read median SUBTLEX-US Zipf with its named corpus and matched coverage.
             4. **Age of Acquisition:** Read source means in years, response evidence, configured bands, and the non-diagnostic warning.
-            5. **Pronunciation & Prosody:** Read exact observed-form coverage, unresolved alternatives, complete-line syllables, and lexical stress; do not treat this as meter or performed scansion.
-            6. **Meter & Rhythm:** Read the nearest fixed template with fit, coverage, alternatives, and deviations; treat it as candidate evidence, not definitive scansion.
-            7. **Rhyme & Sound:** Read the exact-rhyme scheme with ending coverage, then inspect separately labeled slant, eye, internal-rhyme, refrain, and recurring-sound evidence.
-            8. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
-            9. **Emotion associations:** Read category rates as overlapping lexical associations.
-            10. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
-            11. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
-            12. **Manifest:** Use this only when you need provenance or reproducibility details.
+            5. **Lexical Style:** Check token/type denominators and parameters before reading MATTR, HD-D, MTLD, word lengths, and structural word counts.
+            6. **Pronunciation & Prosody:** Read exact observed-form coverage, unresolved alternatives, complete-line syllables, and lexical stress; do not treat this as meter or performed scansion.
+            7. **Meter & Rhythm:** Read the nearest fixed template with fit, coverage, alternatives, and deviations; treat it as candidate evidence, not definitive scansion.
+            8. **Rhyme & Sound:** Read the exact-rhyme scheme with ending coverage, then inspect separately labeled slant, eye, internal-rhyme, refrain, and recurring-sound evidence.
+            9. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
+            10. **Emotion associations:** Read category rates as overlapping lexical associations.
+            11. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
+            12. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
+            13. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
         st.info(
@@ -3958,6 +4225,11 @@ if workspace_page == "One Poem":
             ("Normative lexical AoA", "A matched retrospective source mean, in years, for when respondents believed they learned a word; it is not grade level or difficulty."),
             ("AoA source SD", "Variation among source respondents for one word, kept distinct from variation among the poem's matched normative means."),
             ("Content words only", "An optional frequency or AoA scope limited to model-tagged NOUN, VERB, ADJ, and ADV; it is off by default."),
+            ("MATTR", "The mean surface-form type-token ratio across every overlapping fixed-length token window."),
+            ("HD-D", "The expected proportion of distinct surface types in a configured without-replacement token sample."),
+            ("MTLD", "The mean forward/reverse token-sequence length that maintains a configured type-token-ratio threshold."),
+            ("Lexical-style word unit", "One shared-preprocessing lexical token; punctuation and numeric tokens are excluded."),
+            ("Alphabetic word length", "The number of Unicode alphabetic characters in one included lexical-token surface."),
             ("Dictionary pronunciation coverage", "The share of eligible lexical token occurrences whose exact observed form has one CMUdict pronunciation, prosodically agreeing alternatives, or an explicit poem-specific scholar override."),
             ("Lexical stress digits", "CMUdict/ARPAbet marks 0 for unstressed, 1 for primary lexical stress, and 2 for secondary lexical stress; this is not a metrical scansion."),
             ("Complete pronunciation line", "A physical line in which every eligible lexical token has resolved syllable and lexical-stress evidence; incomplete line totals remain missing."),

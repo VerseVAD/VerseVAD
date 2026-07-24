@@ -80,6 +80,11 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "rhyme_pairs.csv",
             "slant_similarity = 0.35(stressed_vowel)",
             "dictionary-based ending evidence produced an ABAB",
+            "Lexical diversity, word length, and structural word counts",
+            "Lexical Style tab",
+            "lexical_style_lines.csv",
+            "MATTR(w) = mean",
+            "normalized observed surface forms",
         ):
             assert required in text
 
@@ -202,5 +207,11 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Example J: Exact, Slant, and Eye-Rhyme Evidence",
             "dictionary-based ending evidence produced an ABAB",
             "Meter fit",
+            "Lexical Diversity, Word Length, and Structural Word Counts",
+            "MATTR(w) = mean",
+            "HD-D = sum(P(type observed)",
+            "Example K: Lexical Diversity and Structural Word Counts",
+            "Line word counts are 3, 2, 0, 2",
+            "Lexical-style word unit",
         ):
             assert required in text

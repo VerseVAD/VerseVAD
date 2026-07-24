@@ -39,6 +39,15 @@ from versevad.exports.meter import (
     export_meter_lines_csv,
     export_meter_summary_csv,
 )
+from versevad.exports.lexical_style import (
+    export_lexical_style_bundle,
+    export_lexical_style_json,
+    export_lexical_style_lines_csv,
+    export_lexical_style_stanzas_csv,
+    export_lexical_style_summary_csv,
+    export_lexical_style_token_audit_csv,
+    export_lexical_style_word_lengths_csv,
+)
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.phonology import (
     export_internal_rhymes_csv,
@@ -86,6 +95,13 @@ __all__ = [
     "export_frequency_summary_csv",
     "export_frequency_terms_csv",
     "export_frequency_token_audit_csv",
+    "export_lexical_style_bundle",
+    "export_lexical_style_json",
+    "export_lexical_style_lines_csv",
+    "export_lexical_style_stanzas_csv",
+    "export_lexical_style_summary_csv",
+    "export_lexical_style_token_audit_csv",
+    "export_lexical_style_word_lengths_csv",
     "export_meter_alignment_operations_csv",
     "export_meter_bundle",
     "export_meter_candidates_csv",
