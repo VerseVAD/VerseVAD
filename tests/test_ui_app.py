@@ -161,6 +161,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Overview",
             "Language Profile",
             "Lexical Style",
+            "PoetryID",
             "Concreteness Profile",
             "Frequency & Rarity",
             "Age of Acquisition",
@@ -197,6 +198,45 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Concreteness was not selected" in message.value
         for message in app.info
     )
+
+
+def test_interface_renders_poetry_id_maps_scales_and_non_json_downloads() -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=60).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("PoetryID interface validation")
+    app.text_area[0].input("joy love peace light happy calm strong")
+    app.multiselect[0].set_value(["nrc_vad_v1"])
+    app.run(timeout=60)
+    poetry_id = next(
+        field
+        for field in app.checkbox
+        if field.label == "PoetryID lexical-affective profile"
+    )
+    assert not poetry_id.disabled
+    poetry_id.set_value(True)
+    app.run(timeout=60)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=60)
+
+    assert not app.exception
+    assert any(
+        heading.value == "PoetryID" for heading in app.subheader
+    )
+    assert any(
+        field.label == "PoetryID evidence view" for field in app.selectbox
+    )
+    labels = {
+        button.label
+        for button in app.get("download_button")
+        if button.label.startswith("Download poetry_id_")
+    }
+    assert "Download poetry_id_summary.csv" in labels
+    assert "Download poetry_id_report.txt" in labels
+    assert not any(label.endswith(".json") for label in labels)
 
 
 def test_interface_runs_optional_lexical_style_without_a_resource() -> None:
@@ -265,6 +305,7 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
         "Overview",
         "Language Profile",
         "Lexical Style",
+        "PoetryID",
         "Concreteness Profile",
         "Frequency & Rarity",
         "Age of Acquisition",
@@ -328,6 +369,7 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
         "Overview",
         "Language Profile",
         "Lexical Style",
+        "PoetryID",
         "Concreteness Profile",
         "Frequency & Rarity",
         "Age of Acquisition",

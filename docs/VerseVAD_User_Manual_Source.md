@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, transparent candidate-meter comparisons, phonological patterns, and lexical-style counts. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, rhyme/sound evidence, lexical diversity, word length, and structural word counts remain separate constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter or performed rhythm, or replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, transparent candidate-meter comparisons, phonological patterns, lexical-style counts, and PoetryID candidate lexical-affective neighborhoods. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, rhyme/sound evidence, lexical diversity, word length, structural word counts, and PoetryID remain separately documented constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter or performed rhythm, or replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, **Meter & Rhythm**, **Rhyme & Sound**, and **Lexical Style** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, **Meter & Rhythm**, **Rhyme & Sound**, **Lexical Style**, and **PoetryID** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -667,9 +667,9 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound, or Lexical Style modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, configured meter fit, rhyme/sound evidence, and lexical diversity/word counts answer different questions and remain separate. Any optional module can run by itself; selecting meter or rhyme automatically runs its pronunciation dependency.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound, Lexical Style, or PoetryID modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, configured meter fit, rhyme/sound evidence, lexical diversity/word counts, and PoetryID candidate profiles answer different questions and remain separate. PoetryID requires an enabled VAD source and reuses its completed result; selecting meter or rhyme automatically runs its pronunciation dependency.
 
-The same seven optional modules are also available in **Projects & Corpus**.
+The same eight optional modules are also available in **Projects & Corpus**.
 One Poem results remain temporary unless downloaded; corpus runs persist the
 same module result envelopes, configurations, coverage, warnings, provenance,
 and audit artifacts against exact text versions.
@@ -698,6 +698,10 @@ Under **Advanced methodology settings**, choose:
 - the HD-D without-replacement sample size;
 - the MTLD TTR threshold;
 - the lexical-diversity short-text caution threshold;
+- PoetryID VAD sources, token/type weightings, and analysis views;
+- default or custom-fixed PoetryID VAD thresholds;
+- PoetryID minimum VAD observations and token/type coverage; and
+- optional secondary PoetryID concreteness, frequency, and AoA character;
 - poem-specific `word = ARPAbet phones | note` pronunciation overrides;
 - the pronunciation resolved-token coverage caution threshold;
 - minimum complete pronunciation lines; and
@@ -826,6 +830,31 @@ The line and stanza tables also show local surface-type counts, descriptive
 TTR, and mean/median alphabetic word length. These local TTR values are not
 length-resistant comparison statistics.
 
+## PoetryID tab
+
+This tab appears when **PoetryID lexical-affective profile** is enabled with
+at least one selected VAD source. PoetryID consumes the completed normalized
+VAD result; it does not tokenize, load a lexicon, match words, or calculate VAD
+again.
+
+Read one source/view/weighting combination at a time. The tab presents:
+
+- continuous normalized valence, arousal, and dominance before any label;
+- the low/moderate/high categorical levels and candidate profile;
+- the separately retained nearest Euclidean centroid;
+- rule-based confidence, threshold proximity, matched counts, and coverage;
+- three threshold scales and three 3x3 valence-by-arousal maps, one per
+  dominance level;
+- nearest alternatives plus all 27 centroid distances and relative affinities;
+- optional secondary concreteness, SUBTLEX-US Zipf, and AoA character; and
+- methodology, cautions, unmatched terms, and downloads.
+
+The default fixed boundaries are `low <= 0.40`, `high >= 0.60`, with moderate
+between them. Custom fixed boundaries are available. Relative affinities and
+confidence labels are not probabilities. Profile names are interpretive
+labels for normative lexical neighborhoods, not declarations of the poem's
+emotion, speaker psychology, authorial intent, or reader response.
+
 ## Evidence tab
 
 Filter by lexicon, match status, or stopword status. The excluded-only control isolates matched observations omitted from the stopword-excluded view. Inspect normalized form, lemma, match method, matched entry, source values, and the exact stopword reason.
@@ -926,6 +955,12 @@ recalculated from the ordered pooled token evidence and are not averages of
 work-level diversity scores. Meter and rhyme remain work-level
 candidates/evidence; no corpus-wide definitive meter or rhyme scheme is
 created.
+
+PoetryID corpus views group only matching source, all-matched or
+stopword-excluded view, token/type weighting, module version, and
+configuration. They show profile prevalence, three map-count tables,
+continuous work-level VAD positions, and token/type sensitivity without
+declaring one corpus-wide identity.
 
 Coverage, unmatched evidence, warnings, configuration IDs, and denominators
 remain visible. **Download module audit ZIP** reconstructs and checksum-checks
@@ -1121,8 +1156,15 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `lexical_style_stanzas.csv` | Every preserved stanza with nonblank-line count, lexical-token count, surface types, local TTR, and word length |
 | `lexical_style_token_audit.csv` | Every token's exact/normalized surface, separate lemma, structural IDs, inclusion, alphabetic length or missing value, and reason |
 | `lexical_style_result.json` | Complete structured Stage 10 configuration, summaries, distribution, audit, coverage, warnings, and provenance |
+| `poetry_id_summary.csv` | Source/view/weighting-specific continuous VAD, categorical and nearest-centroid candidates, confidence, boundary, and coverage evidence |
+| `poetry_id_neighbors.csv` | All 27 ranked centroid distances and inverse-distance relative affinities, explicitly not probabilities |
+| `poetry_id_lexical_character.csv` | Optional native-scale concreteness, SUBTLEX-US Zipf, and AoA token/type character |
+| `poetry_id_methodology.csv` | Exact threshold profile, centroids, distance rule, evidence minimums, configuration, and cautions |
+| `poetry_id_archetype_map.csv` | All 27 canonical level combinations, centroids, descriptors, summaries, and cautions |
+| `poetry_id_vad_scales.csv` | Chart-ready continuous scores, levels, boundaries, centroids, and boundary distances |
+| `poetry_id_report.txt` | Compact readable profile, VAD, confidence, narrative, and caution report |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every Stage 6 line, fixed candidate, and method record, `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record, and `lexical_style_result.json` contains every narrowed Stage 10 configuration, diversity/length summary, structural count, and token decision. `poem_document.json` includes the original text, so protect it as research material. Optional module exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every Stage 6 line, fixed candidate, and method record, `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record, and `lexical_style_result.json` contains every narrowed Stage 10 configuration, diversity/length summary, structural count, and token decision. At the scholar's direction, PoetryID produces CSV and plain text only and has no JSON export. `poem_document.json` includes the original text, so protect it as research material. Optional module exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 

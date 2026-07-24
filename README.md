@@ -26,7 +26,7 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion through Stage 11 is also complete. Stage 0 added
+The Poetic Fingerprint expansion through Stage 12 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
@@ -73,8 +73,14 @@ counts for every preserved physical line and stanza. Stage 11 ports all seven
 optional modules to Projects & Corpus through the same tested engines, adds
 generic immutable schema-4 storage and auditable collection summaries, and
 retains pooled lexical-diversity calculations separately from equal-work
-summaries. A formal centroid/region-based emotional-profile classifier remains
-explicitly deferred.
+summaries. Stage 12 adds PoetryID as a transparent dependent classifier over
+completed source-specific normalized VAD. It retains all 27 categorical
+profiles and centroid distances, nearest alternatives, non-probabilistic
+relative affinities and confidence, coverage/boundary evidence, optional
+concreteness/frequency/AoA character, One Poem maps/scales, and compatible
+corpus distributions. Every source, all-matched/stopword-excluded view, and
+token/type weighting remains separate. PoetryID uses CSV and plain-text
+exports only; it has no JSON export.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
@@ -116,6 +122,8 @@ See:
 - [Poetic Fingerprint Stage 10 validation](docs/poetic-fingerprint-stage10-validation.md)
 - [Poetic Fingerprint Stage 11 project/corpus and Explorer](docs/poetic-fingerprint-stage11.md)
 - [Poetic Fingerprint Stage 11 validation](docs/poetic-fingerprint-stage11-validation.md)
+- [Poetic Fingerprint Stage 12 PoetryID](docs/poetic-fingerprint-stage12.md)
+- [Poetic Fingerprint Stage 12 validation](docs/poetic-fingerprint-stage12-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

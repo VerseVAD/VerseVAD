@@ -492,3 +492,34 @@ diversity is calculated from the persisted token-audit sequence.
 - Analysis completion is one atomic state transition.
 - Restores never overwrite an open project without explicit confirmation.
 - Cached results are disposable and keyed by all relevant input versions.
+
+## Expansion Stage 12 PoetryID records
+
+`PoetryIDConfiguration` records one exact `ThresholdProfile`, selected
+weighting modes and analysis views, selected VAD lexicon IDs, requested
+secondary lexical dimensions, evidence and coverage minimums, confidence and
+boundary rules, distance metric, epsilon, and scenario ID. Its complete
+serialized form produces a deterministic configuration ID.
+
+`VadEvidence` adapts one completed source-specific VAD result. It identifies
+the upstream analysis, lexicon/version/adapter/hash, view, weighting,
+continuous normalized means and dispersion, VAD observation counts, source
+coverage counts/rates, exclusions, and unmatched terms.
+
+`PoetryIDAssignment` retains continuous VAD; three `VadLevel` values; the
+categorical and nearest-centroid `PoetryArchetype`; categorical/centroid
+agreement; assigned distance; all 27 `ArchetypeNeighbor` records; a
+`ConfidenceAssessment`; inherited `PoetryIDCoverage`; and deterministic
+narrative text.
+
+`PoetryIDUnavailable` records the source, view, weighting, stable reason, and
+plain-language message for evidence that cannot support an assignment.
+`LexicalCharacterResult` retains native-scale descriptive statistics,
+coverage, thresholds, weighting, source module, configuration ID, and display
+orientation without entering the VAD calculation.
+
+`PoetryIDAnalysisResult` wraps these typed records plus the common immutable
+`ModuleResult`. Schema 4 stores the common result without a migration; the
+seven CSV/TXT artifacts are checksummed and persisted like other module
+artifacts. Corpus compatibility keys include module/configuration identity,
+metric, scope ID, and weighting.

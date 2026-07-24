@@ -661,3 +661,38 @@ also require correction through close inspection.
 hand-calculated engine demonstrations. Their generated `phase1_demo_output` and
 `phase2_demo_output` folders can be deleted safely and recreated by rerunning
 the corresponding demonstration.
+
+## PoetryID
+
+PoetryID is optional and requires at least one selected VAD lexicon. Enable
+**PoetryID Lexical-Affective Profile**, select the VAD sources, token/type
+weightings, and all-matched or stopword-excluded views, then analyze. Every
+combination remains separate; no consensus score is calculated.
+
+Read the PoetryID tab in this order:
+
+1. continuous normalized valence, arousal, and dominance;
+2. low/moderate/high levels and the categorical candidate profile;
+3. the separately retained nearest Euclidean centroid;
+4. confidence, boundary proximity, matched counts, and coverage;
+5. the VAD threshold scales and three dominance maps;
+6. nearest alternatives and all 27 distances;
+7. optional secondary concreteness, SUBTLEX-US Zipf frequency, and AoA
+   character;
+8. methodology, cautions, and CSV/TXT downloads.
+
+Profile names are interpretive labels for normative lexical neighborhoods.
+They do not identify the emotion of the poem, speaker, author, or reader.
+Relative affinities and confidence labels are not probabilities.
+
+The default fixed boundaries are 0.40 and 0.60. Custom fixed boundaries are
+available under advanced methodology. Corpus-relative thresholds are not
+implemented.
+
+In **Projects & Corpus**, add PoetryID to a batch after selecting at least one
+VAD lexicon. The module view shows compatible profile distributions, 3x3 map
+counts, continuous work positions, and token/type sensitivity. Filter to one
+source/view/weighting combination before interpreting a distribution.
+
+PoetryID downloads are six CSV files and one plain-text report. There is no
+PoetryID JSON export.

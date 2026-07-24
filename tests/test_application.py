@@ -107,6 +107,44 @@ def test_workspace_analysis_preserves_text_and_runs_selected_real_source(preproc
     assert workspace.results[0].coverage.phrase_match_count >= 1
 
 
+def test_workspace_poetry_id_reuses_completed_vad_and_has_no_json_export(
+    preprocessor,
+) -> None:
+    request = AnalysisRequest(
+        project_name="PoetryID workspace",
+        title="Profile evidence",
+        original_text="joy love peace light happy calm strong",
+        lexicon_ids=("nrc_vad_v1",),
+        include_poetry_id=True,
+    )
+
+    workspace = run_workspace_analysis(request, preprocessor=preprocessor)
+
+    assert workspace.poetry_id is not None
+    assert workspace.poetry_id.status == "complete"
+    assert {row.source_analysis_id for row in workspace.poetry_id.assignments} == {
+        workspace.results[0].analysis_id
+    }
+    assert {row.weighting_mode for row in workspace.poetry_id.assignments} == {
+        "token",
+        "type",
+    }
+    with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
+        poetry_id_files = {
+            name for name in bundle.namelist() if name.startswith("poetry_id_")
+        }
+        assert poetry_id_files == {
+            "poetry_id_summary.csv",
+            "poetry_id_neighbors.csv",
+            "poetry_id_lexical_character.csv",
+            "poetry_id_methodology.csv",
+            "poetry_id_archetype_map.csv",
+            "poetry_id_vad_scales.csv",
+            "poetry_id_report.txt",
+        }
+        assert not any(name.endswith(".json") for name in poetry_id_files)
+
+
 def test_workspace_preprocesses_once_for_multiple_lexicons() -> None:
     class CountingPreprocessor:
         def __init__(self) -> None:

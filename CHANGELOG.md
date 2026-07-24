@@ -7,6 +7,39 @@ made a public release.
 
 ### Added
 
+- Poetic Fingerprint Stage 12 PoetryID as a dependent, framework-independent
+  classifier over completed source-specific normalized VAD results, with no
+  re-tokenization, lexicon reload, rematching, or VAD recalculation.
+- Canonical 27-profile low/moderate/high VAD registry, versioned default and
+  custom-fixed thresholds, continuous centroids, all-candidate Euclidean
+  distances, nearest alternatives, inverse-distance relative affinities,
+  categorical/centroid agreement, boundary evidence, and rule-based
+  non-probabilistic confidence.
+- Separate PoetryID results for every selected VAD source,
+  all-matched/stopword-excluded view, and token/type weighting, including
+  structured sparse/low-coverage/unavailable states and exact upstream
+  analysis/source provenance.
+- Optional secondary PoetryID lexical character from already completed
+  concreteness, SUBTLEX-US Zipf, and Kuperman AoA summaries without changing
+  the VAD archetype.
+- One Poem PoetryID controls and tab with continuous VAD first, threshold
+  scales, three 3x3 dominance maps, all 27 neighbors, coverage, methodology,
+  cautions, and downloads.
+- Project/corpus PoetryID batch controls, schema-4 per-work persistence,
+  source/view/weighting-compatible profile distributions, map counts,
+  continuous VAD positions, token/type sensitivity, workbook fields, and
+  checksummed artifact ZIPs.
+- Six PoetryID CSV exports and one plain-text report. At the scholar's
+  direction, PoetryID has no JSON export.
+- Stage 12 synthetic validation command and engine, integration, application,
+  export, corpus, repository, workbook, UI compile, and regression tests.
+- Project development version advanced to `0.16.0.dev0`.
+- Stage 12 completion validation: `245 passed`, all ten direct synthetic
+  demonstrations, 11 diagnostics, immutable source-lexicon inspection,
+  supplementary resource contracts, offline dependency-lock validation,
+  documentation structure/content, accessibility, and diff checks passed.
+  The canonical DOCX renderer was attempted but remained unavailable because
+  LibreOffice/`soffice` is not installed; no visual-render success is claimed.
 - Poetic Fingerprint Stage 11 project/corpus integration for all seven existing
   optional modules, reusing the One Poem engines and shared preprocessing.
 - SQLite schema 4 generic immutable module results, scoped metrics, coverage,

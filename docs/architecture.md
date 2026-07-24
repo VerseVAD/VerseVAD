@@ -368,6 +368,32 @@ advanced scenario and statistical controls behind clearly labeled sections.
   to test, migrate, or audit.
 - A default cross-lexicon consensus would conceal source and family differences.
 
+## Expansion Stage 12 PoetryID
+
+Expansion Stage 12 advances the development package to `0.16.0.dev0`.
+`versevad.poetry_id` contains a framework-independent archetype registry,
+configuration, engine, and result adapters. The integration layer accepts
+immutable `Phase2AnalysisResult`, `ConcretenessAnalysisResult`,
+`FrequencyAnalysisResult`, and `AoAAnalysisResult` objects; it never imports a
+lexicon adapter or resource manager. `versevad.ui.poetry_id` is presentation
+only.
+
+The application runs PoetryID after its selected upstream VAD and optional
+lexical-semantic modules. One shared `PoemDocument` and one set of VAD results
+therefore support both the ordinary VAD interface and PoetryID. The PoetryID
+`ModuleResult` records upstream analysis IDs in metrics and includes every
+selected source resource hash in provenance.
+
+Project/corpus persistence reuses schema 4's generic module-result, metric,
+coverage, warning, provenance, and artifact tables. No schema 5 migration is
+needed. Corpus aggregation includes `scope_id` and weighting in compatible
+numeric and categorical keys so separate VAD sources and views cannot merge.
+The corpus workbook exposes the same scope identity.
+
+PoetryID's export boundary is intentionally different from older module
+bundles: it emits six CSV files and one plain-text report, with no PoetryID
+JSON. Existing module exports are unchanged.
+
 ## Implementation references
 
 - [Streamlit: run an app locally](https://docs.streamlit.io/develop/concepts/architecture/run-your-app)

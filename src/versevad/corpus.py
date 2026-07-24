@@ -37,6 +37,7 @@ from versevad.models import PhrasePolicy, StopwordMode
 from versevad.phonology import PhonologicalConfiguration
 from versevad.preprocessing import SpacyEnglishPreprocessor, TextPreprocessor
 from versevad.prosody import MeterConfiguration, PronunciationConfiguration
+from versevad.poetry_id import PoetryIDConfiguration
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS
 
 
@@ -112,6 +113,10 @@ class CorpusAnalysisConfiguration:
     lexical_style_configuration: LexicalStyleConfiguration = (
         LexicalStyleConfiguration()
     )
+    include_poetry_id: bool = False
+    poetry_id_configuration: PoetryIDConfiguration = (
+        PoetryIDConfiguration()
+    )
 
     @property
     def module_names(self) -> tuple[str, ...]:
@@ -134,6 +139,8 @@ class CorpusAnalysisConfiguration:
             names.append("rhyme_and_phonological_patterns")
         if self.include_lexical_style:
             names.append("lexical_style")
+        if self.include_poetry_id:
+            names.append("poetry_id")
         return tuple(names)
 
     @property
@@ -178,6 +185,11 @@ class CorpusAnalysisConfiguration:
                 "lexical_style",
                 self.lexical_style_configuration,
             ),
+            (
+                self.include_poetry_id,
+                "poetry_id",
+                self.poetry_id_configuration,
+            ),
         )
         return {
             name: asdict(configuration)
@@ -202,6 +214,7 @@ class CorpusModuleProfile:
     observation_weighted_mean: float | None
     total_observations: int
     note: str
+    scope_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -217,6 +230,8 @@ class CorpusModuleCategoryProfile:
     works_with_category: int
     prevalence: float
     note: str
+    scope_id: str = ""
+    weighting: str = ""
 
 
 def decode_corpus_files(
@@ -362,7 +377,7 @@ def corpus_module_profiles(
     if total_works is None:
         total_works = len({row.text_id for row in metrics})
     grouped: dict[
-        tuple[str, str, str, str, str, str],
+        tuple[str, str, str, str, str, str, str],
         list[CorpusModuleMetricRecord],
     ] = {}
     for row in selected:
@@ -374,6 +389,7 @@ def corpus_module_profiles(
                 row.metric_id,
                 row.unit,
                 row.weighting,
+                row.scope_id,
             ),
             [],
         ).append(row)
@@ -386,6 +402,7 @@ def corpus_module_profiles(
         metric_id,
         unit,
         weighting,
+        scope_id,
     ), rows in grouped.items():
         values = tuple(float(row.value) for row in rows)
         weighted = None
@@ -438,6 +455,7 @@ def corpus_module_profiles(
                 observation_weighted_mean=weighted,
                 total_observations=observations,
                 note=note,
+                scope_id=scope_id,
             )
         )
     return tuple(
@@ -446,6 +464,8 @@ def corpus_module_profiles(
             key=lambda row: (
                 row.module_name,
                 row.metric_id,
+                row.scope_id,
+                row.weighting,
                 row.configuration_id,
             ),
         )
@@ -462,9 +482,11 @@ def corpus_module_category_profiles(
         "meter.closest_candidate_kind",
         "meter.candidate_confidence",
         "phonology.rhyme_scheme",
+        "poetry_id.categorical_archetype_id",
+        "poetry_id.confidence_label",
     }
     grouped: dict[
-        tuple[str, str, str, str],
+        tuple[str, str, str, str, str, str],
         list[CorpusModuleMetricRecord],
     ] = {}
     for row in metrics:
@@ -480,6 +502,8 @@ def corpus_module_category_profiles(
                     row.module_version,
                     row.configuration_id,
                     row.metric_id,
+                    row.scope_id,
+                    row.weighting,
                 ),
                 [],
             ).append(row)
@@ -503,9 +527,12 @@ def corpus_module_category_profiles(
                     prevalence=count / total,
                     note=(
                         "Descriptive work prevalence among works with this "
-                        "metric; this does not declare one corpus-wide meter "
-                        "or rhyme scheme."
+                        "metric and compatible source/view/weighting; this "
+                        "does not declare one corpus-wide meter, rhyme scheme, "
+                        "or PoetryID profile."
                     ),
+                    scope_id=key[4],
+                    weighting=key[5],
                 )
             )
     return tuple(
@@ -835,6 +862,12 @@ def analyze_corpus(
                     ),
                     lexical_style_configuration=(
                         module_configuration.lexical_style_configuration
+                    ),
+                    include_poetry_id=(
+                        module_configuration.include_poetry_id
+                    ),
+                    poetry_id_configuration=(
+                        module_configuration.poetry_id_configuration
                     ),
                 ),
                 preprocessor=processor,

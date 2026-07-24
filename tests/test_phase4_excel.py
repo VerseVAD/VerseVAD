@@ -144,7 +144,7 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
         BytesIO(methodology_content),
         data_only=False,
     )
-    assert CORPUS_WORKBOOK_API_VERSION == 5
+    assert CORPUS_WORKBOOK_API_VERSION == 6
     assert methodology_workbook.sheetnames[-1] == "Methodology"
     methodology_rows = {
         row[0].value: row[1].value

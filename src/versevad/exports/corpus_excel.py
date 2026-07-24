@@ -39,7 +39,7 @@ PAPER = "FBF8F1"
 PALE = "EEF3EC"
 WHITE = "FFFFFF"
 
-CORPUS_WORKBOOK_API_VERSION = 5
+CORPUS_WORKBOOK_API_VERSION = 6
 
 
 def _label(name: str) -> str:
@@ -301,6 +301,7 @@ def build_corpus_workbook(
             "Configuration",
             "Aggregation method",
             "Note",
+            "Source / view scope ID",
         ),
         rows=tuple(
             (
@@ -316,6 +317,7 @@ def build_corpus_workbook(
                 row.configuration_id,
                 "compatible_work_values",
                 row.note,
+                row.scope_id,
             )
             for row in module_profiles
         )
@@ -333,6 +335,7 @@ def build_corpus_workbook(
                 row.configuration_id,
                 row.aggregation_method,
                 row.note,
+                "",
             )
             for row in module_aggregates
         ),
@@ -343,8 +346,9 @@ def build_corpus_workbook(
         workbook,
         title="Module Categories",
         purpose=(
-            "Work-level prevalence of selected meter and rhyme categories. "
-            "These distributions do not declare one corpus-wide scheme."
+            "Work-level prevalence of selected meter, rhyme, and PoetryID "
+            "categories. These distributions do not declare one corpus-wide "
+            "scheme or identity."
         ),
         headers=(
             "Module",
@@ -355,6 +359,8 @@ def build_corpus_workbook(
             "Prevalence",
             "Configuration",
             "Note",
+            "Source / view scope ID",
+            "Weighting",
         ),
         rows=(
             (
@@ -366,6 +372,8 @@ def build_corpus_workbook(
                 row.prevalence,
                 row.configuration_id,
                 row.note,
+                row.scope_id,
+                row.weighting,
             )
             for row in module_categories
         ),

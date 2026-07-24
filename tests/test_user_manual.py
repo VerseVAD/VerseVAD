@@ -91,6 +91,10 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Additional lexical evidence",
             "Resource unavailable",
             "every exact CMUdict pronunciation candidate",
+            "PoetryID tab",
+            "all 27 centroid distances",
+            "poetry_id_neighbors.csv",
+            "no JSON export",
         ):
             assert required in text
 
@@ -223,5 +227,9 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Equal-work module mean",
             "Ordered pooled-token result",
             "Resource unavailable",
+            "PoetryID Candidate Lexical-Affective Profiles",
+            "3 x 3 x 3 = 27",
+            "relative affinities are not probabilities",
+            "PoetryID centroid",
         ):
             assert required in text

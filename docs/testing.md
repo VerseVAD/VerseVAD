@@ -379,3 +379,26 @@ checks, the 86-package offline lock check, and `git diff --check` passed. Both
 rebuilt Word guides passed structural and accessibility checks with no
 high-severity findings. The canonical page-image renderer was attempted for
 both documents but could not start because LibreOffice is not installed.
+
+## Stage 12 PoetryID
+
+Run the hand-calculated classifier example:
+
+```powershell
+.\.venv\Scripts\python.exe -m versevad.poetry_id_validation
+```
+
+The example places `(0.2, 0.5, 0.8)` exactly at The Survivor centroid under
+the default fixed profile, checks all 27 distances and affinity normalization,
+and verifies that the seven-file PoetryID bundle contains CSV/TXT only.
+
+Automated tests cover the complete registry, threshold inclusivity, custom
+configuration round trips, distance ranking, categorical/centroid agreement,
+boundary and coverage confidence, structured unavailability, token/type
+separation, native-scale lexical character, exact upstream VAD identity,
+non-JSON exports, generic project persistence, compatible corpus
+distributions, workbook fields, and regressions.
+
+See
+[`poetic-fingerprint-stage12-validation.md`](poetic-fingerprint-stage12-validation.md)
+for the final completion record and beginner interface checks.

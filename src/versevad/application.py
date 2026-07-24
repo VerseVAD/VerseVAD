@@ -32,6 +32,7 @@ from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.phonology import export_phonological_bundle
 from versevad.exports.poem_document_json import export_poem_document_json
 from versevad.exports.pronunciation import export_pronunciation_bundle
+from versevad.exports.poetry_id import export_poetry_id_bundle
 from versevad.lexical_semantic.concreteness import (
     ConcretenessAnalysisResult,
     ConcretenessConfiguration,
@@ -90,6 +91,13 @@ from versevad.prosody.meter import (
     MeterConfiguration,
     MeterModule,
     MeterModuleError,
+)
+from versevad.poetry_id import (
+    PoetryIDAnalysisResult,
+    PoetryIDConfiguration,
+    PoetryIDEngine,
+    lexical_evidence_from_results,
+    vad_evidence_from_results,
 )
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
 
@@ -209,6 +217,10 @@ class AnalysisRequest:
     lexical_style_configuration: LexicalStyleConfiguration = (
         LexicalStyleConfiguration()
     )
+    include_poetry_id: bool = False
+    poetry_id_configuration: PoetryIDConfiguration = (
+        PoetryIDConfiguration()
+    )
 
 
 @dataclass(frozen=True)
@@ -225,6 +237,7 @@ class WorkspaceAnalysis:
     meter: MeterAnalysisResult | None = None
     phonology: PhonologicalAnalysisResult | None = None
     lexical_style: LexicalStyleAnalysisResult | None = None
+    poetry_id: PoetryIDAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -589,6 +602,7 @@ def run_workspace_analysis(
     meter_module: MeterModule | None = None,
     phonological_module: PhonologicalModule | None = None,
     lexical_style_module: LexicalStyleModule | None = None,
+    poetry_id_engine: PoetryIDEngine | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -603,6 +617,7 @@ def run_workspace_analysis(
         and not request.include_meter
         and not request.include_phonology
         and not request.include_lexical_style
+        and not request.include_poetry_id
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -760,6 +775,22 @@ def run_workspace_analysis(
             )
         except LexicalStyleModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
+    poetry_id = None
+    if request.include_poetry_id:
+        engine = poetry_id_engine or PoetryIDEngine()
+        poetry_id = engine.analyze(
+            ModuleInput.from_poem_document(poem_document),
+            vad_evidence_from_results(
+                results,
+                request.poetry_id_configuration,
+            ),
+            request.poetry_id_configuration,
+            lexical_evidence=lexical_evidence_from_results(
+                concreteness=concreteness,
+                frequency=frequency,
+                aoa=aoa,
+            ),
+        )
     return WorkspaceAnalysis(
         request=request,
         document=document,
@@ -773,6 +804,7 @@ def run_workspace_analysis(
         meter=meter,
         phonology=phonology,
         lexical_style=lexical_style,
+        poetry_id=poetry_id,
     )
 
 
@@ -1374,6 +1406,13 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
             "describe normalized observed surface forms and shared-preprocessing "
             "lexical tokens. They do not measure literary quality, vocabulary "
             "knowledge, or reader ability."
+        )
+    if workspace.poetry_id is not None:
+        notes.append(
+            "PoetryID reports nearest candidate lexical-affective profiles "
+            "under explicit thresholds, source, view, and weighting choices. "
+            "Its affinities and confidence labels are not probabilities, and "
+            "it does not identify the poem's emotion."
         )
     if workspace.phonology is not None:
         notes.append(
@@ -2231,6 +2270,86 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     "plain_language_note": note,
                 }
             )
+    if workspace.poetry_id is not None:
+        poetry_id = workspace.poetry_id
+        for assignment in poetry_id.assignments:
+            view = (
+                f"{assignment.analysis_view}; "
+                f"{assignment.weighting_mode}-weighted"
+            )
+            denominator = (
+                f"{assignment.coverage.matched_token_count} matched "
+                "observations"
+                if assignment.weighting_mode == "token"
+                else (
+                    f"{assignment.coverage.matched_type_count} matched types"
+                )
+            )
+            for metric, value, unit, note in (
+                (
+                    "Nearest categorical PoetryID profile",
+                    assignment.categorical_archetype.name,
+                    "canonical 27-profile label",
+                    (
+                        "Nearest candidate under the selected categorical "
+                        "thresholds; not a declaration of the poem's emotion."
+                    ),
+                ),
+                (
+                    "Nearest Euclidean centroid profile",
+                    assignment.nearest_centroid_archetype.name,
+                    "canonical 27-profile label",
+                    (
+                        "Calculated across continuous normalized VAD; retained "
+                        "separately from the categorical result."
+                    ),
+                ),
+                (
+                    "Rule-based PoetryID confidence",
+                    assignment.confidence.label,
+                    "documented evidence label",
+                    (
+                        f"{assignment.confidence.explanation} This is not a "
+                        "probability."
+                    ),
+                ),
+                (
+                    "Categorical centroid distance",
+                    assignment.centroid_distance,
+                    "normalized Euclidean distance",
+                    "Smaller means closer to the assigned profile centroid.",
+                ),
+            ):
+                rows.append(
+                    {
+                        "section": "PoetryID",
+                        "lexicon": assignment.source_lexicon_name,
+                        "analysis_view": view,
+                        "metric": metric,
+                        "value": value,
+                        "unit_or_scale": unit,
+                        "denominator": denominator,
+                        "plain_language_note": note,
+                    }
+                )
+            for dimension in ("valence", "arousal", "dominance"):
+                rows.append(
+                    {
+                        "section": "PoetryID",
+                        "lexicon": assignment.source_lexicon_name,
+                        "analysis_view": view,
+                        "metric": (
+                            f"Continuous normalized {dimension}"
+                        ),
+                        "value": getattr(assignment.vad, dimension),
+                        "unit_or_scale": "normalized 0-1",
+                        "denominator": denominator,
+                        "plain_language_note": (
+                            "Inherited from the completed source-specific VAD "
+                            "analysis; PoetryID did not recalculate it."
+                        ),
+                    }
+                )
     return _csv_bytes(fields, rows)
 
 
@@ -2242,6 +2361,84 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "What are the principal readable results?",
             "start_with": "Coverage, concreteness, median Zipf frequency, normative AoA, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
             "important_caution": "Read every metric with its denominator and plain-language note.",
+        },
+        {
+            "file": "poetry_id_summary.csv",
+            "what_it_answers": (
+                "Which source-, view-, and weighting-specific PoetryID "
+                "candidate profile is reported?"
+            ),
+            "start_with": (
+                "continuous VAD, categorical and nearest-centroid profiles, "
+                "confidence, boundary dimensions, and coverage."
+            ),
+            "important_caution": (
+                "A PoetryID label is a nearest candidate lexical-affective "
+                "profile, not the poem's emotion."
+            ),
+        },
+        {
+            "file": "poetry_id_neighbors.csv",
+            "what_it_answers": (
+                "How far is the work from every one of the 27 profile centroids?"
+            ),
+            "start_with": "rank, distance, and relative_affinity.",
+            "important_caution": (
+                "Inverse-distance relative affinities are not probabilities."
+            ),
+        },
+        {
+            "file": "poetry_id_lexical_character.csv",
+            "what_it_answers": (
+                "What optional concreteness, frequency, and AoA character "
+                "accompanies the VAD result?"
+            ),
+            "start_with": "dimension, weighting, mean, coverage, and orientation.",
+            "important_caution": (
+                "Secondary lexical character never changes the VAD archetype."
+            ),
+        },
+        {
+            "file": "poetry_id_methodology.csv",
+            "what_it_answers": (
+                "Which thresholds, centroids, distance rule, evidence minimums, "
+                "and configuration produced PoetryID?"
+            ),
+            "start_with": "method, threshold_profile, threshold, and centroid rows.",
+            "important_caution": (
+                "Version 1 supports fixed and custom-fixed thresholds only."
+            ),
+        },
+        {
+            "file": "poetry_id_archetype_map.csv",
+            "what_it_answers": (
+                "What are all 27 canonical VAD combinations and their centroids?"
+            ),
+            "start_with": "levels, centroid coordinates, descriptor, and caution.",
+            "important_caution": (
+                "Names are interpretive labels for normative lexical neighborhoods."
+            ),
+        },
+        {
+            "file": "poetry_id_vad_scales.csv",
+            "what_it_answers": (
+                "What chart-ready score and boundary values appear on each VAD scale?"
+            ),
+            "start_with": "dimension, score, level, low_max, and high_min.",
+            "important_caution": (
+                "Scores remain source-, view-, and weighting-specific."
+            ),
+        },
+        {
+            "file": "poetry_id_report.txt",
+            "what_it_answers": (
+                "What is a compact human-readable PoetryID report?"
+            ),
+            "start_with": "profile, continuous VAD, confidence, narrative, and caution.",
+            "important_caution": (
+                "This is the only non-tabular PoetryID export; no PoetryID JSON "
+                "file is generated."
+            ),
         },
         {
             "file": "concreteness_summary.csv",
@@ -2666,6 +2863,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.lexical_style
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.poetry_id is not None:
+                for filename, content in export_poetry_id_bundle(
+                    workspace.poetry_id
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -2715,6 +2917,13 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "lexical-token counts for every preserved physical line and stanza. "
                 "MATTR, HD-D, and MTLD retain their exact configured parameters, "
                 "and unavailable short-text values remain missing.\n"
+                "When present, the PoetryID files report source-specific, "
+                "view-specific token/type VAD profiles, categorical and "
+                "nearest-centroid candidates, all 27 distances, relative "
+                "affinities, confidence and boundary evidence, coverage, "
+                "secondary lexical character, chart data, and methodology. "
+                "PoetryID has CSV and plain-text exports only; relative "
+                "affinities are not probabilities.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

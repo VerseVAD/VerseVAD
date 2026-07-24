@@ -33,6 +33,14 @@ from versevad.lexical_semantic.frequency import FrequencyConfiguration
 from versevad.models import PhrasePolicy, ReviewAction, ReviewScope, TextDocument
 from versevad.normalization import normalize_lookup
 from versevad.preprocessing import TextPreprocessor
+from versevad.poetry_id import (
+    ARCHETYPE_BY_ID,
+    SUPPORTED_VAD_LEXICON_IDS,
+    PoetryIDConfiguration,
+    ThresholdBand,
+    ThresholdProfile,
+    VadLevel,
+)
 from versevad.ui.stopwords import render_stopword_settings
 
 
@@ -362,6 +370,7 @@ def _render_corpus_modules(
                 [
                     {
                         "Metric": row.metric_id,
+                        "Source / view": row.scope_id or "—",
                         "Unit": row.unit,
                         "Weighting": row.weighting or "—",
                         "Works included": row.works_included,
@@ -396,6 +405,8 @@ def _render_corpus_modules(
                 [
                     {
                         "Metric": row.metric_id,
+                        "Source / view": row.scope_id or "—",
+                        "Weighting": row.weighting or "—",
                         "Category": row.category,
                         "Works with category": row.works_with_category,
                         "Eligible works": row.works_included,
@@ -409,6 +420,187 @@ def _render_corpus_modules(
             hide_index=True,
             width="stretch",
         )
+
+    if selected_module == "poetry_id":
+        archetype_metrics = tuple(
+            row
+            for row in selected
+            if row.metric_id == "poetry_id.categorical_archetype_id"
+            and isinstance(row.value, str)
+        )
+        if archetype_metrics:
+            st.markdown("**PoetryID corpus distribution**")
+            compatible_groups = sorted(
+                {
+                    (row.scope_id, row.weighting)
+                    for row in archetype_metrics
+                }
+            )
+            selected_group = st.selectbox(
+                "Compatible source, view, and weighting",
+                options=compatible_groups,
+                format_func=lambda item: (
+                    f"{item[0].replace(':', ' · ')} · "
+                    f"{item[1]} weighted"
+                ),
+                key=f"corpus_poetry_id_group_{project_id}",
+            )
+            group_rows = tuple(
+                row
+                for row in archetype_metrics
+                if (row.scope_id, row.weighting) == selected_group
+            )
+            counts: dict[str, int] = {}
+            for row in group_rows:
+                archetype_id = str(row.value)
+                counts[archetype_id] = counts.get(archetype_id, 0) + 1
+            distribution_rows = [
+                {
+                    "Profile": ARCHETYPE_BY_ID[archetype_id].name,
+                    "Works": count,
+                    "Prevalence": count / len(group_rows),
+                }
+                for archetype_id, count in sorted(
+                    counts.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )
+                if archetype_id in ARCHETYPE_BY_ID
+            ]
+            if distribution_rows:
+                distribution_frame = pd.DataFrame(distribution_rows)
+                st.bar_chart(
+                    distribution_frame.set_index("Profile")[["Works"]],
+                    height=260,
+                )
+                st.dataframe(
+                    distribution_frame.style.format(
+                        {"Prevalence": "{:.1%}"}
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+            map_columns = st.columns(3)
+            levels = (VadLevel.LOW, VadLevel.MODERATE, VadLevel.HIGH)
+            for column, dominance in zip(
+                map_columns,
+                levels,
+                strict=True,
+            ):
+                map_rows = []
+                for arousal in reversed(levels):
+                    map_row = {"Arousal": arousal.value.title()}
+                    for valence in levels:
+                        archetype = next(
+                            item
+                            for item in ARCHETYPE_BY_ID.values()
+                            if item.valence_level == valence
+                            and item.arousal_level == arousal
+                            and item.dominance_level == dominance
+                        )
+                        count = counts.get(archetype.archetype_id, 0)
+                        map_row[valence.value.title()] = (
+                            f"{archetype.name.replace('The ', '')}: {count}"
+                        )
+                    map_rows.append(map_row)
+                with column:
+                    st.caption(f"{dominance.value.title()} dominance")
+                    st.dataframe(
+                        pd.DataFrame(map_rows).set_index("Arousal"),
+                        width="stretch",
+                    )
+
+            numeric_by_work: dict[
+                tuple[str, str, str],
+                dict[str, object],
+            ] = {}
+            for row in selected:
+                if (
+                    row.scope_id,
+                    row.weighting,
+                ) != selected_group:
+                    continue
+                if row.metric_id not in {
+                    "poetry_id.valence",
+                    "poetry_id.arousal",
+                    "poetry_id.dominance",
+                    "poetry_id.categorical_archetype_name",
+                }:
+                    continue
+                key = (row.text_id, row.scope_id, row.weighting)
+                values = numeric_by_work.setdefault(
+                    key,
+                    {"Work": row.title},
+                )
+                values[row.metric_id.rsplit(".", 1)[-1].replace(
+                    "categorical_archetype_name", "Profile"
+                ).title()] = row.value
+            scatter_rows = [
+                row
+                for row in numeric_by_work.values()
+                if {"Valence", "Arousal", "Dominance"} <= set(row)
+            ]
+            if scatter_rows:
+                st.markdown("**Continuous work-level VAD positions**")
+                st.scatter_chart(
+                    pd.DataFrame(scatter_rows),
+                    x="Valence",
+                    y="Arousal",
+                    size="Dominance",
+                    color=(
+                        "Profile"
+                        if all("Profile" in row for row in scatter_rows)
+                        else None
+                    ),
+                    height=380,
+                )
+                st.dataframe(
+                    pd.DataFrame(scatter_rows),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+            by_work_scope: dict[
+                tuple[str, str],
+                dict[str, str],
+            ] = {}
+            for row in archetype_metrics:
+                by_work_scope.setdefault(
+                    (row.text_id, row.scope_id),
+                    {},
+                )[row.weighting] = str(row.value)
+            disagreements = [
+                {
+                    "Work": next(
+                        row.title
+                        for row in archetype_metrics
+                        if row.text_id == text_id
+                    ),
+                    "Source / view": scope_id,
+                    "Token profile": values["token"],
+                    "Type profile": values["type"],
+                }
+                for (text_id, scope_id), values in by_work_scope.items()
+                if (
+                    "token" in values
+                    and "type" in values
+                    and values["token"] != values["type"]
+                )
+            ]
+            if disagreements:
+                st.markdown("**Token/type sensitivity**")
+                st.dataframe(
+                    pd.DataFrame(disagreements),
+                    hide_index=True,
+                    width="stretch",
+                )
+            st.caption(
+                "Every distribution is filtered to one compatible VAD source, "
+                "analysis view, weighting, threshold configuration, and completed "
+                "batch. These are lexical-evidence distributions, not a "
+                "corpus-wide emotional identity. Underlying chart values remain "
+                "available in the corpus workbook and each work's CSV bundle."
+            )
 
     pooled = tuple(
         row for row in aggregates if row.module_name == selected_module
@@ -599,6 +791,7 @@ def _render_analysis_tab(
         "lexical_style": (
             "Lexical diversity, word length, and structural word counts"
         ),
+        "poetry_id": "PoetryID lexical-affective profiles",
     }
     selected_modules = st.multiselect(
         "Additional analysis modules",
@@ -636,6 +829,12 @@ def _render_analysis_tab(
     )
     frequency_content_words_only = False
     aoa_content_words_only = False
+    poetry_id_sources: tuple[str, ...] = ()
+    poetry_id_weightings: tuple[str, ...] = ("token", "type")
+    poetry_id_views: tuple[str, ...] = ("all_matched",)
+    poetry_id_lexical_dimensions: tuple[str, ...] = ()
+    poetry_id_threshold_profile = PoetryIDConfiguration().threshold_profile
+    poetry_id_configuration_error = ""
     with st.expander("Advanced batch methodology"):
         policies = {
             "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -674,6 +873,127 @@ def _render_analysis_tab(
                     "classes, so this is an actual analysis-scope choice."
                 ),
             )
+        if "poetry_id" in selected_modules:
+            st.markdown("**PoetryID batch settings**")
+            eligible_sources = [
+                lexicon_id
+                for lexicon_id in lexicon_ids
+                if lexicon_id in SUPPORTED_VAD_LEXICON_IDS
+            ]
+            poetry_id_sources = tuple(
+                st.multiselect(
+                    "PoetryID VAD sources",
+                    options=eligible_sources,
+                    default=eligible_sources,
+                    format_func=lambda lexicon_id: lexicon_lookup[
+                        lexicon_id
+                    ].display_name,
+                    key=f"corpus_poetry_id_sources_{project_id}",
+                    help=(
+                        "Every source remains separate; no consensus VAD "
+                        "profile is calculated."
+                    ),
+                )
+            )
+            poetry_id_weightings = tuple(
+                st.multiselect(
+                    "PoetryID weighting views",
+                    options=["token", "type"],
+                    default=["token", "type"],
+                    key=f"corpus_poetry_id_weightings_{project_id}",
+                )
+            )
+            poetry_id_views = tuple(
+                st.multiselect(
+                    "PoetryID analysis views",
+                    options=["all_matched", "stopwords_excluded"],
+                    default=["all_matched"],
+                    format_func=lambda value: value.replace("_", " ").title(),
+                    key=f"corpus_poetry_id_views_{project_id}",
+                )
+            )
+            character_options = [
+                dimension
+                for dimension, module_name in (
+                    ("concreteness", "concreteness"),
+                    ("frequency", "frequency"),
+                    ("age_of_acquisition", "aoa"),
+                )
+                if module_name in selected_modules
+            ]
+            poetry_id_lexical_dimensions = tuple(
+                st.multiselect(
+                    "Secondary PoetryID lexical character",
+                    options=character_options,
+                    default=character_options,
+                    format_func=lambda value: value.replace(
+                        "_", " "
+                    ).title(),
+                    key=f"corpus_poetry_id_character_{project_id}",
+                )
+            )
+            custom_thresholds = st.checkbox(
+                "Use custom fixed VAD thresholds for this batch",
+                value=False,
+                key=f"corpus_poetry_id_custom_{project_id}",
+            )
+            threshold_values = {}
+            threshold_columns = st.columns(3)
+            for column, dimension in zip(
+                threshold_columns,
+                ("valence", "arousal", "dominance"),
+                strict=True,
+            ):
+                with column:
+                    low_max = st.number_input(
+                        f"{dimension.title()} low maximum",
+                        min_value=0.0,
+                        max_value=0.99,
+                        value=0.4,
+                        step=0.01,
+                        disabled=not custom_thresholds,
+                        key=(
+                            f"corpus_poetry_id_{dimension}_low_"
+                            f"{project_id}"
+                        ),
+                    )
+                    high_min = st.number_input(
+                        f"{dimension.title()} high minimum",
+                        min_value=0.01,
+                        max_value=1.0,
+                        value=0.6,
+                        step=0.01,
+                        disabled=not custom_thresholds,
+                        key=(
+                            f"corpus_poetry_id_{dimension}_high_"
+                            f"{project_id}"
+                        ),
+                    )
+                    threshold_values[dimension] = (
+                        float(low_max),
+                        float(high_min),
+                    )
+            if custom_thresholds:
+                try:
+                    poetry_id_threshold_profile = ThresholdProfile(
+                        profile_id="custom_fixed_corpus_ui",
+                        name="Custom Fixed Corpus Thresholds",
+                        method="fixed",
+                        dimensions={
+                            dimension: ThresholdBand(low_max, high_min)
+                            for dimension, (
+                                low_max,
+                                high_min,
+                            ) in threshold_values.items()
+                        },
+                        configuration_version=(
+                            "poetry-id-custom-fixed-corpus-v1"
+                        ),
+                        built_in=False,
+                    )
+                except ValueError as error:
+                    poetry_id_configuration_error = str(error)
+                    st.warning(poetry_id_configuration_error)
     with st.expander("Stopword settings"):
         st.info(
             "Stopword exclusion changes only the secondary VAD view. Matching, "
@@ -683,7 +1003,19 @@ def _render_analysis_tab(
     run = st.button(
         "Analyze selected works",
         type="primary",
-        disabled=not text_ids or (not lexicon_ids and not selected_modules),
+        disabled=(
+            not text_ids
+            or (not lexicon_ids and not selected_modules)
+            or (
+                "poetry_id" in selected_modules
+                and (
+                    not poetry_id_sources
+                    or not poetry_id_weightings
+                    or not poetry_id_views
+                    or bool(poetry_id_configuration_error)
+                )
+            )
+        ),
         key=f"analyze_corpus_{project_id}",
     )
     if run:
@@ -710,6 +1042,16 @@ def _render_analysis_tab(
                 include_meter="meter" in selected_modules,
                 include_phonology="phonology" in selected_modules,
                 include_lexical_style="lexical_style" in selected_modules,
+                include_poetry_id="poetry_id" in selected_modules,
+                poetry_id_configuration=PoetryIDConfiguration(
+                    threshold_profile=poetry_id_threshold_profile,
+                    weighting_modes=poetry_id_weightings,
+                    analysis_views=poetry_id_views,
+                    vad_lexicon_ids=poetry_id_sources,
+                    requested_lexical_dimensions=(
+                        poetry_id_lexical_dimensions
+                    ),
+                ),
             )
             batch = analyze_corpus(
                 repository,

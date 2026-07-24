@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, candidate-meter, rhyme, recurring-sound, lexical-diversity, word-length, and structural word-count evidence. These constructs are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, candidate-meter, rhyme, recurring-sound, lexical-diversity, word-length, structural word-count, and PoetryID candidate-profile evidence. These constructs are separate from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
 
 [[PAGEBREAK]]
 
@@ -15,7 +15,7 @@
 1. The one-minute mental model
 2. A safe reading order
 3. Valence, arousal, and dominance
-4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, dictionary pronunciation, candidate meter, rhyme, recurring sounds, lexical diversity, word length, and structural word counts
+4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, dictionary pronunciation, candidate meter, rhyme, recurring sounds, lexical diversity, word length, structural word counts, and PoetryID
 5. Tokens, types, phrases, lemmas, and matches
 6. Part-of-speech profiles
 7. Coverage and unmatched vocabulary
@@ -55,7 +55,7 @@ For every analysis, read the results in this order:
 1. **Confirm the text and lexicons.** Make sure you analyzed the intended version and sources.
 2. **Read coverage.** Determine how much eligible vocabulary was represented.
 3. **Read warnings.** Note sparse evidence, lemma reliance, review exclusions, or other methodological cautions.
-4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, dictionary pronunciation/lexical stress, candidate-meter fit, rhyme/recurring-sound evidence, and lexical-style evidence are different kinds of evidence.
+4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, dictionary pronunciation/lexical stress, candidate-meter fit, rhyme/recurring-sound evidence, lexical-style evidence, and PoetryID candidate profiles are different kinds of evidence.
 5. **Choose one analysis view.** Compare all matched observations with stopwords excluded; do not merge them.
 6. **Choose one weighting.** Token weighting answers a repetition-sensitive question; type weighting answers a vocabulary-sensitive question.
 7. **Inspect dispersion and contributors.** A mean alone can conceal mixed ratings or one repeated influential word.
@@ -410,6 +410,50 @@ window, the text had MATTR 0.74 across 181 eligible lexical tokens.”
 Avoid: “The poem has a vocabulary richness of 74%,” comparisons made under
 different settings, or treating line and stanza word counts as interpretations
 of poetic form.
+
+## PoetryID Candidate Lexical-Affective Profiles
+
+PoetryID is a dependent interpretation layer over a completed normalized VAD
+summary. It does not tokenize the poem, load a VAD lexicon, match words, or
+calculate VAD again. Every result names its exact VAD source, all-matched or
+stopword-excluded view, token/type weighting, thresholds, and upstream
+analysis.
+
+Each normalized dimension is classified as low, moderate, or high. Under the
+default fixed profile:
+
+- low means `score <= 0.40`;
+- high means `score >= 0.60`;
+- moderate means the score lies between those boundaries.
+
+Three dimensions with three levels produce `3 x 3 x 3 = 27` canonical
+candidate profiles. Custom fixed boundaries are available. Corpus-tertile and
+z-score boundaries are not implemented.
+
+PoetryID also retains continuous evidence. For VAD point `(V, A, D)` and
+candidate centroid `(Vc, Ac, Dc)`:
+
+`distance = sqrt((V - Vc)^2 + (A - Ac)^2 + (D - Dc)^2)`
+
+All 27 distances remain available. Inverse-distance similarities are
+normalized across the 27 profiles for comparison. These **relative
+affinities are not probabilities**.
+
+The categorical profile and nearest continuous centroid may differ near a
+boundary. PoetryID preserves both. Its confidence label considers distance,
+neighbor margin, threshold proximity, agreement, and coverage; it is a
+rule-based evidence label, not a calibrated probability.
+
+Optional concreteness, SUBTLEX-US Zipf frequency, and AoA character uses
+already completed module summaries on their native scales. It never changes
+the VAD profile.
+
+Safe wording: "Under the default fixed thresholds, the token-weighted NRC VAD
+v1 evidence was nearest categorically to The Survivor profile, with low
+valence, moderate arousal, and high dominance."
+
+Avoid: "The poem is a Survivor," "the speaker feels defiant endurance," or
+"the affinity is the probability that this is the poem's emotion."
 
 # 5. Tokens, Types, Phrases, Lemmas, and Matches
 
@@ -822,9 +866,10 @@ A divergence shows that work length changes the collection-level result. Report 
 
 ## Additional-module collection summaries
 
-For concreteness, Frequency, AoA, pronunciation, meter, rhyme/sound, and
-lexical-style corpus results, VerseVAD groups only matching module versions,
-configuration IDs, metric IDs, units, and weightings.
+For concreteness, Frequency, AoA, pronunciation, meter, rhyme/sound,
+lexical-style, and PoetryID corpus results, VerseVAD groups only matching
+module versions, configuration IDs, metric IDs, units, scope IDs, and
+weightings.
 
 An **equal-work module mean** gives each eligible work value one vote. An
 **observation-weighted module mean** appears only when every included work has
@@ -835,6 +880,11 @@ dispersion, rhyme schemes, categorical candidates, MATTR, HD-D, or MTLD.
 concatenates stored included normalized-surface tokens in stable work order and
 recalculates TTR, MATTR, HD-D, and MTLD under one configuration. It does not
 average work-level diversity values and call that pooled.
+
+PoetryID profile prevalence is calculated only within one compatible VAD
+source, analysis view, weighting, and threshold configuration. Its map counts,
+continuous work positions, and token/type differences do not create one
+corpus-wide emotional identity.
 
 Lexicon Explorer's additional concreteness, SUBTLEX-US, AoA, pronunciation,
 syllable, and stress fields remain source or dictionary evidence. **Unmatched**
@@ -1106,7 +1156,7 @@ Include these elements for every numeric claim:
 
 ## Reporting Template
 
-“Using **[lexicon or resource and version]**, **[text or collection]** had **[statistic] = [value]** for **[construct/dimension]** on the **[scale]**, using **[analysis view or optional-module scope when applicable]** and **[weighting]** across **[matched count/denominator]**, with **[coverage]** coverage. **[Dispersion, contributors, response evidence, relationship, sensitivity, or corpus divergence]**. The result describes matched lexical evidence and is interpreted alongside the text.”
+“Using **[lexicon or resource and version]**, **[text or collection]** had **[statistic] = [value]** for **[construct/dimension]** on the **[scale]**, using **[analysis view or optional-module scope when applicable]** and **[weighting]** across **[matched count/denominator]**, with **[coverage]** coverage. **[Dispersion, contributors, response evidence, relationship, sensitivity, PoetryID boundary/neighbor evidence, or corpus divergence]**. The result describes matched lexical evidence and is interpreted alongside the text.”
 
 # 19. Quick-Reference Glossary
 
@@ -1116,7 +1166,7 @@ Include these elements for every numeric claim:
 | Age of Acquisition rating | Adult retrospective source estimate, in years, of when a listed word was learned well enough to understand |
 | Analysis run | One immutable calculation tied to exact inputs and methods |
 | Analysis view | All matched observations or stopwords excluded |
-| Additional module result | Generic persisted result from an existing concreteness, frequency, AoA, pronunciation, meter, rhyme/sound, or lexical-style engine |
+| Additional module result | Generic persisted result from an existing concreteness, frequency, AoA, pronunciation, meter, rhyme/sound, lexical-style, or PoetryID engine |
 | AoA orientation band | Configurable early/middle/later VerseVAD display aid, not a source-validated category |
 | Arousal | Normative activation or energy associated with a lexical item |
 | Association | Binary source label linking an entry to an emotion or sentiment |
@@ -1155,6 +1205,10 @@ Include these elements for every numeric claim:
 | Phrase match | Multi-token span linked to one source entry |
 | Perfect rhyme | Robust line-ending rhyme parts agree while complete retained endings are not identical |
 | Population standard deviation | Spread of the complete selected value set around its mean |
+| PoetryID | Dependent 27-profile description over one completed source/view/weighting-specific normalized VAD result |
+| PoetryID centroid | Configured continuous VAD coordinate representing one low/moderate/high profile combination |
+| PoetryID confidence | Rule-based label from distance, neighbor margin, boundary proximity, agreement, and coverage; not a probability |
+| Relative affinity | Inverse-distance comparison normalized across all 27 PoetryID centroids; not a probability |
 | Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
 | Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
 | Resource unavailable | Expected local resource is missing or fails validation; distinct from an unmatched word |

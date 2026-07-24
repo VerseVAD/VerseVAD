@@ -1,6 +1,6 @@
 # VerseVAD Implementation Plan
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 Status markers: `[x]` complete, `[ ]` pending, `[~]` in progress, `[?]` human
 review required.
@@ -707,7 +707,10 @@ review required.
   word length, physical-line word counts, and stanza word counts.
 - [x] Stage 11: project/corpus module port and foundational longitudinal
   comparison, including expanded all-resource Lexicon Explorer lookup.
-- [ ] Stage 12: visualization and reporting.
+- [x] Stage 12: PoetryID dependent VAD-archetype module, lexical character,
+  corpus distributions, and accessible visual reporting.
+- [ ] Stage 13: application-wide design runthrough.
+- [ ] Stage 14: performance, speed, caching, and optimization pass.
 
 ## Poetic Fingerprint expansion - Stage 10 narrowed lexical style
 
@@ -812,6 +815,67 @@ review required.
   the canonical page-image renderer attempted but unavailable because
   LibreOffice is not installed.
 - [x] Create the expansion Stage 11 source-control checkpoint.
+
+## Poetic Fingerprint expansion - Stage 12 PoetryID
+
+- [x] Add a framework-independent PoetryID engine that consumes completed
+  normalized VAD results and never tokenizes, loads a lexicon, matches text, or
+  recalculates VAD independently.
+- [x] Register all 27 canonical low/moderate/high valence, arousal, and
+  dominance combinations with stable IDs, names, descriptors, narrative
+  summaries, and interpretive cautions.
+- [x] Add a versioned default fixed threshold profile plus auditable custom
+  fixed thresholds with explicit inclusive boundaries and centroids.
+- [x] Keep each VAD lexicon, all-matched/stopword-excluded view, and token/type
+  weighting as a separate PoetryID result; never create a consensus profile.
+- [x] Retain continuous VAD, categorical levels, categorical assignment,
+  Euclidean distances to all 27 centroids, nearest alternatives,
+  inverse-distance relative affinities, categorical/centroid agreement,
+  boundary proximity, neighbor margin, coverage, and rule-based confidence.
+- [x] Keep insufficient or invalid VAD evidence unavailable with a structured
+  reason; never insert a neutral score or silently fall back to another source.
+- [x] Add optional secondary lexical character from already completed
+  concreteness, SUBTLEX-US Zipf, and Kuperman AoA summaries; never let those
+  dimensions alter the VAD assignment.
+- [x] Add the optional One Poem PoetryID controls and tab with continuous VAD
+  first, three dominance maps, threshold scales, neighbors, confidence,
+  coverage, lexical character, methodology, cautions, and downloads.
+- [x] Add Projects/Corpus PoetryID controls, immutable per-work persistence,
+  compatible source/view/weighting distributions, 3x3 map counts, continuous
+  work positions, token/type sensitivity, workbook fields, and per-work
+  artifact ZIPs through the existing generic schema-4 module tables.
+- [x] Add seven UTF-8 CSV/plain-text PoetryID exports. At the scholar's
+  direction, PoetryID has no JSON export.
+- [x] Add synthetic engine, boundary, missingness, lexical-character, export,
+  application, repository, corpus, workbook, UI compile, configuration, and
+  regression tests plus a hand-calculated validation command.
+- [x] Update methodology, architecture, data model, user guidance, testing,
+  changelog, roadmap, and both Word guides.
+- [x] Run the complete suite, every synthetic demonstration, diagnostics,
+  source/resource checks, lock-file check, Word structural/accessibility
+  checks, and document rendering where installed tools permit.
+- [x] Create the expansion Stage 12 source-control checkpoint.
+
+### Expansion Stage 12 exit criteria
+
+- [x] Every PoetryID result identifies its exact upstream VAD analysis, source
+  hash, adapter version, view, weighting, threshold profile, and configuration.
+- [x] Profile names are framed as nearest candidate lexical-affective
+  neighborhoods, never as the emotion of a poem, speaker, author, or reader.
+- [x] Relative affinity and confidence are explicitly non-probabilistic;
+  boundary-sensitive and categorical/centroid-disagreement states remain
+  visible.
+- [x] Sparse and low-coverage evidence remains unavailable or cautioned, and
+  unmatched terms remain missing rather than neutral.
+- [x] Corpus distributions never merge incompatible VAD sources, analysis
+  views, weightings, or configurations and never declare one corpus identity.
+- [x] PoetryID chart data is downloadable as CSV, its report is plain text,
+  and no PoetryID JSON is produced.
+- [x] Existing VAD, emotion, lexical-semantic, prosody, review, Explorer,
+  database, and export behavior remains independently available.
+- [x] All automated/local software and Word documentation checks pass, with
+  any environment-limited render exception recorded precisely.
+- [x] Create the expansion Stage 12 source-control checkpoint.
 
 ## Cross-cutting later work - Scholarly diagnostics
 

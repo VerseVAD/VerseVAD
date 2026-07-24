@@ -642,3 +642,54 @@ CMUdict alternatives remain separate. Resource-unavailable,
 available-but-unmatched, and source-entry-without-numeric-rating states remain
 distinct. Explorer evidence is decontextualized and does not resolve poetic
 sense, performance, dialect, metaphor, irony, or reader response.
+
+## Stage 12 PoetryID dependent classification
+
+PoetryID consumes only completed normalized VAD summaries. It does not
+re-tokenize, reload a VAD source, rematch text, or calculate a second VAD
+result. Each assignment retains the exact upstream analysis ID, lexicon ID and
+name, lexicon version, adapter version, source SHA-256, analysis view, and
+weighting.
+
+Version 1 classifies each normalized dimension using a versioned fixed profile:
+low when `score <= low_max`, high when `score >= high_min`, and moderate
+otherwise. The built-in boundaries are 0.40 and 0.60. A custom-fixed profile
+may set separate boundaries for valence, arousal, and dominance. The low,
+moderate, and high centroids default to the midpoint of each configured region.
+Corpus tertiles and z scores are not implemented because they require a
+separately specified and versioned reference-corpus policy.
+
+The three classified levels select one of 27 canonical profiles. Separately,
+PoetryID calculates Euclidean distance from the continuous normalized VAD point
+to every profile centroid:
+
+`distance = sqrt((V - Vc)^2 + (A - Ac)^2 + (D - Dc)^2)`
+
+For display, inverse-distance similarity is calculated as
+`1 / (distance + epsilon)` and normalized across all 27 candidates. These
+relative affinities are not probabilities. Categorical and nearest-centroid
+profiles are both retained when they differ.
+
+Rule-based confidence considers categorical/centroid agreement, assigned
+centroid distance, the nearest-neighbor margin, distance to the low/high
+thresholds, and source VAD coverage. Labels are high confidence, moderate
+confidence, boundary sensitive, or low confidence; none is a calibrated
+probability.
+
+Token- and type-weighted assignments have separate configurable evidence
+minimums and coverage requirements. Missing/invalid VAD, too few observations,
+or inadequate coverage produces a structured unavailable state. Unmatched
+items never receive a midpoint or neutral value.
+
+Optional concreteness, frequency, and age-of-acquisition character is adapted
+from completed module summaries on each source's native scale. Token and type
+statistics remain separate. These secondary descriptors never modify the VAD
+levels, profile, distances, affinities, or confidence.
+
+Corpus summaries group PoetryID only when module version, configuration,
+source/view scope, and weighting match. Profile prevalence, 3x3 map counts,
+continuous work positions, and token/type differences remain descriptive
+work-level evidence and do not create a corpus-wide identity.
+
+At the scholar's direction, PoetryID exports seven UTF-8 CSV/plain-text files
+and no JSON file.

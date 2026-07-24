@@ -38,6 +38,7 @@ _application_was_reloaded = (
             "MeterConfiguration",
             "PhonologicalConfiguration",
             "LexicalStyleConfiguration",
+            "PoetryIDConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -74,6 +75,10 @@ if _application_was_reloaded:
         "versevad.phonology",
         "versevad.lexical_style.profile",
         "versevad.lexical_style",
+        "versevad.poetry_id.archetypes",
+        "versevad.poetry_id.engine",
+        "versevad.poetry_id.integration",
+        "versevad.poetry_id",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
         "versevad.exports.aoa",
@@ -81,6 +86,8 @@ if _application_was_reloaded:
         "versevad.exports.meter",
         "versevad.exports.phonology",
         "versevad.exports.lexical_style",
+        "versevad.exports.poetry_id",
+        "versevad.ui.poetry_id",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -142,6 +149,13 @@ from versevad.prosody.pronunciation import (
 )
 from versevad.prosody.meter import MeterConfiguration
 from versevad.phonology import PhonologicalConfiguration
+from versevad.poetry_id import (
+    SUPPORTED_VAD_LEXICON_IDS,
+    PoetryIDConfiguration,
+    ThresholdBand,
+    ThresholdProfile,
+)
+from versevad.ui.poetry_id import render_poetry_id
 from versevad.ui.stopwords import render_stopword_settings
 
 
@@ -171,12 +185,12 @@ if _explorer_was_reloaded:
 # Corpus Excel gained a methodology argument after the persistent workspace
 # first shipped. An already-open Streamlit process can otherwise retain the
 # four-argument exporter while loading the newer five-argument corpus page.
-_CORPUS_RUNTIME_REVISION = "2026-07-23-phase5-review-pos-3"
+_CORPUS_RUNTIME_REVISION = "2026-07-24-poetry-id-1"
 import versevad.exports.corpus_excel as _corpus_excel_services
 
 _corpus_was_reloaded = (
     st.session_state.get("_corpus_runtime_revision") != _CORPUS_RUNTIME_REVISION
-    or getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 4
+    or getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 6
 )
 if _corpus_was_reloaded:
     importlib.reload(_corpus_excel_services)
@@ -443,6 +457,74 @@ if workspace_page == "One Poem":
         st.caption(
             "Optional and off by default. This module needs no external dataset "
             "and reuses the shared poetry-preserving processing record."
+        )
+
+        available_poetry_id_sources = [
+            lexicon_id
+            for lexicon_id in selected_lexicons
+            if lexicon_id in SUPPORTED_VAD_LEXICON_IDS
+        ]
+        include_poetry_id = st.checkbox(
+            "PoetryID lexical-affective profile",
+            value=False,
+            disabled=not available_poetry_id_sources,
+            key="include_poetry_id",
+            help=(
+                "Classifies completed normalized VAD evidence against a "
+                "transparent 27-profile grid. It does not rerun VAD or declare "
+                "the poem's emotion."
+            ),
+        )
+        if not available_poetry_id_sources:
+            st.info(
+                "Select Warriner VAD, NRC VAD v1, or NRC VAD v2.1 to enable "
+                "PoetryID."
+            )
+        poetry_id_sources = st.multiselect(
+            "PoetryID VAD sources",
+            options=available_poetry_id_sources,
+            default=available_poetry_id_sources,
+            format_func=lambda lexicon_id: spec_by_id[lexicon_id].display_name,
+            disabled=not include_poetry_id,
+            key="poetry_id_sources",
+            help=(
+                "Every source remains a separate result. PoetryID never creates "
+                "a consensus VAD score."
+            ),
+        )
+        poetry_id_weightings = st.multiselect(
+            "PoetryID weighting views",
+            options=["token", "type"],
+            default=["token", "type"],
+            disabled=not include_poetry_id,
+            key="poetry_id_weightings",
+        )
+        poetry_id_views = st.multiselect(
+            "PoetryID analysis views",
+            options=["all_matched", "stopwords_excluded"],
+            default=["all_matched"],
+            format_func=lambda value: value.replace("_", " ").title(),
+            disabled=not include_poetry_id,
+            key="poetry_id_views",
+        )
+        available_character_dimensions = []
+        if include_concreteness:
+            available_character_dimensions.append("concreteness")
+        if include_frequency:
+            available_character_dimensions.append("frequency")
+        if include_aoa:
+            available_character_dimensions.append("age_of_acquisition")
+        poetry_id_lexical_dimensions = st.multiselect(
+            "Secondary PoetryID lexical character",
+            options=available_character_dimensions,
+            default=available_character_dimensions,
+            format_func=lambda value: value.replace("_", " ").title(),
+            disabled=not include_poetry_id,
+            key="poetry_id_lexical_dimensions",
+            help=(
+                "Uses completed module summaries only. These descriptors never "
+                "change the VAD archetype."
+            ),
         )
 
         pronunciation_statuses = PronunciationModule(
@@ -773,6 +855,99 @@ if workspace_page == "One Poem":
                 "their configured denominators. Compare texts only when these "
                 "parameters and the lexical-token policy match."
             )
+            st.markdown("**PoetryID settings**")
+            poetry_id_custom_thresholds = st.checkbox(
+                "Use custom fixed VAD thresholds",
+                value=False,
+                disabled=not include_poetry_id,
+                key="poetry_id_custom_thresholds",
+                help=(
+                    "Off uses the documented 0.40/0.60 fixed boundaries. "
+                    "Corpus-relative tertiles and z scores are not implemented "
+                    "until a defensible reference-corpus rule is specified."
+                ),
+            )
+            poetry_threshold_columns = st.columns(3)
+            poetry_id_threshold_values = {}
+            for column, dimension in zip(
+                poetry_threshold_columns,
+                ("valence", "arousal", "dominance"),
+                strict=True,
+            ):
+                with column:
+                    st.caption(dimension.title())
+                    low_max = st.number_input(
+                        "Low maximum",
+                        min_value=0.0,
+                        max_value=0.99,
+                        value=0.4,
+                        step=0.01,
+                        key=f"poetry_id_{dimension}_low",
+                        disabled=(
+                            not include_poetry_id
+                            or not poetry_id_custom_thresholds
+                        ),
+                    )
+                    high_min = st.number_input(
+                        "High minimum",
+                        min_value=0.01,
+                        max_value=1.0,
+                        value=0.6,
+                        step=0.01,
+                        key=f"poetry_id_{dimension}_high",
+                        disabled=(
+                            not include_poetry_id
+                            or not poetry_id_custom_thresholds
+                        ),
+                    )
+                    poetry_id_threshold_values[dimension] = (
+                        float(low_max),
+                        float(high_min),
+                    )
+            poetry_id_evidence_columns = st.columns(4)
+            poetry_id_min_tokens = poetry_id_evidence_columns[0].number_input(
+                "Minimum matched tokens",
+                min_value=1,
+                max_value=1000,
+                value=5,
+                key="poetry_id_min_tokens",
+                disabled=not include_poetry_id,
+            )
+            poetry_id_min_types = poetry_id_evidence_columns[1].number_input(
+                "Minimum matched types",
+                min_value=1,
+                max_value=1000,
+                value=3,
+                key="poetry_id_min_types",
+                disabled=not include_poetry_id,
+            )
+            poetry_id_min_token_coverage = poetry_id_evidence_columns[
+                2
+            ].number_input(
+                "Minimum token coverage",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.2,
+                step=0.05,
+                key="poetry_id_min_token_coverage",
+                disabled=not include_poetry_id,
+            )
+            poetry_id_min_type_coverage = poetry_id_evidence_columns[
+                3
+            ].number_input(
+                "Minimum type coverage",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.2,
+                step=0.05,
+                key="poetry_id_min_type_coverage",
+                disabled=not include_poetry_id,
+            )
+            st.caption(
+                "Categorical boundaries, all 27 centroid distances, relative "
+                "affinities, boundary sensitivity, coverage, and the exact "
+                "configuration are retained. Affinities are not probabilities."
+            )
             st.markdown("**Pronunciation & prosody-foundation settings**")
             pronunciation_overrides_text = st.text_area(
                 "Poem-specific pronunciation overrides",
@@ -1017,6 +1192,47 @@ if workspace_page == "One Poem":
         if include_lexical_style:
             st.warning(lexical_style_configuration_error)
 
+    poetry_id_configuration_error = ""
+    try:
+        if include_poetry_id and not poetry_id_sources:
+            raise ValueError("Select at least one VAD source for PoetryID.")
+        threshold_profile = PoetryIDConfiguration().threshold_profile
+        if poetry_id_custom_thresholds:
+            threshold_profile = ThresholdProfile(
+                profile_id="custom_fixed_ui",
+                name="Custom Fixed Thresholds",
+                method="fixed",
+                dimensions={
+                    dimension: ThresholdBand(low_max, high_min)
+                    for dimension, (
+                        low_max,
+                        high_min,
+                    ) in poetry_id_threshold_values.items()
+                },
+                configuration_version="poetry-id-custom-fixed-v1",
+                built_in=False,
+            )
+        poetry_id_configuration = PoetryIDConfiguration(
+            threshold_profile=threshold_profile,
+            weighting_modes=tuple(poetry_id_weightings),
+            analysis_views=tuple(poetry_id_views),
+            vad_lexicon_ids=tuple(poetry_id_sources),
+            requested_lexical_dimensions=tuple(
+                poetry_id_lexical_dimensions
+            ),
+            minimum_matched_tokens=int(poetry_id_min_tokens),
+            minimum_matched_types=int(poetry_id_min_types),
+            minimum_token_coverage=float(
+                poetry_id_min_token_coverage
+            ),
+            minimum_type_coverage=float(poetry_id_min_type_coverage),
+        )
+    except ValueError as error:
+        poetry_id_configuration_error = str(error)
+        poetry_id_configuration = PoetryIDConfiguration()
+        if include_poetry_id:
+            st.warning(poetry_id_configuration_error)
+
     pronunciation_configuration_error = ""
     try:
         pronunciation_configuration = PronunciationConfiguration(
@@ -1079,6 +1295,8 @@ if workspace_page == "One Poem":
                 raise ValueError(aoa_configuration_error)
             if lexical_style_configuration_error:
                 raise ValueError(lexical_style_configuration_error)
+            if poetry_id_configuration_error:
+                raise ValueError(poetry_id_configuration_error)
             if pronunciation_configuration_error:
                 raise ValueError(pronunciation_configuration_error)
             if meter_configuration_error:
@@ -1104,6 +1322,8 @@ if workspace_page == "One Poem":
                 aoa_configuration=aoa_configuration,
                 include_lexical_style=include_lexical_style,
                 lexical_style_configuration=lexical_style_configuration,
+                include_poetry_id=include_poetry_id,
+                poetry_id_configuration=poetry_id_configuration,
                 include_pronunciation=include_pronunciation,
                 pronunciation_configuration=pronunciation_configuration,
                 include_meter=include_meter,
@@ -1144,6 +1364,7 @@ if workspace_page == "One Poem":
         or include_meter != workspace.request.include_meter
         or include_phonology != workspace.request.include_phonology
         or include_lexical_style != workspace.request.include_lexical_style
+        or include_poetry_id != workspace.request.include_poetry_id
         or (
             include_concreteness
             and concreteness_configuration
@@ -1162,6 +1383,11 @@ if workspace_page == "One Poem":
             include_lexical_style
             and lexical_style_configuration
             != workspace.request.lexical_style_configuration
+        )
+        or (
+            include_poetry_id
+            and poetry_id_configuration
+            != workspace.request.poetry_id_configuration
         )
         or (
             (include_pronunciation or include_meter or include_phonology)
@@ -1196,6 +1422,7 @@ if workspace_page == "One Poem":
         overview_tab,
         language_tab,
         lexical_style_tab,
+        poetry_id_tab,
         concreteness_tab,
         frequency_tab,
         aoa_tab,
@@ -1212,6 +1439,7 @@ if workspace_page == "One Poem":
             "Overview",
             "Language Profile",
             "Lexical Style",
+            "PoetryID",
             "Concreteness Profile",
             "Frequency & Rarity",
             "Age of Acquisition",
@@ -1225,6 +1453,9 @@ if workspace_page == "One Poem":
             "How to Read",
         ]
     )
+
+    with poetry_id_tab:
+        render_poetry_id(workspace.poetry_id)
 
     with overview_tab:
         coverage = coverage_views(workspace)

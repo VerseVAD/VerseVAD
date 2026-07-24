@@ -25,6 +25,7 @@ from versevad.exports.lexical_style import export_lexical_style_bundle
 from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phonology import export_phonological_bundle
 from versevad.exports.pronunciation import export_pronunciation_bundle
+from versevad.exports.poetry_id import export_poetry_id_bundle
 from versevad.models import (
     MatchMethod,
     MatchSelection,
@@ -1781,6 +1782,7 @@ class ProjectRepository:
             (workspace.meter, export_meter_bundle),
             (workspace.phonology, export_phonological_bundle),
             (workspace.lexical_style, export_lexical_style_bundle),
+            (workspace.poetry_id, export_poetry_id_bundle),
         )
         return tuple(
             (result, exporter)
@@ -1830,6 +1832,11 @@ class ProjectRepository:
                 request.include_lexical_style,
                 "lexical_style",
                 request.lexical_style_configuration,
+            ),
+            (
+                request.include_poetry_id,
+                "poetry_id",
+                request.poetry_id_configuration,
             ),
         )
         return {
