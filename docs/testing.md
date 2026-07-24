@@ -367,3 +367,15 @@ rebuilt Word guides passed structural/content and accessibility checks and
 opened/paginated in Microsoft Word at 44 and 30 pages. The canonical page-image
 renderer was attempted but remains unavailable because LibreOffice is not
 installed; the already observed local Word PDF-export stall was not repeated.
+
+Stage 11 adds schema-4 migration, generic repository persistence, optional-
+module-only corpus, safe aggregation, pooled lexical-style, deterministic
+artifact ZIP, expanded Explorer, corpus workbook, and interface tests. Its
+hand-calculated fixtures are documented in
+[`poetic-fingerprint-stage11-validation.md`](poetic-fingerprint-stage11-validation.md).
+The Stage 11 completion suite passed `230 passed` on 2026-07-24. All nine
+direct synthetic demonstrations, all 11 diagnostics, read-only source/resource
+checks, the 86-package offline lock check, and `git diff --check` passed. Both
+rebuilt Word guides passed structural and accessibility checks with no
+high-severity findings. The canonical page-image renderer was attempted for
+both documents but could not start because LibreOffice is not installed.

@@ -3,18 +3,28 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import sqlite3
 import uuid
+import zipfile
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from enum import Enum
 from pathlib import Path
 from typing import Iterable, Iterator, Mapping, Sequence
 
 from versevad import __version__
 from versevad.application import WorkspaceAnalysis, unmatched_views, vad_cumulative_views
+from versevad.exports.aoa import export_aoa_bundle
+from versevad.exports.concreteness import export_concreteness_bundle
+from versevad.exports.frequency import export_frequency_bundle
+from versevad.exports.lexical_style import export_lexical_style_bundle
+from versevad.exports.meter import export_meter_bundle
+from versevad.exports.phonology import export_phonological_bundle
+from versevad.exports.pronunciation import export_pronunciation_bundle
 from versevad.models import (
     MatchMethod,
     MatchSelection,
@@ -25,8 +35,44 @@ from versevad.models import (
 from versevad.normalization import normalize_lookup
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+_OBSERVATION_COVERAGE_BY_METRIC = {
+    ("concreteness", "concreteness.mean"): (
+        "concreteness.rated_token_coverage"
+    ),
+    ("lexical_frequency", "frequency.mean_zipf"): (
+        "frequency.matched_token_coverage"
+    ),
+    ("age_of_acquisition", "aoa.mean_years"): (
+        "aoa.matched_token_coverage"
+    ),
+    (
+        "pronunciation_prosody_foundation",
+        "pronunciation.mean_syllables_per_resolved_word",
+    ): "pronunciation.resolved_token_coverage",
+    (
+        "pronunciation_prosody_foundation",
+        "pronunciation.mean_syllables_per_complete_line",
+    ): "pronunciation.complete_line_coverage",
+    (
+        "candidate_meter_and_rhythmic_regularity",
+        "meter.whole_poem_mean_fit",
+    ): "meter.analyzable_physical_lines",
+    (
+        "candidate_meter_and_rhythmic_regularity",
+        "meter.matching_line_proportion",
+    ): "meter.analyzable_physical_lines",
+    (
+        "rhyme_and_phonological_patterns",
+        "phonology.rhyme_density",
+    ): "phonology.analyzable_line_endings",
+    (
+        "lexical_style",
+        "lexical_style.mean_word_length",
+    ): "lexical_style.alphabetic_word_lengths",
+}
 
 
 def default_database_path() -> Path:
@@ -42,6 +88,23 @@ def _now() -> str:
 
 def _id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex}"
+
+
+def _json_default(value: object) -> object:
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Path):
+        return str(value)
+    raise TypeError(f"Cannot serialize {type(value)!r} as project data.")
+
+
+def _json_dumps(value: object) -> str:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        default=_json_default,
+    )
 
 
 @dataclass(frozen=True)
@@ -117,6 +180,8 @@ class CorpusBatchRecord:
     status: str
     text_ids: tuple[str, ...]
     lexicon_ids: tuple[str, ...]
+    module_names: tuple[str, ...]
+    module_configuration: Mapping[str, object]
     phrase_policy: str
     minimum_match_requirement: int
     stopword_mode: str
@@ -127,6 +192,120 @@ class CorpusBatchRecord:
     created_at: str
     completed_at: str | None
     error_message: str
+
+
+@dataclass(frozen=True)
+class CorpusModuleResultRecord:
+    module_result_row_id: str
+    run_id: str
+    text_id: str
+    text_version_id: str
+    title: str
+    author: str
+    collection: str
+    date_label: str
+    genre: str
+    module_name: str
+    module_version: str
+    result_id: str
+    configuration_id: str
+    scenario_id: str
+    source_text_sha256: str
+    provenance: Mapping[str, object]
+    completed_at: str
+
+
+@dataclass(frozen=True)
+class CorpusModuleMetricRecord:
+    run_id: str
+    text_id: str
+    text_version_id: str
+    title: str
+    author: str
+    collection: str
+    date_label: str
+    genre: str
+    module_name: str
+    module_version: str
+    result_id: str
+    configuration_id: str
+    metric_id: str
+    value: object
+    layer: str
+    scope: str
+    scope_id: str
+    unit: str
+    weighting: str
+    denominator: str
+    observation_count: int | None
+    note: str
+    completed_at: str
+
+
+@dataclass(frozen=True)
+class CorpusModuleCoverageRecord:
+    run_id: str
+    text_id: str
+    text_version_id: str
+    title: str
+    module_name: str
+    configuration_id: str
+    coverage_id: str
+    scope: str
+    scope_id: str
+    eligible_count: int
+    matched_count: int
+    unmatched_count: int
+    coverage_rate: float | None
+    unit: str
+    unmatched_items: tuple[str, ...]
+    note: str
+    completed_at: str
+
+
+@dataclass(frozen=True)
+class CorpusModuleWarningRecord:
+    run_id: str
+    text_id: str
+    text_version_id: str
+    title: str
+    module_name: str
+    configuration_id: str
+    code: str
+    message: str
+    severity: str
+    technical_detail: str
+    completed_at: str
+
+
+@dataclass(frozen=True)
+class CorpusModuleArtifactRecord:
+    run_id: str
+    text_id: str
+    text_version_id: str
+    title: str
+    module_name: str
+    filename: str
+    content: bytes
+    content_sha256: str
+    size_bytes: int
+
+
+@dataclass(frozen=True)
+class CorpusModuleAggregateRecord:
+    aggregate_id: str
+    batch_id: str
+    project_id: str
+    module_name: str
+    configuration_id: str
+    metric_id: str
+    aggregation_method: str
+    value: object
+    unit: str
+    works_included: int
+    works_omitted: int
+    observation_count: int
+    note: str
 
 
 @dataclass(frozen=True)
@@ -447,6 +626,119 @@ CREATE INDEX idx_review_candidates_run
 ON review_candidates(run_id, risk_category, text_id);
 """
 
+_MIGRATION_4 = """
+ALTER TABLE corpus_batches
+ADD COLUMN module_names_json TEXT NOT NULL DEFAULT '[]';
+
+ALTER TABLE corpus_batches
+ADD COLUMN module_configuration_json TEXT NOT NULL DEFAULT '{}';
+
+CREATE TABLE module_results (
+    module_result_row_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES analysis_runs(run_id) ON DELETE CASCADE,
+    module_name TEXT NOT NULL,
+    module_version TEXT NOT NULL,
+    result_id TEXT NOT NULL,
+    configuration_id TEXT NOT NULL,
+    scenario_id TEXT NOT NULL,
+    source_text_sha256 TEXT NOT NULL,
+    provenance_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(run_id, module_name)
+);
+
+CREATE TABLE module_metrics (
+    module_metric_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module_result_row_id TEXT NOT NULL
+        REFERENCES module_results(module_result_row_id) ON DELETE CASCADE,
+    metric_id TEXT NOT NULL,
+    value_json TEXT NOT NULL,
+    layer TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    scope_id TEXT NOT NULL DEFAULT '',
+    unit TEXT NOT NULL DEFAULT '',
+    weighting TEXT NOT NULL DEFAULT '',
+    denominator TEXT NOT NULL DEFAULT '',
+    observation_count INTEGER,
+    note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE module_coverage (
+    module_coverage_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module_result_row_id TEXT NOT NULL
+        REFERENCES module_results(module_result_row_id) ON DELETE CASCADE,
+    coverage_id TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    scope_id TEXT NOT NULL DEFAULT '',
+    eligible_count INTEGER NOT NULL,
+    matched_count INTEGER NOT NULL,
+    unmatched_count INTEGER NOT NULL,
+    coverage_rate REAL,
+    unit TEXT NOT NULL,
+    unmatched_items_json TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE module_warnings (
+    module_warning_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module_result_row_id TEXT NOT NULL
+        REFERENCES module_results(module_result_row_id) ON DELETE CASCADE,
+    code TEXT NOT NULL,
+    message TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    technical_detail TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE module_artifacts (
+    module_artifact_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module_result_row_id TEXT NOT NULL
+        REFERENCES module_results(module_result_row_id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    content BLOB NOT NULL,
+    content_sha256 TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    UNIQUE(module_result_row_id, filename)
+);
+
+CREATE TABLE corpus_module_aggregates (
+    aggregate_id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL REFERENCES corpus_batches(batch_id) ON DELETE CASCADE,
+    project_id TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+    module_name TEXT NOT NULL,
+    configuration_id TEXT NOT NULL,
+    metric_id TEXT NOT NULL,
+    aggregation_method TEXT NOT NULL,
+    value_json TEXT NOT NULL,
+    unit TEXT NOT NULL DEFAULT '',
+    works_included INTEGER NOT NULL,
+    works_omitted INTEGER NOT NULL,
+    observation_count INTEGER NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    UNIQUE(
+        batch_id,
+        module_name,
+        configuration_id,
+        metric_id,
+        aggregation_method
+    )
+);
+
+CREATE INDEX idx_module_results_run
+ON module_results(run_id, module_name);
+
+CREATE INDEX idx_module_metrics_result
+ON module_metrics(module_result_row_id, scope, metric_id);
+
+CREATE INDEX idx_module_coverage_result
+ON module_coverage(module_result_row_id, coverage_id);
+
+CREATE INDEX idx_module_artifacts_result
+ON module_artifacts(module_result_row_id, filename);
+
+CREATE INDEX idx_corpus_module_aggregates_batch
+ON corpus_module_aggregates(batch_id, module_name, metric_id);
+"""
+
 
 class ProjectRepository:
     """Own the local SQLite database and its explicit migrations."""
@@ -531,6 +823,13 @@ class ProjectRepository:
                 connection.execute(
                     "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
                     (3, _now()),
+                )
+                current = 3
+            if current < 4:
+                connection.executescript(_MIGRATION_4)
+                connection.execute(
+                    "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)",
+                    (4, _now()),
                 )
 
     def schema_version(self) -> int:
@@ -1151,6 +1450,12 @@ class ProjectRepository:
         values = dict(row)
         values["text_ids"] = tuple(json.loads(values.pop("text_ids_json")))
         values["lexicon_ids"] = tuple(json.loads(values.pop("lexicon_ids_json")))
+        values["module_names"] = tuple(
+            json.loads(values.pop("module_names_json"))
+        )
+        values["module_configuration"] = json.loads(
+            values.pop("module_configuration_json")
+        )
         values["protected_stopwords"] = tuple(
             json.loads(values.pop("protected_stopwords_json"))
         )
@@ -1168,6 +1473,8 @@ class ProjectRepository:
         *,
         text_ids: Iterable[str],
         lexicon_ids: Iterable[str],
+        module_names: Iterable[str] = (),
+        module_configuration: Mapping[str, object] | None = None,
         phrase_policy: str,
         minimum_match_requirement: int,
         stopword_mode: str = "standard",
@@ -1180,13 +1487,14 @@ class ProjectRepository:
 
         selected_texts = tuple(dict.fromkeys(text_ids))
         selected_lexicons = tuple(dict.fromkeys(lexicon_ids))
+        selected_modules = tuple(dict.fromkeys(module_names))
         protected = tuple(dict.fromkeys(protected_stopwords))
         additions = tuple(dict.fromkeys(custom_stopword_additions))
         removals = tuple(dict.fromkeys(custom_stopword_removals))
         if not selected_texts:
             raise ValueError("Select at least one corpus text to analyze.")
-        if not selected_lexicons:
-            raise ValueError("Select at least one lexicon.")
+        if not selected_lexicons and not selected_modules:
+            raise ValueError("Select at least one lexicon or optional analysis module.")
         if minimum_match_requirement < 1:
             raise ValueError("The minimum matched-item setting must be at least 1.")
         self.initialize()
@@ -1223,16 +1531,23 @@ class ProjectRepository:
                 """
                 INSERT INTO corpus_batches(
                     batch_id, project_id, status, text_ids_json, lexicon_ids_json,
+                    module_names_json, module_configuration_json,
                     phrase_policy, minimum_match_requirement, stopword_mode,
                     protected_stopwords_json, custom_stopword_additions_json,
                     custom_stopword_removals_json, scenario_version_id, created_at
-                ) VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     batch_id,
                     project_id,
                     json.dumps(selected_texts),
                     json.dumps(selected_lexicons),
+                    json.dumps(selected_modules),
+                    json.dumps(
+                        dict(module_configuration or {}),
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    ),
                     phrase_policy,
                     minimum_match_requirement,
                     stopword_mode,
@@ -1251,6 +1566,7 @@ class ProjectRepository:
             row = connection.execute(
                 """
                 SELECT batch_id, project_id, status, text_ids_json, lexicon_ids_json,
+                       module_names_json, module_configuration_json,
                        phrase_policy, minimum_match_requirement, stopword_mode,
                        protected_stopwords_json, custom_stopword_additions_json,
                        custom_stopword_removals_json, scenario_version_id,
@@ -1454,6 +1770,75 @@ class ProjectRepository:
         return self.get_text(text_id)
 
     @staticmethod
+    def _workspace_modules(workspace: WorkspaceAnalysis) -> tuple[tuple, ...]:
+        """Return completed optional results and their existing audit exporters."""
+
+        candidates = (
+            (workspace.concreteness, export_concreteness_bundle),
+            (workspace.frequency, export_frequency_bundle),
+            (workspace.aoa, export_aoa_bundle),
+            (workspace.pronunciation, export_pronunciation_bundle),
+            (workspace.meter, export_meter_bundle),
+            (workspace.phonology, export_phonological_bundle),
+            (workspace.lexical_style, export_lexical_style_bundle),
+        )
+        return tuple(
+            (result, exporter)
+            for result, exporter in candidates
+            if result is not None
+        )
+
+    @staticmethod
+    def _module_configurations(workspace: WorkspaceAnalysis) -> dict[str, object]:
+        request = workspace.request
+        rows = (
+            (
+                request.include_concreteness,
+                "concreteness",
+                request.concreteness_configuration,
+            ),
+            (
+                request.include_frequency,
+                "lexical_frequency",
+                request.frequency_configuration,
+            ),
+            (
+                request.include_aoa,
+                "age_of_acquisition",
+                request.aoa_configuration,
+            ),
+            (
+                (
+                    request.include_pronunciation
+                    or request.include_meter
+                    or request.include_phonology
+                ),
+                "pronunciation_prosody_foundation",
+                request.pronunciation_configuration,
+            ),
+            (
+                request.include_meter,
+                "candidate_meter_and_rhythmic_regularity",
+                request.meter_configuration,
+            ),
+            (
+                request.include_phonology,
+                "rhyme_and_phonological_patterns",
+                request.phonological_configuration,
+            ),
+            (
+                request.include_lexical_style,
+                "lexical_style",
+                request.lexical_style_configuration,
+            ),
+        )
+        return {
+            name: asdict(configuration)
+            for included, name, configuration in rows
+            if included
+        }
+
+    @staticmethod
     def _manifest(workspace: WorkspaceAnalysis) -> dict[str, object]:
         stopword_policy = next(
             (
@@ -1502,6 +1887,27 @@ class ProjectRepository:
                 }
                 for result in workspace.results
             ],
+            "optional_modules": [
+                {
+                    "module_name": result.module_result.module_name,
+                    "module_version": result.module_result.module_version,
+                    "result_id": result.module_result.result_id,
+                    "configuration_id": (
+                        result.module_result.provenance.configuration_id
+                    ),
+                    "scenario_id": result.module_result.provenance.scenario_id,
+                    "resources": [
+                        asdict(resource)
+                        for resource in result.module_result.provenance.resources
+                    ],
+                }
+                for result, _exporter in ProjectRepository._workspace_modules(
+                    workspace
+                )
+            ],
+            "optional_module_configurations": (
+                ProjectRepository._module_configurations(workspace)
+            ),
         }
 
     @staticmethod
@@ -1872,6 +2278,100 @@ class ProjectRepository:
                 )
         return rows
 
+    @staticmethod
+    def _module_persistence_rows(
+        workspace: WorkspaceAnalysis,
+    ) -> tuple[dict[str, object], ...]:
+        """Materialize generic module envelopes and existing exports once."""
+
+        rows = []
+        for detailed_result, exporter in ProjectRepository._workspace_modules(
+            workspace
+        ):
+            result = detailed_result.module_result
+            coverage_by_id = {
+                item.coverage_id: item for item in result.coverage
+            }
+            metric_rows = []
+            for metric in result.metrics:
+                coverage_id = _OBSERVATION_COVERAGE_BY_METRIC.get(
+                    (result.module_name, metric.metric_id)
+                )
+                coverage = (
+                    coverage_by_id.get(coverage_id)
+                    if metric.scope == "document" and coverage_id
+                    else None
+                )
+                metric_rows.append(
+                    (
+                        metric.metric_id,
+                        _json_dumps(metric.value),
+                        metric.layer.value,
+                        metric.scope,
+                        metric.scope_id,
+                        metric.unit,
+                        metric.weighting,
+                        metric.denominator,
+                        coverage.matched_count if coverage is not None else None,
+                        metric.note,
+                    )
+                )
+            coverage_rows = [
+                (
+                    item.coverage_id,
+                    item.scope,
+                    item.scope_id,
+                    item.eligible_count,
+                    item.matched_count,
+                    item.unmatched_count,
+                    item.coverage_rate,
+                    item.unit,
+                    _json_dumps(item.unmatched_items),
+                    item.note,
+                )
+                for item in result.coverage
+            ]
+            warning_rows = [
+                (
+                    warning.code,
+                    warning.message,
+                    warning.severity.value,
+                    warning.technical_detail,
+                )
+                for warning in result.warnings
+            ]
+            artifacts = []
+            for filename, content in exporter(detailed_result).items():
+                if (
+                    not filename
+                    or Path(filename).name != filename
+                    or "/" in filename
+                    or "\\" in filename
+                ):
+                    raise ValueError(
+                        "A module export supplied an unsafe artifact filename."
+                    )
+                payload = bytes(content)
+                artifacts.append(
+                    (
+                        filename,
+                        payload,
+                        hashlib.sha256(payload).hexdigest(),
+                        len(payload),
+                    )
+                )
+            rows.append(
+                {
+                    "module_result": result,
+                    "provenance_json": _json_dumps(asdict(result.provenance)),
+                    "metrics": tuple(metric_rows),
+                    "coverage": tuple(coverage_rows),
+                    "warnings": tuple(warning_rows),
+                    "artifacts": tuple(artifacts),
+                }
+            )
+        return tuple(rows)
+
     def save_analysis(
         self,
         project_id: str,
@@ -1895,11 +2395,12 @@ class ProjectRepository:
         run_id = _id("run")
         now = _now()
         manifest = self._manifest(workspace)
-        signature_source = json.dumps(manifest, sort_keys=True, ensure_ascii=False)
+        signature_source = _json_dumps(manifest)
         signature = hashlib.sha256(signature_source.encode("utf-8")).hexdigest()
         metric_rows = self._metric_rows(workspace)
         unmatched = unmatched_views(workspace)
         review_candidates = self._review_candidate_rows(workspace)
+        module_rows = self._module_persistence_rows(workspace)
         with self._connect() as connection:
             if batch_id is not None:
                 batch = connection.execute(
@@ -1931,7 +2432,7 @@ class ProjectRepository:
                     json.dumps(workspace.request.lexicon_ids),
                     __version__,
                     signature,
-                    json.dumps(manifest, ensure_ascii=False, sort_keys=True),
+                    _json_dumps(manifest),
                     now,
                     now,
                 ),
@@ -1992,6 +2493,83 @@ class ProjectRepository:
                     for row in review_candidates
                 ],
             )
+            for module_row in module_rows:
+                module_result = module_row["module_result"]
+                module_result_row_id = (
+                    f"{run_id}:{module_result.module_name}"
+                )
+                connection.execute(
+                    """
+                    INSERT INTO module_results(
+                        module_result_row_id, run_id, module_name,
+                        module_version, result_id, configuration_id,
+                        scenario_id, source_text_sha256, provenance_json,
+                        created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        module_result_row_id,
+                        run_id,
+                        module_result.module_name,
+                        module_result.module_version,
+                        module_result.result_id,
+                        module_result.provenance.configuration_id,
+                        module_result.provenance.scenario_id,
+                        module_result.provenance.source_text_sha256,
+                        module_row["provenance_json"],
+                        now,
+                    ),
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO module_metrics(
+                        module_result_row_id, metric_id, value_json, layer,
+                        scope, scope_id, unit, weighting, denominator,
+                        observation_count, note
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (module_result_row_id, *row)
+                        for row in module_row["metrics"]
+                    ],
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO module_coverage(
+                        module_result_row_id, coverage_id, scope, scope_id,
+                        eligible_count, matched_count, unmatched_count,
+                        coverage_rate, unit, unmatched_items_json, note
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (module_result_row_id, *row)
+                        for row in module_row["coverage"]
+                    ],
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO module_warnings(
+                        module_result_row_id, code, message, severity,
+                        technical_detail
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (module_result_row_id, *row)
+                        for row in module_row["warnings"]
+                    ],
+                )
+                connection.executemany(
+                    """
+                    INSERT INTO module_artifacts(
+                        module_result_row_id, filename, content,
+                        content_sha256, size_bytes
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    [
+                        (module_result_row_id, *row)
+                        for row in module_row["artifacts"]
+                    ],
+                )
             connection.execute(
                 "UPDATE projects SET updated_at = ? WHERE project_id = ?", (now, project_id)
             )
@@ -2081,6 +2659,7 @@ class ProjectRepository:
             rows = connection.execute(
                 """
                 SELECT batch_id, project_id, status, text_ids_json, lexicon_ids_json,
+                       module_names_json, module_configuration_json,
                        phrase_policy, minimum_match_requirement, stopword_mode,
                        protected_stopwords_json, custom_stopword_additions_json,
                        custom_stopword_removals_json, scenario_version_id,
@@ -2127,6 +2706,459 @@ class ProjectRepository:
                 connection,
                 tuple(row["run_id"] for row in rows),
             )
+
+    @staticmethod
+    def _module_results_for_run_ids(
+        connection: sqlite3.Connection,
+        run_ids: Sequence[str],
+    ) -> tuple[CorpusModuleResultRecord, ...]:
+        if not run_ids:
+            return ()
+        placeholders = ",".join("?" for _ in run_ids)
+        rows = connection.execute(
+            f"""
+            SELECT mr.module_result_row_id, r.run_id, r.text_id,
+                   r.text_version_id, t.title, t.author,
+                   t.collection_name AS collection, t.date_label, t.genre,
+                   mr.module_name, mr.module_version, mr.result_id,
+                   mr.configuration_id, mr.scenario_id,
+                   mr.source_text_sha256, mr.provenance_json,
+                   r.completed_at
+            FROM analysis_runs r
+            JOIN module_results mr ON mr.run_id = r.run_id
+            JOIN texts t ON t.text_id = r.text_id
+            WHERE r.run_id IN ({placeholders})
+            ORDER BY t.title COLLATE NOCASE, mr.module_name
+            """,
+            tuple(run_ids),
+        ).fetchall()
+        materialized = []
+        for row in rows:
+            values = dict(row)
+            values["provenance"] = json.loads(
+                values.pop("provenance_json")
+            )
+            materialized.append(CorpusModuleResultRecord(**values))
+        return tuple(materialized)
+
+    def list_latest_module_results(
+        self,
+        project_id: str,
+    ) -> tuple[CorpusModuleResultRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_results_for_run_ids(
+                connection,
+                self._visible_run_ids(connection, project_id),
+            )
+
+    def _validated_batch_run_ids(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[str, ...]:
+        batch = connection.execute(
+            """
+            SELECT project_id, status FROM corpus_batches
+            WHERE batch_id = ?
+            """,
+            (batch_id,),
+        ).fetchone()
+        if (
+            batch is None
+            or batch["project_id"] != project_id
+            or batch["status"] not in {"pending", "complete"}
+        ):
+            raise ValueError(
+                "Choose a current or completed corpus batch belonging to this project."
+            )
+        rows = connection.execute(
+            """
+            SELECT run_id FROM analysis_runs
+            WHERE batch_id = ? AND status = 'complete'
+            ORDER BY text_id, completed_at
+            """,
+            (batch_id,),
+        ).fetchall()
+        return tuple(row["run_id"] for row in rows)
+
+    def list_module_results_for_batch(
+        self,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[CorpusModuleResultRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_results_for_run_ids(
+                connection,
+                self._validated_batch_run_ids(
+                    connection,
+                    project_id,
+                    batch_id,
+                ),
+            )
+
+    @staticmethod
+    def _module_metrics_for_run_ids(
+        connection: sqlite3.Connection,
+        run_ids: Sequence[str],
+    ) -> tuple[CorpusModuleMetricRecord, ...]:
+        if not run_ids:
+            return ()
+        placeholders = ",".join("?" for _ in run_ids)
+        rows = connection.execute(
+            f"""
+            SELECT r.run_id, r.text_id, r.text_version_id, t.title, t.author,
+                   t.collection_name AS collection, t.date_label, t.genre,
+                   mr.module_name, mr.module_version, mr.result_id,
+                   mr.configuration_id, mm.metric_id, mm.value_json,
+                   mm.layer, mm.scope, mm.scope_id, mm.unit, mm.weighting,
+                   mm.denominator, mm.observation_count, mm.note,
+                   r.completed_at
+            FROM analysis_runs r
+            JOIN module_results mr ON mr.run_id = r.run_id
+            JOIN module_metrics mm
+              ON mm.module_result_row_id = mr.module_result_row_id
+            JOIN texts t ON t.text_id = r.text_id
+            WHERE r.run_id IN ({placeholders})
+            ORDER BY t.title COLLATE NOCASE, mr.module_name, mm.scope,
+                     mm.scope_id, mm.metric_id
+            """,
+            tuple(run_ids),
+        ).fetchall()
+        materialized = []
+        for row in rows:
+            values = dict(row)
+            values["value"] = json.loads(values.pop("value_json"))
+            materialized.append(CorpusModuleMetricRecord(**values))
+        return tuple(materialized)
+
+    def list_latest_module_metrics(
+        self,
+        project_id: str,
+    ) -> tuple[CorpusModuleMetricRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_metrics_for_run_ids(
+                connection,
+                self._visible_run_ids(connection, project_id),
+            )
+
+    def list_module_metrics_for_batch(
+        self,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[CorpusModuleMetricRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_metrics_for_run_ids(
+                connection,
+                self._validated_batch_run_ids(
+                    connection,
+                    project_id,
+                    batch_id,
+                ),
+            )
+
+    @staticmethod
+    def _module_coverage_for_run_ids(
+        connection: sqlite3.Connection,
+        run_ids: Sequence[str],
+    ) -> tuple[CorpusModuleCoverageRecord, ...]:
+        if not run_ids:
+            return ()
+        placeholders = ",".join("?" for _ in run_ids)
+        rows = connection.execute(
+            f"""
+            SELECT r.run_id, r.text_id, r.text_version_id, t.title,
+                   mr.module_name, mr.configuration_id, mc.coverage_id,
+                   mc.scope, mc.scope_id, mc.eligible_count,
+                   mc.matched_count, mc.unmatched_count, mc.coverage_rate,
+                   mc.unit, mc.unmatched_items_json, mc.note, r.completed_at
+            FROM analysis_runs r
+            JOIN module_results mr ON mr.run_id = r.run_id
+            JOIN module_coverage mc
+              ON mc.module_result_row_id = mr.module_result_row_id
+            JOIN texts t ON t.text_id = r.text_id
+            WHERE r.run_id IN ({placeholders})
+            ORDER BY t.title COLLATE NOCASE, mr.module_name, mc.coverage_id
+            """,
+            tuple(run_ids),
+        ).fetchall()
+        materialized = []
+        for row in rows:
+            values = dict(row)
+            values["unmatched_items"] = tuple(
+                json.loads(values.pop("unmatched_items_json"))
+            )
+            materialized.append(CorpusModuleCoverageRecord(**values))
+        return tuple(materialized)
+
+    def list_latest_module_coverage(
+        self,
+        project_id: str,
+    ) -> tuple[CorpusModuleCoverageRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_coverage_for_run_ids(
+                connection,
+                self._visible_run_ids(connection, project_id),
+            )
+
+    def list_module_coverage_for_batch(
+        self,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[CorpusModuleCoverageRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_coverage_for_run_ids(
+                connection,
+                self._validated_batch_run_ids(
+                    connection,
+                    project_id,
+                    batch_id,
+                ),
+            )
+
+    @staticmethod
+    def _module_warnings_for_run_ids(
+        connection: sqlite3.Connection,
+        run_ids: Sequence[str],
+    ) -> tuple[CorpusModuleWarningRecord, ...]:
+        if not run_ids:
+            return ()
+        placeholders = ",".join("?" for _ in run_ids)
+        rows = connection.execute(
+            f"""
+            SELECT r.run_id, r.text_id, r.text_version_id, t.title,
+                   mr.module_name, mr.configuration_id, mw.code, mw.message,
+                   mw.severity, mw.technical_detail, r.completed_at
+            FROM analysis_runs r
+            JOIN module_results mr ON mr.run_id = r.run_id
+            JOIN module_warnings mw
+              ON mw.module_result_row_id = mr.module_result_row_id
+            JOIN texts t ON t.text_id = r.text_id
+            WHERE r.run_id IN ({placeholders})
+            ORDER BY t.title COLLATE NOCASE, mr.module_name, mw.code
+            """,
+            tuple(run_ids),
+        ).fetchall()
+        return tuple(CorpusModuleWarningRecord(**dict(row)) for row in rows)
+
+    def list_latest_module_warnings(
+        self,
+        project_id: str,
+    ) -> tuple[CorpusModuleWarningRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_warnings_for_run_ids(
+                connection,
+                self._visible_run_ids(connection, project_id),
+            )
+
+    def list_module_warnings_for_batch(
+        self,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[CorpusModuleWarningRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            return self._module_warnings_for_run_ids(
+                connection,
+                self._validated_batch_run_ids(
+                    connection,
+                    project_id,
+                    batch_id,
+                ),
+            )
+
+    def list_module_artifacts(
+        self,
+        run_id: str,
+        module_name: str,
+    ) -> tuple[CorpusModuleArtifactRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT r.run_id, r.text_id, r.text_version_id, t.title,
+                       mr.module_name, ma.filename, ma.content,
+                       ma.content_sha256, ma.size_bytes
+                FROM analysis_runs r
+                JOIN module_results mr ON mr.run_id = r.run_id
+                JOIN module_artifacts ma
+                  ON ma.module_result_row_id = mr.module_result_row_id
+                JOIN texts t ON t.text_id = r.text_id
+                WHERE r.run_id = ? AND mr.module_name = ?
+                ORDER BY ma.filename
+                """,
+                (run_id, module_name),
+            ).fetchall()
+        return tuple(
+            CorpusModuleArtifactRecord(**dict(row)) for row in rows
+        )
+
+    def build_module_artifact_zip(
+        self,
+        run_id: str,
+        module_name: str,
+    ) -> bytes:
+        artifacts = self.list_module_artifacts(run_id, module_name)
+        if not artifacts:
+            raise ValueError(
+                "No persisted audit artifacts were found for this work and module."
+            )
+        output = io.BytesIO()
+        with zipfile.ZipFile(
+            output,
+            mode="w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as archive:
+            for artifact in artifacts:
+                if hashlib.sha256(artifact.content).hexdigest() != (
+                    artifact.content_sha256
+                ):
+                    raise RuntimeError(
+                        "A persisted module artifact failed its checksum check."
+                    )
+                info = zipfile.ZipInfo(
+                    artifact.filename,
+                    date_time=(1980, 1, 1, 0, 0, 0),
+                )
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o600 << 16
+                archive.writestr(info, artifact.content)
+        return output.getvalue()
+
+    def save_module_aggregates(
+        self,
+        batch_id: str,
+        records: Iterable[CorpusModuleAggregateRecord],
+    ) -> None:
+        materialized = tuple(records)
+        self.initialize()
+        with self._connect() as connection:
+            batch = connection.execute(
+                """
+                SELECT project_id, status FROM corpus_batches
+                WHERE batch_id = ?
+                """,
+                (batch_id,),
+            ).fetchone()
+            if batch is None:
+                raise KeyError(f"Unknown corpus batch: {batch_id}")
+            if batch["status"] != "pending":
+                raise ValueError(
+                    "Only a pending corpus batch can receive aggregate results."
+                )
+            for row in materialized:
+                if (
+                    row.batch_id != batch_id
+                    or row.project_id != batch["project_id"]
+                ):
+                    raise ValueError(
+                        "A module aggregate does not belong to this corpus batch."
+                    )
+                if row.works_included < 0 or row.works_omitted < 0:
+                    raise ValueError(
+                        "Module aggregate work counts cannot be negative."
+                    )
+                if row.observation_count < 0:
+                    raise ValueError(
+                        "A module aggregate observation count cannot be negative."
+                    )
+            connection.executemany(
+                """
+                INSERT INTO corpus_module_aggregates(
+                    aggregate_id, batch_id, project_id, module_name,
+                    configuration_id, metric_id, aggregation_method,
+                    value_json, unit, works_included, works_omitted,
+                    observation_count, note
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        row.aggregate_id,
+                        row.batch_id,
+                        row.project_id,
+                        row.module_name,
+                        row.configuration_id,
+                        row.metric_id,
+                        row.aggregation_method,
+                        _json_dumps(row.value),
+                        row.unit,
+                        row.works_included,
+                        row.works_omitted,
+                        row.observation_count,
+                        row.note,
+                    )
+                    for row in materialized
+                ],
+            )
+
+    def list_module_aggregates_for_batch(
+        self,
+        project_id: str,
+        batch_id: str,
+    ) -> tuple[CorpusModuleAggregateRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            batch = connection.execute(
+                """
+                SELECT project_id, status FROM corpus_batches
+                WHERE batch_id = ?
+                """,
+                (batch_id,),
+            ).fetchone()
+            if (
+                batch is None
+                or batch["project_id"] != project_id
+                or batch["status"] not in {"pending", "complete"}
+            ):
+                raise ValueError(
+                    "Choose a current or completed corpus batch belonging to this project."
+                )
+            rows = connection.execute(
+                """
+                SELECT aggregate_id, batch_id, project_id, module_name,
+                       configuration_id, metric_id, aggregation_method,
+                       value_json, unit, works_included, works_omitted,
+                       observation_count, note
+                FROM corpus_module_aggregates
+                WHERE batch_id = ?
+                ORDER BY module_name, metric_id, aggregation_method
+                """,
+                (batch_id,),
+            ).fetchall()
+        materialized = []
+        for row in rows:
+            values = dict(row)
+            values["value"] = json.loads(values.pop("value_json"))
+            materialized.append(CorpusModuleAggregateRecord(**values))
+        return tuple(materialized)
+
+    def list_latest_module_aggregates(
+        self,
+        project_id: str,
+    ) -> tuple[CorpusModuleAggregateRecord, ...]:
+        self.initialize()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT batch_id FROM corpus_batches
+                WHERE project_id = ? AND status = 'complete'
+                ORDER BY completed_at DESC, rowid DESC LIMIT 1
+                """,
+                (project_id,),
+            ).fetchone()
+        if row is None:
+            return ()
+        return self.list_module_aggregates_for_batch(
+            project_id,
+            row["batch_id"],
+        )
 
     def latest_methodology(self, project_id: str) -> Mapping[str, object]:
         """Return one recorded manifest from the latest visible complete batch."""

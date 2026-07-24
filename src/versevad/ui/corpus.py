@@ -19,12 +19,17 @@ from versevad.application import (
     part_of_speech_views_for_tokens,
 )
 from versevad.corpus import (
+    CorpusAnalysisConfiguration,
     analyze_corpus,
+    corpus_module_category_profiles,
+    corpus_module_profiles,
     corpus_scenario_deltas,
     corpus_vad_profiles,
     decode_corpus_files,
 )
 from versevad.db import ProjectRepository, default_database_path
+from versevad.lexical_semantic.aoa import AoAConfiguration
+from versevad.lexical_semantic.frequency import FrequencyConfiguration
 from versevad.models import PhrasePolicy, ReviewAction, ReviewScope, TextDocument
 from versevad.normalization import normalize_lookup
 from versevad.preprocessing import TextPreprocessor
@@ -325,6 +330,236 @@ def _render_profiles(metrics, total_works: int) -> None:
     )
 
 
+def _render_corpus_modules(
+    repository: ProjectRepository,
+    project_id: str,
+    metrics,
+    coverage,
+    warnings,
+    results,
+    aggregates,
+) -> None:
+    st.subheader("Additional Module Results")
+    st.write(
+        "These results were produced by the same reusable modules as the one-poem "
+        "workspace. Work-level evidence is preserved; collection summaries never "
+        "silently replace missing values or mix incompatible configurations."
+    )
+    available_modules = sorted({row.module_name for row in metrics})
+    selected_module = st.selectbox(
+        "Module to inspect",
+        options=available_modules,
+        format_func=lambda value: value.replace("_", " ").title(),
+        key=f"corpus_module_inspect_{project_id}",
+    )
+    selected = tuple(row for row in metrics if row.module_name == selected_module)
+    total_works = len({row.text_id for row in selected})
+    profiles = corpus_module_profiles(selected, total_works=total_works)
+    if profiles:
+        st.markdown("**Compatible collection summaries**")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Metric": row.metric_id,
+                        "Unit": row.unit,
+                        "Weighting": row.weighting or "—",
+                        "Works included": row.works_included,
+                        "Works omitted": row.works_omitted,
+                        "Equal-work mean": row.equal_work_mean,
+                        "Observation-weighted mean": (
+                            row.observation_weighted_mean
+                        ),
+                        "Observations": row.total_observations or None,
+                        "Configuration": row.configuration_id,
+                        "Interpretive note": row.note,
+                    }
+                    for row in profiles
+                ]
+            ).style.format(
+                {
+                    "Equal-work mean": "{:.4f}",
+                    "Observation-weighted mean": "{:.4f}",
+                },
+                na_rep="—",
+            ),
+            hide_index=True,
+            width="stretch",
+            height=360,
+        )
+
+    categories = corpus_module_category_profiles(selected)
+    if categories:
+        st.markdown("**Work-level categorical prevalence**")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Metric": row.metric_id,
+                        "Category": row.category,
+                        "Works with category": row.works_with_category,
+                        "Eligible works": row.works_included,
+                        "Prevalence": row.prevalence,
+                        "Configuration": row.configuration_id,
+                        "Note": row.note,
+                    }
+                    for row in categories
+                ]
+            ).style.format({"Prevalence": "{:.1%}"}),
+            hide_index=True,
+            width="stretch",
+        )
+
+    pooled = tuple(
+        row for row in aggregates if row.module_name == selected_module
+    )
+    if pooled:
+        st.markdown("**Separately calculated collection aggregates**")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Metric": row.metric_id,
+                        "Method": row.aggregation_method,
+                        "Value": row.value,
+                        "Unit": row.unit,
+                        "Works included": row.works_included,
+                        "Works omitted": row.works_omitted,
+                        "Observations": row.observation_count,
+                        "Note": row.note,
+                    }
+                    for row in pooled
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+
+    st.markdown("**Work, line, and stanza results**")
+    scopes = sorted({row.scope for row in selected})
+    selected_scopes = st.multiselect(
+        "Result scopes",
+        options=scopes,
+        default=scopes,
+        key=f"corpus_module_scopes_{project_id}_{selected_module}",
+    )
+    shown = [row for row in selected if row.scope in selected_scopes]
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Work": row.title,
+                    "Collection": row.collection or "—",
+                    "Author": row.author or "—",
+                    "Date": row.date_label or "—",
+                    "Genre": row.genre or "—",
+                    "Scope": row.scope,
+                    "Scope ID": row.scope_id or "—",
+                    "Metric": row.metric_id,
+                    "Value": (
+                        json.dumps(row.value, ensure_ascii=False)
+                        if isinstance(row.value, (dict, list))
+                        else row.value
+                    ),
+                    "Unit": row.unit or "—",
+                    "Weighting": row.weighting or "—",
+                    "Denominator": row.denominator or "—",
+                    "Observations": row.observation_count,
+                    "Note": row.note or "—",
+                }
+                for row in shown
+            ]
+        ),
+        hide_index=True,
+        width="stretch",
+        height=440,
+    )
+
+    selected_coverage = [
+        row for row in coverage if row.module_name == selected_module
+    ]
+    if selected_coverage:
+        with st.expander("Coverage and unmatched evidence"):
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Work": row.title,
+                            "Coverage measure": row.coverage_id,
+                            "Scope": row.scope,
+                            "Eligible": row.eligible_count,
+                            "Matched": row.matched_count,
+                            "Unmatched": row.unmatched_count,
+                            "Coverage": row.coverage_rate,
+                            "Unit": row.unit,
+                            "Unmatched items": ", ".join(
+                                row.unmatched_items
+                            ),
+                            "Note": row.note,
+                        }
+                        for row in selected_coverage
+                    ]
+                ).style.format({"Coverage": "{:.1%}"}, na_rep="—"),
+                hide_index=True,
+                width="stretch",
+            )
+
+    selected_warnings = [
+        row for row in warnings if row.module_name == selected_module
+    ]
+    if selected_warnings:
+        with st.expander("Module warnings", expanded=True):
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Work": row.title,
+                            "Severity": row.severity.title(),
+                            "Code": row.code,
+                            "Message": row.message,
+                            "Technical detail": row.technical_detail or "—",
+                        }
+                        for row in selected_warnings
+                    ]
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+
+    artifact_results = [
+        row for row in results if row.module_name == selected_module
+    ]
+    if artifact_results:
+        with st.expander("Download a work's module audit bundle"):
+            chosen = st.selectbox(
+                "Work",
+                options=artifact_results,
+                format_func=lambda row: row.title,
+                key=f"corpus_module_artifact_{project_id}_{selected_module}",
+            )
+            try:
+                archive = repository.build_module_artifact_zip(
+                    chosen.run_id,
+                    chosen.module_name,
+                )
+            except ValueError:
+                st.info("This module did not produce separate audit files.")
+            else:
+                st.download_button(
+                    "Download module audit ZIP",
+                    data=archive,
+                    file_name=(
+                        f"{_safe_filename(chosen.title)}_"
+                        f"{_safe_filename(chosen.module_name)}.zip"
+                    ),
+                    mime="application/zip",
+                    key=(
+                        f"download_module_artifact_{project_id}_"
+                        f"{chosen.run_id}_{chosen.module_name}"
+                    ),
+                )
+
+
 def _render_analysis_tab(
     repository: ProjectRepository,
     project_id: str,
@@ -354,6 +589,29 @@ def _render_analysis_tab(
         format_func=lambda lexicon_id: lexicon_lookup[lexicon_id].display_name,
         key=f"analysis_lexicons_{project_id}",
     )
+    module_labels = {
+        "concreteness": "Concreteness",
+        "frequency": "SUBTLEX-US frequency and rarity",
+        "aoa": "Age of acquisition",
+        "pronunciation": "Pronunciation and lexical stress",
+        "meter": "Candidate meter and rhythmic regularity",
+        "phonology": "Rhyme and phonological patterns",
+        "lexical_style": (
+            "Lexical diversity, word length, and structural word counts"
+        ),
+    }
+    selected_modules = st.multiselect(
+        "Additional analysis modules",
+        options=list(module_labels),
+        default=[],
+        format_func=lambda name: module_labels[name],
+        key=f"analysis_modules_{project_id}",
+        help=(
+            "These call the same tested modules used in the one-poem workspace. "
+            "They are optional because pronunciation, meter, and rhyme can add "
+            "substantial processing time to a large corpus."
+        ),
+    )
     scenarios = repository.list_review_scenarios(project_id)
     scenario_by_version = {
         scenario.scenario_version_id: scenario for scenario in scenarios
@@ -376,6 +634,8 @@ def _render_analysis_tab(
             "new immutable analyses; it never changes the baseline batch."
         ),
     )
+    frequency_content_words_only = False
+    aoa_content_words_only = False
     with st.expander("Advanced batch methodology"):
         policies = {
             "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -394,6 +654,26 @@ def _render_analysis_tab(
             value=3,
             key=f"corpus_minimum_{project_id}",
         )
+        if "frequency" in selected_modules:
+            frequency_content_words_only = st.checkbox(
+                "Frequency: analyze content words only",
+                value=False,
+                key=f"corpus_frequency_content_only_{project_id}",
+                help=(
+                    "Non-default. Retains nouns, verbs, adjectives, and adverbs; "
+                    "other parts of speech remain explicitly not eligible."
+                ),
+            )
+        if "aoa" in selected_modules:
+            aoa_content_words_only = st.checkbox(
+                "Age of acquisition: analyze content words only",
+                value=False,
+                key=f"corpus_aoa_content_only_{project_id}",
+                help=(
+                    "Non-default. The Kuperman source contains many source POS "
+                    "classes, so this is an actual analysis-scope choice."
+                ),
+            )
     with st.expander("Stopword settings"):
         st.info(
             "Stopword exclusion changes only the secondary VAD view. Matching, "
@@ -403,7 +683,7 @@ def _render_analysis_tab(
     run = st.button(
         "Analyze selected works",
         type="primary",
-        disabled=not text_ids or not lexicon_ids,
+        disabled=not text_ids or (not lexicon_ids and not selected_modules),
         key=f"analyze_corpus_{project_id}",
     )
     if run:
@@ -416,6 +696,21 @@ def _render_analysis_tab(
             )
 
         try:
+            module_configuration = CorpusAnalysisConfiguration(
+                include_concreteness="concreteness" in selected_modules,
+                include_frequency="frequency" in selected_modules,
+                frequency_configuration=FrequencyConfiguration(
+                    content_words_only=frequency_content_words_only
+                ),
+                include_aoa="aoa" in selected_modules,
+                aoa_configuration=AoAConfiguration(
+                    content_words_only=aoa_content_words_only
+                ),
+                include_pronunciation="pronunciation" in selected_modules,
+                include_meter="meter" in selected_modules,
+                include_phonology="phonology" in selected_modules,
+                include_lexical_style="lexical_style" in selected_modules,
+            )
             batch = analyze_corpus(
                 repository,
                 project_id,
@@ -430,6 +725,7 @@ def _render_analysis_tab(
                 scenario_version_id=scenario_version_id,
                 preprocessor=preprocessor,
                 progress=update_progress,
+                module_configuration=module_configuration,
             )
             progress_bar.progress(1.0, text="Corpus analysis complete")
             st.success(
@@ -444,8 +740,26 @@ def _render_analysis_tab(
             )
 
     metrics = repository.list_latest_metrics(project_id)
-    if not metrics:
+    module_metrics = repository.list_latest_module_metrics(project_id)
+    module_coverage = repository.list_latest_module_coverage(project_id)
+    module_warnings = repository.list_latest_module_warnings(project_id)
+    module_results = repository.list_latest_module_results(project_id)
+    module_aggregates = repository.list_latest_module_aggregates(project_id)
+    if not metrics and not module_metrics:
         st.info("No complete corpus batch is available yet.")
+        return
+    if module_metrics:
+        st.divider()
+        _render_corpus_modules(
+            repository,
+            project_id,
+            module_metrics,
+            module_coverage,
+            module_warnings,
+            module_results,
+            module_aggregates,
+        )
+    if not metrics:
         return
     st.divider()
     st.subheader("Filter the Completed Comparison Batch")
@@ -1395,19 +1709,24 @@ def _render_export_tab(
     texts = repository.list_texts(project_id)
     metrics = repository.list_latest_metrics(project_id)
     unmatched = repository.list_latest_unmatched(project_id)
+    module_metrics = repository.list_latest_module_metrics(project_id)
+    module_coverage = repository.list_latest_module_coverage(project_id)
+    module_warnings = repository.list_latest_module_warnings(project_id)
+    module_results = repository.list_latest_module_results(project_id)
+    module_aggregates = repository.list_latest_module_aggregates(project_id)
     st.subheader("Excel Research Workbook")
     st.write(
         "The workbook begins with a reading guide and includes both collection "
         "weightings, individual-work token/type means, cumulative load, coverage, "
         "emotion metrics, unmatched review notes, and provenance metadata."
     )
-    if not metrics:
+    if not metrics and not module_metrics:
         st.info("Complete a corpus analysis before exporting a workbook.")
         return
     # A Streamlit process can remain open while VerseVAD is updated. Resolve
     # the exporter through its module and refresh it if that process retained
     # the pre-methodology four-argument API.
-    if getattr(corpus_excel_exports, "CORPUS_WORKBOOK_API_VERSION", 0) < 4:
+    if getattr(corpus_excel_exports, "CORPUS_WORKBOOK_API_VERSION", 0) < 5:
         importlib.reload(corpus_excel_exports)
     methodology = repository.latest_methodology(project_id)
     workbook = corpus_excel_exports.build_corpus_workbook(
@@ -1418,6 +1737,11 @@ def _render_export_tab(
         methodology=methodology,
         review_decisions=tuple(methodology.get("review_decisions", ())),
         part_of_speech_rows=part_of_speech_rows,
+        module_metrics=module_metrics,
+        module_coverage=module_coverage,
+        module_warnings=module_warnings,
+        module_results=module_results,
+        module_aggregates=module_aggregates,
     )
     st.download_button(
         "Download corpus Excel workbook",
@@ -1453,7 +1777,8 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
     st.title("VerseVAD Projects & Corpus")
     st.write(
         "Import a folder as separate works, add metadata, compare complete analysis "
-        "batches, build versioned review scenarios, and export a readable Excel workbook."
+        "batches across affective and optional lexical/prosodic modules, build "
+        "versioned review scenarios, and export a readable Excel workbook."
     )
     project_flash = st.session_state.pop("corpus_project_flash", None)
     if project_flash:

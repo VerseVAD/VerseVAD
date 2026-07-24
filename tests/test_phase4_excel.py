@@ -93,6 +93,13 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
     assert workbook.sheetnames == [
         "START HERE",
         "Corpus Profiles",
+        "Module Collection",
+        "Module Categories",
+        "Module Work Results",
+        "Module Structure",
+        "Module Coverage",
+        "Module Provenance",
+        "Module Warnings",
         "Work VAD",
         "Cumulative Load",
         "Coverage and Emotion",
@@ -137,7 +144,7 @@ def test_corpus_excel_is_readable_and_contains_both_collection_views() -> None:
         BytesIO(methodology_content),
         data_only=False,
     )
-    assert CORPUS_WORKBOOK_API_VERSION == 4
+    assert CORPUS_WORKBOOK_API_VERSION == 5
     assert methodology_workbook.sheetnames[-1] == "Methodology"
     methodology_rows = {
         row[0].value: row[1].value

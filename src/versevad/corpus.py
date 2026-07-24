@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import csv
+import hashlib
+import io
+import statistics
+from dataclasses import asdict, dataclass
 from pathlib import PurePosixPath
 from typing import Callable, Iterable, Sequence
 
@@ -15,11 +19,24 @@ from versevad.application import (
 from versevad.db import (
     CorpusBatchRecord,
     CorpusMetricRecord,
+    CorpusModuleAggregateRecord,
+    CorpusModuleMetricRecord,
     CorpusTextImport,
     ProjectRepository,
 )
+from versevad.lexical_semantic.aoa import AoAConfiguration
+from versevad.lexical_semantic.concreteness import ConcretenessConfiguration
+from versevad.lexical_semantic.frequency import FrequencyConfiguration
+from versevad.lexical_style import (
+    LexicalStyleConfiguration,
+    calculate_hdd,
+    calculate_mattr,
+    calculate_mtld,
+)
 from versevad.models import PhrasePolicy, StopwordMode
+from versevad.phonology import PhonologicalConfiguration
 from versevad.preprocessing import SpacyEnglishPreprocessor, TextPreprocessor
+from versevad.prosody import MeterConfiguration, PronunciationConfiguration
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS
 
 
@@ -67,6 +84,139 @@ class CorpusScenarioDelta:
     baseline_value: float
     reviewed_value: float
     difference: float
+
+
+@dataclass(frozen=True)
+class CorpusAnalysisConfiguration:
+    """Optional modules and exact reusable configurations for one corpus batch."""
+
+    include_concreteness: bool = False
+    concreteness_configuration: ConcretenessConfiguration = (
+        ConcretenessConfiguration()
+    )
+    include_frequency: bool = False
+    frequency_configuration: FrequencyConfiguration = FrequencyConfiguration()
+    include_aoa: bool = False
+    aoa_configuration: AoAConfiguration = AoAConfiguration()
+    include_pronunciation: bool = False
+    pronunciation_configuration: PronunciationConfiguration = (
+        PronunciationConfiguration()
+    )
+    include_meter: bool = False
+    meter_configuration: MeterConfiguration = MeterConfiguration()
+    include_phonology: bool = False
+    phonological_configuration: PhonologicalConfiguration = (
+        PhonologicalConfiguration()
+    )
+    include_lexical_style: bool = False
+    lexical_style_configuration: LexicalStyleConfiguration = (
+        LexicalStyleConfiguration()
+    )
+
+    @property
+    def module_names(self) -> tuple[str, ...]:
+        names = []
+        if self.include_concreteness:
+            names.append("concreteness")
+        if self.include_frequency:
+            names.append("lexical_frequency")
+        if self.include_aoa:
+            names.append("age_of_acquisition")
+        if (
+            self.include_pronunciation
+            or self.include_meter
+            or self.include_phonology
+        ):
+            names.append("pronunciation_prosody_foundation")
+        if self.include_meter:
+            names.append("candidate_meter_and_rhythmic_regularity")
+        if self.include_phonology:
+            names.append("rhyme_and_phonological_patterns")
+        if self.include_lexical_style:
+            names.append("lexical_style")
+        return tuple(names)
+
+    @property
+    def manifest(self) -> dict[str, object]:
+        rows = (
+            (
+                self.include_concreteness,
+                "concreteness",
+                self.concreteness_configuration,
+            ),
+            (
+                self.include_frequency,
+                "lexical_frequency",
+                self.frequency_configuration,
+            ),
+            (
+                self.include_aoa,
+                "age_of_acquisition",
+                self.aoa_configuration,
+            ),
+            (
+                (
+                    self.include_pronunciation
+                    or self.include_meter
+                    or self.include_phonology
+                ),
+                "pronunciation_prosody_foundation",
+                self.pronunciation_configuration,
+            ),
+            (
+                self.include_meter,
+                "candidate_meter_and_rhythmic_regularity",
+                self.meter_configuration,
+            ),
+            (
+                self.include_phonology,
+                "rhyme_and_phonological_patterns",
+                self.phonological_configuration,
+            ),
+            (
+                self.include_lexical_style,
+                "lexical_style",
+                self.lexical_style_configuration,
+            ),
+        )
+        return {
+            name: asdict(configuration)
+            for enabled, name, configuration in rows
+            if enabled
+        }
+
+
+@dataclass(frozen=True)
+class CorpusModuleProfile:
+    """Compatible per-work module values summarized without hidden pooling."""
+
+    module_name: str
+    module_version: str
+    configuration_id: str
+    metric_id: str
+    unit: str
+    weighting: str
+    works_included: int
+    works_omitted: int
+    equal_work_mean: float
+    observation_weighted_mean: float | None
+    total_observations: int
+    note: str
+
+
+@dataclass(frozen=True)
+class CorpusModuleCategoryProfile:
+    """Per-work prevalence for selected categorical module evidence."""
+
+    module_name: str
+    module_version: str
+    configuration_id: str
+    metric_id: str
+    category: str
+    works_included: int
+    works_with_category: int
+    prevalence: float
+    note: str
 
 
 def decode_corpus_files(
@@ -188,6 +338,189 @@ def corpus_vad_profiles(
     )
 
 
+def corpus_module_profiles(
+    metrics: Sequence[CorpusModuleMetricRecord],
+    *,
+    total_works: int | None = None,
+) -> tuple[CorpusModuleProfile, ...]:
+    """Summarize compatible numeric document metrics across works.
+
+    Equal-work means are supplied for every numeric document metric. An
+    observation-weighted mean is supplied only when the integration layer
+    recorded an exact, defensible observation count for that metric. This
+    deliberately excludes MATTR, HD-D, MTLD, medians, dispersion, schemes, and
+    other quantities that cannot be pooled by weighting work-level values.
+    """
+
+    selected = tuple(
+        row
+        for row in metrics
+        if row.scope == "document"
+        and not isinstance(row.value, bool)
+        and isinstance(row.value, (int, float))
+    )
+    if total_works is None:
+        total_works = len({row.text_id for row in metrics})
+    grouped: dict[
+        tuple[str, str, str, str, str, str],
+        list[CorpusModuleMetricRecord],
+    ] = {}
+    for row in selected:
+        grouped.setdefault(
+            (
+                row.module_name,
+                row.module_version,
+                row.configuration_id,
+                row.metric_id,
+                row.unit,
+                row.weighting,
+            ),
+            [],
+        ).append(row)
+
+    profiles = []
+    for (
+        module_name,
+        module_version,
+        configuration_id,
+        metric_id,
+        unit,
+        weighting,
+    ), rows in grouped.items():
+        values = tuple(float(row.value) for row in rows)
+        weighted = None
+        observations = 0
+        if all(
+            row.observation_count is not None
+            and row.observation_count > 0
+            for row in rows
+        ):
+            observations = sum(int(row.observation_count) for row in rows)
+            weighted = (
+                sum(
+                    float(row.value) * int(row.observation_count)
+                    for row in rows
+                )
+                / observations
+            )
+        if metric_id in {
+            "lexical_style.surface_type_token_ratio",
+            "lexical_style.mattr",
+            "lexical_style.hdd",
+            "lexical_style.mtld",
+        }:
+            note = (
+                "Work values receive equal descriptive weight here and are not "
+                "averaged as though tokens were pooled. The separately labeled "
+                "ordered pooled-token result is calculated from token evidence."
+            )
+        elif weighted is not None:
+            note = (
+                "Both equal-work and observation-weighted descriptive means are "
+                "available; compare their stated denominators."
+            )
+        else:
+            note = (
+                "Only an equal-work descriptive mean is supplied because a "
+                "defensible pooled-observation denominator is unavailable."
+            )
+        profiles.append(
+            CorpusModuleProfile(
+                module_name=module_name,
+                module_version=module_version,
+                configuration_id=configuration_id,
+                metric_id=metric_id,
+                unit=unit,
+                weighting=weighting,
+                works_included=len(rows),
+                works_omitted=max(total_works - len(rows), 0),
+                equal_work_mean=statistics.fmean(values),
+                observation_weighted_mean=weighted,
+                total_observations=observations,
+                note=note,
+            )
+        )
+    return tuple(
+        sorted(
+            profiles,
+            key=lambda row: (
+                row.module_name,
+                row.metric_id,
+                row.configuration_id,
+            ),
+        )
+    )
+
+
+def corpus_module_category_profiles(
+    metrics: Sequence[CorpusModuleMetricRecord],
+) -> tuple[CorpusModuleCategoryProfile, ...]:
+    """Count work-level meter/rhyme categories without inventing consensus."""
+
+    supported = {
+        "meter.closest_candidate",
+        "meter.closest_candidate_kind",
+        "meter.candidate_confidence",
+        "phonology.rhyme_scheme",
+    }
+    grouped: dict[
+        tuple[str, str, str, str],
+        list[CorpusModuleMetricRecord],
+    ] = {}
+    for row in metrics:
+        if (
+            row.scope == "document"
+            and row.metric_id in supported
+            and isinstance(row.value, str)
+            and row.value.strip()
+        ):
+            grouped.setdefault(
+                (
+                    row.module_name,
+                    row.module_version,
+                    row.configuration_id,
+                    row.metric_id,
+                ),
+                [],
+            ).append(row)
+    profiles = []
+    for key, rows in grouped.items():
+        by_work = {row.text_id: str(row.value) for row in rows}
+        total = len(by_work)
+        counts: dict[str, int] = {}
+        for category in by_work.values():
+            counts[category] = counts.get(category, 0) + 1
+        for category, count in counts.items():
+            profiles.append(
+                CorpusModuleCategoryProfile(
+                    module_name=key[0],
+                    module_version=key[1],
+                    configuration_id=key[2],
+                    metric_id=key[3],
+                    category=category,
+                    works_included=total,
+                    works_with_category=count,
+                    prevalence=count / total,
+                    note=(
+                        "Descriptive work prevalence among works with this "
+                        "metric; this does not declare one corpus-wide meter "
+                        "or rhyme scheme."
+                    ),
+                )
+            )
+    return tuple(
+        sorted(
+            profiles,
+            key=lambda row: (
+                row.module_name,
+                row.metric_id,
+                -row.works_with_category,
+                row.category,
+            ),
+        )
+    )
+
+
 def corpus_scenario_deltas(
     baseline: Sequence[CorpusMetricRecord],
     reviewed: Sequence[CorpusMetricRecord],
@@ -235,6 +568,156 @@ def corpus_scenario_deltas(
     return tuple(rows)
 
 
+def _aggregate_id(
+    batch_id: str,
+    module_name: str,
+    metric_id: str,
+    aggregation_method: str,
+) -> str:
+    payload = "|".join(
+        (batch_id, module_name, metric_id, aggregation_method)
+    )
+    return "corpus-module-aggregate-v1:" + hashlib.sha256(
+        payload.encode("utf-8")
+    ).hexdigest()[:20]
+
+
+def _pooled_lexical_style_aggregates(
+    repository: ProjectRepository,
+    *,
+    project_id: str,
+    batch_id: str,
+    configuration: LexicalStyleConfiguration,
+    total_works: int,
+) -> tuple[CorpusModuleAggregateRecord, ...]:
+    results = tuple(
+        row
+        for row in repository.list_module_results_for_batch(
+            project_id,
+            batch_id,
+        )
+        if row.module_name == "lexical_style"
+    )
+    if not results:
+        return ()
+    configuration_ids = {row.configuration_id for row in results}
+    if len(configuration_ids) != 1:
+        raise ValueError(
+            "Pooled lexical-style analysis requires one shared configuration "
+            "across every included work."
+        )
+
+    forms = []
+    lengths = []
+    for result in results:
+        artifacts = {
+            row.filename: row
+            for row in repository.list_module_artifacts(
+                result.run_id,
+                result.module_name,
+            )
+        }
+        audit = artifacts.get("lexical_style_token_audit.csv")
+        if audit is None:
+            raise RuntimeError(
+                "A completed lexical-style result is missing its token audit."
+            )
+        rows = csv.DictReader(
+            io.StringIO(audit.content.decode("utf-8-sig"))
+        )
+        for row in rows:
+            if row["included"].casefold() != "true":
+                continue
+            normalized = row["normalized_surface_type"].strip()
+            if normalized:
+                forms.append(normalized)
+            character_count = row["alphabetic_character_count"].strip()
+            if character_count:
+                lengths.append(int(character_count))
+
+    observations = tuple(forms)
+    method = "ordered_pooled_token_sequence"
+    configuration_id = next(iter(configuration_ids))
+    values = (
+        (
+            "lexical_style.pooled.lexical_token_count",
+            len(observations),
+            "shared-preprocessing lexical tokens",
+        ),
+        (
+            "lexical_style.pooled.normalized_surface_type_count",
+            len(set(observations)),
+            "normalized observed surface types",
+        ),
+        (
+            "lexical_style.pooled.surface_type_token_ratio",
+            len(set(observations)) / len(observations)
+            if observations
+            else None,
+            "proportion",
+        ),
+        (
+            "lexical_style.pooled.mattr",
+            calculate_mattr(
+                observations,
+                window_size=configuration.mattr_window_size,
+            ),
+            "mean overlapping-window type-token ratio",
+        ),
+        (
+            "lexical_style.pooled.hdd",
+            calculate_hdd(
+                observations,
+                sample_size=configuration.hdd_sample_size,
+            ),
+            "expected distinct-type proportion",
+        ),
+        (
+            "lexical_style.pooled.mtld",
+            calculate_mtld(
+                observations,
+                threshold=configuration.mtld_threshold,
+            ),
+            "mean lexical-token factor length",
+        ),
+        (
+            "lexical_style.pooled.mean_word_length",
+            statistics.fmean(lengths) if lengths else None,
+            "Unicode alphabetic characters per lexical token",
+        ),
+    )
+    note = (
+        "Calculated from normalized observed surface-form tokens concatenated "
+        "in the selected batch's stable work order. Work boundaries are retained "
+        "in the per-work results but do not reset the pooled token sequence. "
+        "This exploratory pooled result is not an average of work-level diversity "
+        "statistics."
+    )
+    return tuple(
+        CorpusModuleAggregateRecord(
+            aggregate_id=_aggregate_id(
+                batch_id,
+                "lexical_style",
+                metric_id,
+                method,
+            ),
+            batch_id=batch_id,
+            project_id=project_id,
+            module_name="lexical_style",
+            configuration_id=configuration_id,
+            metric_id=metric_id,
+            aggregation_method=method,
+            value=value,
+            unit=unit,
+            works_included=len(results),
+            works_omitted=max(total_works - len(results), 0),
+            observation_count=len(observations),
+            note=note,
+        )
+        for metric_id, value, unit in values
+    )
+
+
 def analyze_corpus(
     repository: ProjectRepository,
     project_id: str,
@@ -248,11 +731,13 @@ def analyze_corpus(
     custom_stopword_additions: Sequence[str] = (),
     custom_stopword_removals: Sequence[str] = (),
     scenario_version_id: str = "",
+    module_configuration: CorpusAnalysisConfiguration | None = None,
     preprocessor: TextPreprocessor | None = None,
     progress: Callable[[int, int, str], None] | None = None,
 ) -> CorpusBatchRecord:
     """Analyze each work independently and publish comparisons only as a full batch."""
 
+    module_configuration = module_configuration or CorpusAnalysisConfiguration()
     project = repository.get_project(project_id)
     available = repository.list_texts(project_id)
     selected_ids = tuple(text_ids) if text_ids is not None else tuple(
@@ -273,6 +758,8 @@ def analyze_corpus(
         project_id,
         text_ids=(text.text_id for text in selected),
         lexicon_ids=lexicon_ids,
+        module_names=module_configuration.module_names,
+        module_configuration=module_configuration.manifest,
         phrase_policy=phrase_policy.value,
         minimum_match_requirement=minimum_match_requirement,
         stopword_mode=stopword_mode.value,
@@ -317,6 +804,38 @@ def analyze_corpus(
                     ),
                     scenario_version_id=scenario_version_id,
                     review_rules=review_rules,
+                    include_concreteness=(
+                        module_configuration.include_concreteness
+                    ),
+                    concreteness_configuration=(
+                        module_configuration.concreteness_configuration
+                    ),
+                    include_frequency=module_configuration.include_frequency,
+                    frequency_configuration=(
+                        module_configuration.frequency_configuration
+                    ),
+                    include_aoa=module_configuration.include_aoa,
+                    aoa_configuration=module_configuration.aoa_configuration,
+                    include_pronunciation=(
+                        module_configuration.include_pronunciation
+                    ),
+                    pronunciation_configuration=(
+                        module_configuration.pronunciation_configuration
+                    ),
+                    include_meter=module_configuration.include_meter,
+                    meter_configuration=(
+                        module_configuration.meter_configuration
+                    ),
+                    include_phonology=module_configuration.include_phonology,
+                    phonological_configuration=(
+                        module_configuration.phonological_configuration
+                    ),
+                    include_lexical_style=(
+                        module_configuration.include_lexical_style
+                    ),
+                    lexical_style_configuration=(
+                        module_configuration.lexical_style_configuration
+                    ),
                 ),
                 preprocessor=processor,
             )
@@ -328,6 +847,19 @@ def analyze_corpus(
             )
             if progress is not None:
                 progress(position, total, text.title)
+        if module_configuration.include_lexical_style:
+            repository.save_module_aggregates(
+                batch.batch_id,
+                _pooled_lexical_style_aggregates(
+                    repository,
+                    project_id=project_id,
+                    batch_id=batch.batch_id,
+                    configuration=(
+                        module_configuration.lexical_style_configuration
+                    ),
+                    total_works=total,
+                ),
+            )
     except Exception as error:
         repository.finish_corpus_batch(batch.batch_id, error_message=str(error))
         raise

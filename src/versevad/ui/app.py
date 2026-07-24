@@ -156,7 +156,7 @@ st.set_page_config(
 # imported dependency modules. Use an explicit revision marker for Explorer
 # compatibility fixes so an open local session reloads both the service and UI
 # modules exactly once, then retains normal session state on later interactions.
-_EXPLORER_RUNTIME_REVISION = "2026-07-22-explorer-3"
+_EXPLORER_RUNTIME_REVISION = "2026-07-24-explorer-4"
 _explorer_was_reloaded = (
     st.session_state.get("_explorer_runtime_revision") != _EXPLORER_RUNTIME_REVISION
 )

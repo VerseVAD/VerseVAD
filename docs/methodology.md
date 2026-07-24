@@ -612,3 +612,33 @@ counts but receives no length rather than length zero.
 The module reports textual observations, not literary quality, vocabulary
 knowledge, intelligence, education, comprehension, reader effect, or
 authorial intention.
+
+## Stage 11 project/corpus aggregation and all-resource lookup
+
+The corpus path invokes the existing workspace orchestration once per preserved
+work. Every enabled optional module therefore consumes the same shared
+preprocessing representation and retains its original configuration,
+provenance, coverage, warnings, and audit artifacts.
+
+Collection means group only records with matching module version,
+configuration ID, metric ID, unit, and weighting. Every numeric document metric
+can receive an equal-work descriptive mean. An observation-weighted mean is
+available only when the integration layer has a defensible observation count
+for that exact metric in every included work. Medians, dispersion, schemes,
+categorical labels, and length-resistant diversity measures are not treated as
+though weighting their work-level values created a pooled result.
+
+For lexical style, separately labeled pooled TTR, MATTR, HD-D, MTLD, and mean
+alphabetic word length are recalculated from the ordered sequence of included
+normalized-surface token evidence stored for each work. Work count, omitted
+work count, token count, configuration, and aggregation method remain visible.
+Meter and rhyme remain work-level candidates/evidence; Stage 11 does not
+declare a collection's definitive meter or rhyme scheme.
+
+Lexicon Explorer performs read-only local lookup in affective lexicons,
+concreteness, SUBTLEX-US, Kuperman AoA, and CMUdict. Source entries and fields
+remain separate. Exact, lemma-derived, and user-mapped evidence is labeled;
+CMUdict alternatives remain separate. Resource-unavailable,
+available-but-unmatched, and source-entry-without-numeric-rating states remain
+distinct. Explorer evidence is decontextualized and does not resolve poetic
+sense, performance, dialect, metaphor, irony, or reader response.

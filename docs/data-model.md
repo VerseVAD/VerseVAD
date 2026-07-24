@@ -5,8 +5,10 @@ projects and corpus results. Schema version 2 adds explicit analysis-view and
 stopword-methodology fields. Phase 5 schema version 3 adds named review
 scenarios, immutable scenario-version snapshots, append-only decision
 revisions, semantic-risk candidates, and scenario-version links on batches and
-runs. Existing version-1 or version-2 databases migrate transactionally after
-a verified, non-overwriting `pre-v3` SQLite backup is created.
+runs. Expansion Stage 11 schema version 4 adds generic optional-module results,
+metrics, coverage, warnings, artifacts, and explicit corpus aggregates.
+Existing earlier databases migrate transactionally after a verified,
+non-overwriting backup is created.
 
 Phase 1 now implements immutable in-memory forms of `TextDocument`,
 `TokenRecord`, `LexiconMetadata`, `LexiconValidation`, `VadEntry`, `TokenMatch`,
@@ -377,9 +379,9 @@ poem-specific `PronunciationOverride` records. Each override stores an exact
 observed type, validated ARPAbet phones, and a required scholarly note. The
 configuration hash changes when any override changes.
 
-These records are not yet persisted in database schema 3. Their structured
-JSON export is the complete current record; a later schema migration must
-preserve the same distinctions and immutability.
+Stage 11 now persists these records through the generic schema-4 module tables
+while preserving the same distinctions and immutability. The structured JSON
+remains the complete per-work artifact.
 
 The current in-memory Stage 6 meter path is:
 
@@ -451,16 +453,42 @@ threshold, short-text caution, scenario ID, and stable configuration ID.
 `ModuleProvenance` records that no external lookup occurred and pins the exact
 text hash, preprocessing recipe/model, token policy, and software version.
 
-These Stage 10 records are not yet persisted in database schema 3. Their JSON
-export is the current complete record. Later corpus integration should persist
-this result envelope and aggregate selected fields without duplicating the
-module calculations.
+Stage 11 persists these same Stage 10 result envelopes through the generic
+schema-4 module tables without duplicating the module calculations.
+
+## Expansion Stage 11 schema 4
+
+Earlier module sections describe the state when each One Poem stage was
+introduced. Stage 11 now persists those same result envelopes for corpus runs;
+it does not alter or replace the detailed One Poem records.
+
+`corpus_batches` adds `module_names_json` and
+`module_configuration_json`. Optional-module-only batches are valid.
+
+`module_results` provides one generic parent row per run and module. It stores
+the module and result versions, configuration and scenario IDs, exact source
+text hash, serialized provenance, and stable result identity.
+
+`module_metrics`, `module_coverage`, and `module_warnings` retain the common
+module contract without flattening away layer, scope, scope ID, unit,
+weighting, denominator, missingness, unmatched items, or technical detail.
+Metric values use JSON so numeric, categorical, boolean, and structured values
+remain distinguishable.
+
+`module_artifacts` stores the bytes produced by the existing module exporters,
+plus filename, size, and SHA-256. Download reconstruction verifies the checksum
+and uses deterministic ZIP metadata.
+
+`corpus_module_aggregates` stores explicitly calculated batch-level values with
+their aggregation method, work counts, observation count, configuration, unit,
+and note. It does not replace the underlying work rows. Ordered pooled lexical
+diversity is calculated from the persisted token-audit sequence.
 
 ## Transaction and backup rules
 
 - Database migrations run inside transactions where SQLite permits it.
-- A verified, non-overwriting backup is created before every schema-3 upgrade
-  from an earlier supported database.
+- A verified, non-overwriting backup is created before supported schema
+  upgrades.
 - Analysis completion is one atomic state transition.
 - Restores never overwrite an open project without explicit confirmation.
 - Cached results are disposable and keyed by all relevant input versions.

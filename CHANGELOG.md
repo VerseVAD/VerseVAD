@@ -7,6 +7,31 @@ made a public release.
 
 ### Added
 
+- Poetic Fingerprint Stage 11 project/corpus integration for all seven existing
+  optional modules, reusing the One Poem engines and shared preprocessing.
+- SQLite schema 4 generic immutable module results, scoped metrics, coverage,
+  warnings, provenance, checksummed artifacts, explicit batch configurations,
+  and separately labeled corpus aggregates.
+- Optional-module-only corpus batches, project/corpus module controls,
+  non-default Frequency/AoA content-word scopes, collection/work/structural
+  views, warnings, coverage, and deterministic per-work audit ZIP downloads.
+- Equal-work module summaries, safe observation-weighted summaries, and
+  ordered-pooled-token lexical-diversity recalculation without naively
+  averaging work-level MATTR, HD-D, or MTLD.
+- Seven optional-module Excel sheets for collection means, categorical
+  prevalence, work results, structural results, coverage, provenance, and
+  warnings.
+- Expanded Lexicon Explorer lookup across installed concreteness, SUBTLEX-US,
+  Kuperman AoA, and CMUdict resources, including all source fields and
+  pronunciation/stress alternatives with explicit missingness states.
+- Stage 11 schema, repository, corpus, aggregation, artifact, Explorer,
+  workbook, interface, regression, documentation, and synthetic tests.
+- Project development version advanced to `0.15.0.dev0`.
+- Stage 11 completion validation: `230 passed`, all nine synthetic
+  demonstrations, an all-seven-module real-resource corpus smoke run, 11
+  diagnostics, source/resource contracts, offline lock, documentation
+  structure/accessibility, and diff checks passed; canonical DOCX page
+  rendering remained unavailable because LibreOffice is not installed.
 - Phase 0 project structure and development safeguards.
 - Read-only five-lexicon inspection utility.
 - Verified lexicon inventory with hashes, formats, ranges, and citations.

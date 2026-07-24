@@ -85,6 +85,12 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "lexical_style_lines.csv",
             "MATTR(w) = mean",
             "normalized observed surface forms",
+            "Additional module corpus results",
+            "Module Categories",
+            "ordered pooled token evidence",
+            "Additional lexical evidence",
+            "Resource unavailable",
+            "every exact CMUdict pronunciation candidate",
         ):
             assert required in text
 
@@ -213,5 +219,9 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Example K: Lexical Diversity and Structural Word Counts",
             "Line word counts are 3, 2, 0, 2",
             "Lexical-style word unit",
+            "Additional-module collection summaries",
+            "Equal-work module mean",
+            "Ordered pooled-token result",
+            "Resource unavailable",
         ):
             assert required in text

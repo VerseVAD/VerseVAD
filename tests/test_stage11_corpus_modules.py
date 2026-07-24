@@ -1,0 +1,299 @@
+from __future__ import annotations
+
+import io
+import zipfile
+
+import pytest
+from openpyxl import load_workbook
+
+from versevad.corpus import (
+    CorpusAnalysisConfiguration,
+    corpus_module_category_profiles,
+    corpus_module_profiles,
+    analyze_corpus,
+)
+from versevad.db import (
+    CorpusModuleMetricRecord,
+    CorpusTextImport,
+    ProjectRepository,
+)
+from versevad.lexical_style import LexicalStyleConfiguration
+from versevad.exports.corpus_excel import build_corpus_workbook
+
+
+def test_optional_module_only_corpus_batch_persists_auditable_results(
+    tmp_path,
+    preprocessor,
+) -> None:
+    repository = ProjectRepository(tmp_path / "versevad.sqlite3")
+    project = repository.create_project("Lexical style corpus")
+    texts = repository.import_texts(
+        project.project_id,
+        (
+            CorpusTextImport(
+                "First",
+                "first.txt",
+                "first.txt",
+                "red blue red",
+            ),
+            CorpusTextImport(
+                "Second",
+                "second.txt",
+                "second.txt",
+                "green blue",
+            ),
+        ),
+    )
+
+    batch = analyze_corpus(
+        repository,
+        project.project_id,
+        lexicon_ids=(),
+        text_ids=tuple(text.text_id for text in texts),
+        module_configuration=CorpusAnalysisConfiguration(
+            include_lexical_style=True,
+            lexical_style_configuration=LexicalStyleConfiguration(
+                mattr_window_size=2,
+                hdd_sample_size=2,
+                short_text_warning_threshold=2,
+            ),
+        ),
+        preprocessor=preprocessor,
+    )
+
+    assert repository.schema_version() == 4
+    assert batch.status == "complete"
+    assert batch.lexicon_ids == ()
+    assert batch.module_names == ("lexical_style",)
+    assert (
+        batch.module_configuration["lexical_style"]["mattr_window_size"]
+        == 2
+    )
+
+    results = repository.list_module_results_for_batch(
+        project.project_id,
+        batch.batch_id,
+    )
+    assert len(results) == 2
+    assert {row.module_name for row in results} == {"lexical_style"}
+    assert all(row.source_text_sha256 for row in results)
+
+    metrics = repository.list_module_metrics_for_batch(
+        project.project_id,
+        batch.batch_id,
+    )
+    assert any(
+        row.metric_id == "lexical_style.mattr"
+        and row.scope == "document"
+        and row.value == pytest.approx(1.0)
+        for row in metrics
+    )
+    assert [
+        row.value
+        for row in metrics
+        if row.metric_id == "lexical_style.word_count"
+        and row.scope == "line"
+    ] == [3, 2]
+
+    coverage = repository.list_module_coverage_for_batch(
+        project.project_id,
+        batch.batch_id,
+    )
+    assert len(coverage) == 4
+    assert all(row.coverage_rate == 1.0 for row in coverage)
+    warnings = repository.list_module_warnings_for_batch(
+        project.project_id,
+        batch.batch_id,
+    )
+    assert all(row.module_name == "lexical_style" for row in warnings)
+
+    first = results[0]
+    artifacts = repository.list_module_artifacts(
+        first.run_id,
+        first.module_name,
+    )
+    assert {row.filename for row in artifacts} == {
+        "lexical_style_summary.csv",
+        "lexical_style_word_lengths.csv",
+        "lexical_style_lines.csv",
+        "lexical_style_stanzas.csv",
+        "lexical_style_token_audit.csv",
+        "lexical_style_result.json",
+    }
+    bundle = repository.build_module_artifact_zip(
+        first.run_id,
+        first.module_name,
+    )
+    with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
+        assert set(archive.namelist()) == {row.filename for row in artifacts}
+
+    aggregates = repository.list_module_aggregates_for_batch(
+        project.project_id,
+        batch.batch_id,
+    )
+    pooled = {
+        row.metric_id: row
+        for row in aggregates
+        if row.aggregation_method == "ordered_pooled_token_sequence"
+    }
+    assert pooled["lexical_style.pooled.lexical_token_count"].value == 5
+    assert pooled["lexical_style.pooled.normalized_surface_type_count"].value == 3
+    assert pooled["lexical_style.pooled.surface_type_token_ratio"].value == (
+        pytest.approx(3 / 5)
+    )
+    assert pooled["lexical_style.pooled.mattr"].value == pytest.approx(1.0)
+    assert pooled["lexical_style.pooled.hdd"].value == pytest.approx(0.9)
+
+    workbook_bytes = build_corpus_workbook(
+        project,
+        repository.list_texts(project.project_id),
+        (),
+        (),
+        module_metrics=metrics,
+        module_coverage=coverage,
+        module_results=results,
+        module_aggregates=aggregates,
+        module_warnings=warnings,
+    )
+    workbook = load_workbook(io.BytesIO(workbook_bytes), data_only=False)
+    assert workbook["Module Work Results"]["A5"].value in {"First", "Second"}
+    assert workbook["Module Structure"]["K5"].value != "document"
+    collection_methods = {
+        row[10].value
+        for row in workbook["Module Collection"].iter_rows(min_row=5)
+        if row[10].value
+    }
+    assert "ordered_pooled_token_sequence" in collection_methods
+    assert workbook["Module Provenance"]["J5"].value
+
+
+def _module_metric(
+    *,
+    run_id: str,
+    text_id: str,
+    title: str,
+    module_name: str,
+    metric_id: str,
+    value: float | None,
+    observation_count: int | None,
+    configuration_id: str = "same-config",
+) -> CorpusModuleMetricRecord:
+    return CorpusModuleMetricRecord(
+        run_id=run_id,
+        text_id=text_id,
+        text_version_id=f"{text_id}-version",
+        title=title,
+        author="",
+        collection="",
+        date_label="",
+        genre="",
+        module_name=module_name,
+        module_version="1.0.0",
+        result_id=f"{run_id}-result",
+        configuration_id=configuration_id,
+        metric_id=metric_id,
+        value=value,
+        layer="computed_summary",
+        scope="document",
+        scope_id="",
+        unit="source scale",
+        weighting="matched token occurrences",
+        denominator="synthetic",
+        observation_count=observation_count,
+        note="",
+        completed_at="now",
+    )
+
+
+def test_corpus_module_profiles_never_naively_weight_diversity_metrics() -> None:
+    metrics = (
+        _module_metric(
+            run_id="r1",
+            text_id="t1",
+            title="Long",
+            module_name="concreteness",
+            metric_id="concreteness.mean",
+            value=4.0,
+            observation_count=9,
+        ),
+        _module_metric(
+            run_id="r2",
+            text_id="t2",
+            title="Short",
+            module_name="concreteness",
+            metric_id="concreteness.mean",
+            value=2.0,
+            observation_count=1,
+        ),
+        _module_metric(
+            run_id="r1",
+            text_id="t1",
+            title="Long",
+            module_name="lexical_style",
+            metric_id="lexical_style.mattr",
+            value=0.8,
+            observation_count=None,
+        ),
+        _module_metric(
+            run_id="r2",
+            text_id="t2",
+            title="Short",
+            module_name="lexical_style",
+            metric_id="lexical_style.mattr",
+            value=0.4,
+            observation_count=None,
+        ),
+    )
+
+    profiles = {
+        (row.module_name, row.metric_id): row
+        for row in corpus_module_profiles(metrics, total_works=2)
+    }
+    concreteness = profiles[("concreteness", "concreteness.mean")]
+    assert concreteness.equal_work_mean == pytest.approx(3.0)
+    assert concreteness.observation_weighted_mean == pytest.approx(3.8)
+    assert concreteness.total_observations == 10
+
+    mattr = profiles[("lexical_style", "lexical_style.mattr")]
+    assert mattr.equal_work_mean == pytest.approx(0.6)
+    assert mattr.observation_weighted_mean is None
+    assert "not averaged as though tokens were pooled" in mattr.note
+
+
+def test_corpus_module_category_profiles_report_prevalence_not_consensus() -> None:
+    metrics = (
+        _module_metric(
+            run_id="r1",
+            text_id="t1",
+            title="First",
+            module_name="candidate_meter_and_rhythmic_regularity",
+            metric_id="meter.closest_candidate",
+            value="iambic pentameter",
+            observation_count=None,
+        ),
+        _module_metric(
+            run_id="r2",
+            text_id="t2",
+            title="Second",
+            module_name="candidate_meter_and_rhythmic_regularity",
+            metric_id="meter.closest_candidate",
+            value="iambic pentameter",
+            observation_count=None,
+        ),
+        _module_metric(
+            run_id="r3",
+            text_id="t3",
+            title="Third",
+            module_name="candidate_meter_and_rhythmic_regularity",
+            metric_id="meter.closest_candidate",
+            value="trochaic tetrameter",
+            observation_count=None,
+        ),
+    )
+    rows = corpus_module_category_profiles(metrics)
+    assert [(row.category, row.works_with_category) for row in rows] == [
+        ("iambic pentameter", 2),
+        ("trochaic tetrameter", 1),
+    ]
+    assert rows[0].prevalence == pytest.approx(2 / 3)
+    assert "does not declare one corpus-wide meter" in rows[0].note

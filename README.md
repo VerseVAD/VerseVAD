@@ -26,7 +26,7 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion's narrowed Stage 10 is also complete. Stage 0 added
+The Poetic Fingerprint expansion through Stage 11 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
@@ -37,8 +37,8 @@ Profile exposes the shared processing record, and the full audit ZIP includes
 concreteness analysis from the user-supplied Brysbaert, Warriner, and Kuperman
 workbook, with exact/lemma/phrase audits, token/type coverage, descriptive
 statistics, structural views, configurable orientation bands, and six
-dedicated exports. Current affective calculations and database schema 3 remain
-unchanged. Stage 3 adds an optional local SUBTLEX-US Zipf frequency and rarity
+dedicated exports. Current affective calculations remain unchanged. Stage 3
+adds an optional local SUBTLEX-US Zipf frequency and rarity
 profile with exact-word-form priority, token/type coverage, a primary
 token-weighted median, descriptive distribution and structural views, seven
 audit exports, and a non-default content-word scope limited to model-tagged
@@ -69,11 +69,12 @@ rhyme or dialect. At the scholar's direction, the broader visible-structure
 and syntax/lineation stages were skipped. Narrowed Stage 10 adds normalized
 observed surface-form diversity with configurable MATTR, HD-D, and
 bidirectional MTLD, Unicode alphabetic-character word length, and lexical-token
-counts for every preserved physical line and stanza. Concreteness, Frequency,
-Age of Acquisition, Pronunciation & Prosody, Meter & Rhythm, Rhyme & Sound, and
-Lexical Style remain temporary One Poem modules and are not yet persisted or
-aggregated in Projects & Corpus. A formal centroid/region-based emotional-
-profile classifier remains explicitly deferred.
+counts for every preserved physical line and stanza. Stage 11 ports all seven
+optional modules to Projects & Corpus through the same tested engines, adds
+generic immutable schema-4 storage and auditable collection summaries, and
+retains pooled lexical-diversity calculations separately from equal-work
+summaries. A formal centroid/region-based emotional-profile classifier remains
+explicitly deferred.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
@@ -82,10 +83,12 @@ and `without`, supports auditable custom additions/removals, and preserves
 published phrase matches intact. Neither view assigns a value to unmatched
 tokens.
 
-Lexicon Explorer searches all five installed sources for exact entries,
-phrases, explicitly labeled lemma-derived or user-mapped lookups, emotion
-associations/intensities, Warriner uncertainty fields, source provenance, and
-derived normalized comparisons. Warriner's 102 and NRC VAD v1's 132
+Lexicon Explorer searches all installed affective sources plus concreteness,
+SUBTLEX-US, Kuperman AoA, and CMUdict for exact entries, phrases, explicitly
+labeled lemma-derived or user-mapped lookups, ratings, frequency fields,
+pronunciation/stress candidates, emotion associations/intensities, Warriner
+uncertainty fields, source provenance, and derived normalized comparisons.
+Warriner's 102 and NRC VAD v1's 132
 whitespace-containing source entries now participate as exact phrase candidates
 under the selected policy.
 
@@ -111,6 +114,8 @@ See:
 - [Poetic Fingerprint Stage 7 validation](docs/poetic-fingerprint-stage7-validation.md)
 - [Poetic Fingerprint Stage 10 narrowed lexical style](docs/poetic-fingerprint-stage10.md)
 - [Poetic Fingerprint Stage 10 validation](docs/poetic-fingerprint-stage10-validation.md)
+- [Poetic Fingerprint Stage 11 project/corpus and Explorer](docs/poetic-fingerprint-stage11.md)
+- [Poetic Fingerprint Stage 11 validation](docs/poetic-fingerprint-stage11-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)
@@ -155,10 +160,12 @@ In the app, use the workspace tabs across the top:
 1. **One Poem** accepts pasted text or one `.txt` file and provides readable
    results plus the audit bundle.
 2. **Projects & Corpus** creates persistent local projects, imports a folder of
-   `.txt` works, analyzes complete batches, compares collection and
-   part-of-speech views, records versioned review scenarios, and exports Excel.
-3. **Lexicon Explorer** looks up one word or phrase in every installed source
-   while preserving original scales and match provenance.
+   `.txt` works, analyzes complete affective and optional-module batches,
+   compares collection and part-of-speech views, records versioned review
+   scenarios, and exports Excel plus module audit bundles.
+3. **Lexicon Explorer** looks up one word or phrase in every installed
+   affective and supplementary lexical resource while preserving original
+   fields, missingness, alternatives, and match provenance.
 
 See the [beginner user guide](docs/user-guide.md) for interpretation and
 troubleshooting, or open the

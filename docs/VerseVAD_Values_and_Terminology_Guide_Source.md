@@ -820,6 +820,28 @@ Question answered: “What is the average work-level profile when each work cont
 
 A divergence shows that work length changes the collection-level result. Report both profiles for mixed-length collections. Works without an eligible score remain missing and are counted; they are never assigned 0.5.
 
+## Additional-module collection summaries
+
+For concreteness, Frequency, AoA, pronunciation, meter, rhyme/sound, and
+lexical-style corpus results, VerseVAD groups only matching module versions,
+configuration IDs, metric IDs, units, and weightings.
+
+An **equal-work module mean** gives each eligible work value one vote. An
+**observation-weighted module mean** appears only when every included work has
+a defensible count for that exact metric. It is not supplied for medians,
+dispersion, rhyme schemes, categorical candidates, MATTR, HD-D, or MTLD.
+
+**Ordered pooled-token lexical diversity** is a separate calculation. VerseVAD
+concatenates stored included normalized-surface tokens in stable work order and
+recalculates TTR, MATTR, HD-D, and MTLD under one configuration. It does not
+average work-level diversity values and call that pooled.
+
+Lexicon Explorer's additional concreteness, SUBTLEX-US, AoA, pronunciation,
+syllable, and stress fields remain source or dictionary evidence. **Unmatched**
+means the available resource has no accepted entry. **Resource unavailable**
+means the expected local source could not be validated. **Source unrated**
+means a source row exists but its numeric rating is missing.
+
 # 16. Review Decisions and Scenarios
 
 Phase 5 review tools let a scholar document and test explicit alternatives without overwriting the baseline.
@@ -1094,6 +1116,7 @@ Include these elements for every numeric claim:
 | Age of Acquisition rating | Adult retrospective source estimate, in years, of when a listed word was learned well enough to understand |
 | Analysis run | One immutable calculation tied to exact inputs and methods |
 | Analysis view | All matched observations or stopwords excluded |
+| Additional module result | Generic persisted result from an existing concreteness, frequency, AoA, pronunciation, meter, rhyme/sound, or lexical-style engine |
 | AoA orientation band | Configurable early/middle/later VerseVAD display aid, not a source-validated category |
 | Arousal | Normative activation or energy associated with a lexical item |
 | Association | Binary source label linking an entry to an emotion or sentiment |
@@ -1104,6 +1127,7 @@ Include these elements for every numeric claim:
 | Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
 | Coverage | Share of eligible lexical token positions represented by matches |
 | Corpus-relative frequency | Frequency evidence tied to a named corpus rather than a universal property of a word |
+| Equal-work module mean | Arithmetic mean of compatible eligible work-level module values |
 | Cumulative normative lexical load | Length- and repetition-sensitive sums of normalized ratings or midpoint distances |
 | Dominance | Normative control, power, or agency associated with a lexical item |
 | Eligible token | Lexical token allowed into the denominator under the declared recipe |
@@ -1125,6 +1149,7 @@ Include these elements for every numeric claim:
 | Median | Middle sorted value |
 | MTLD | Mean forward/reverse sequential factor-length estimate at a configured TTR threshold |
 | Normalized VAD | Documented linear transformation to the common 0-to-1 display range |
+| Ordered pooled-token result | Metric recalculated from the stable concatenated sequence of stored included token evidence |
 | Numeric-response proportion | For the AoA source, numeric responses divided by total responses; preserved separately from the source's `Dunno` label |
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens |
 | Phrase match | Multi-token span linked to one source entry |
@@ -1132,6 +1157,7 @@ Include these elements for every numeric claim:
 | Population standard deviation | Spread of the complete selected value set around its mean |
 | Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
 | Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
+| Resource unavailable | Expected local resource is missing or fails validation; distinct from an unmatched word |
 | Prosodic consensus | Multiple dictionary candidates whose phone strings differ but syllable count and full stress sequence agree |
 | Review scenario | Named, versioned set of scholar-authored decision revisions |
 | Rhyme scheme | Letter sequence formed only from robust perfect/identical groups; `x` is analyzable and ungrouped, `?` unresolved |

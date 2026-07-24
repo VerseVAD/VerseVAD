@@ -111,6 +111,25 @@ The formal centroid/region emotional-profile classifier is deferred; the
 existing Emotion Profile workspace must not be represented as though it
 already implements that model.
 
+Expansion Stage 11 advances the development package to `0.15.0.dev0` and
+migrates project databases to schema version 4. The corpus orchestrator passes
+each preserved work through `run_workspace_analysis`, so affective and optional
+modules share one `PoemDocument` and the same module engines used by **One
+Poem**. A generic repository integration layer serializes each existing
+`ModuleResult`, detailed metric, coverage row, warning, provenance record, and
+existing exporter artifact without duplicating module calculations.
+
+Schema 4 records selected module configurations on the batch and links every
+module result to the immutable run and active text version. The aggregation
+layer operates only on persisted module evidence. It supplies equal-work means,
+observation-weighted means only for metrics with safe observation counts, and
+separately recalculated ordered-pooled-token lexical-style measures. The
+Streamlit page and Excel builder consume repository records; they do not become
+analysis engines. Lexicon Explorer likewise uses the installed resource
+adapters to expose concreteness, SUBTLEX-US, AoA, and CMUdict fields alongside
+the affective sources. See
+[`poetic-fingerprint-stage11.md`](poetic-fingerprint-stage11.md).
+
 ## Why this fits VerseVAD
 
 Streamlit supplies accessible tables, controls, progress feedback, downloads,
@@ -287,9 +306,10 @@ services activate Stage 5 automatically when meter is selected, then pass the
 same immutable poem document to both modules. The UI and exports consume the
 result objects rather than recomputing a hidden classification.
 
-Stage 6 remains an in-memory One Poem result. Persistence and corpus
-aggregation require an explicit later schema design for dependency provenance,
-line fits, candidate grids, and immutable completed runs.
+Stage 11 now persists Stage 6 through the generic schema-4 module envelope,
+including dependency provenance, line fits, candidate grids, and immutable
+completed runs. Candidate prevalence remains separate from work-level meter
+evidence.
 
 ### Rhyme and recurring phonological patterns
 
@@ -306,9 +326,9 @@ pronunciation alternative. Graded slant and eye-rhyme evidence remain outside
 the scheme groups. The UI and seven export files read the typed result without
 recomputing classifications.
 
-Stage 7 is also an in-memory One Poem result. Later persistence must retain its
-Stage 5 dependency configuration, exact source hashes, method configuration,
-line/pair audit, coverage, and immutable result identity.
+Stage 11 now persists Stage 7 with its Stage 5 dependency configuration, exact
+source hashes, method configuration, line/pair audit, coverage, and immutable
+result identity.
 
 ### Narrowed lexical style
 
@@ -327,10 +347,9 @@ IDs already present in the poem document.
 
 Application services, the One Poem interface, the scholar summary, and six
 exports consume the typed result rather than recalculating diversity or
-counts. Stage 10 remains an in-memory One Poem result. The later project/corpus
-runner should invoke this same module and persist its envelope, configuration,
-structural summaries, and audit instead of implementing a second calculation
-path.
+counts. Stage 11 invokes this same module in the project/corpus runner and
+persists its envelope, configuration, structural summaries, and audit without
+implementing a second calculation path.
 
 ### Interface scale
 

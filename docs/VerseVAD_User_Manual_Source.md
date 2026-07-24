@@ -669,10 +669,10 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound, or Lexical Style modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, configured meter fit, rhyme/sound evidence, and lexical diversity/word counts answer different questions and remain separate. Any optional module can run by itself; selecting meter or rhyme automatically runs its pronunciation dependency.
 
-Concreteness, Frequency, AoA, Pronunciation & Prosody, Meter & Rhythm, Rhyme &
-Sound, and Lexical Style are currently temporary **One Poem** modules.
-They are not yet batched, persisted, aggregated, or exported by **Projects &
-Corpus**.
+The same seven optional modules are also available in **Projects & Corpus**.
+One Poem results remain temporary unless downloaded; corpus runs persist the
+same module result envelopes, configurations, coverage, warnings, provenance,
+and audit artifacts against exact text versions.
 
 Under **Advanced methodology settings**, choose:
 
@@ -880,13 +880,21 @@ Metadata filters affect presentation and grouping, not lexical scores.
 Under **Analyze & Compare**:
 
 1. Select the works.
-2. Select the lexicons.
+2. Select affective lexicons and/or **Additional analysis modules**.
 3. Choose phrase and sparse-result settings.
-4. Choose the stopword policy.
-5. Choose **Unreviewed baseline** or an exact named review-scenario version.
-6. Click **Analyze selected works**.
+4. For Frequency or AoA, optionally enable the non-default content-word-only
+   scope under **Advanced batch methodology**.
+5. Choose the stopword policy.
+6. Choose **Unreviewed baseline** or an exact named review-scenario version.
+7. Click **Analyze selected works**.
 
 VerseVAD analyzes every work separately. The new comparison is published only after the entire selected batch completes. Pending or failed batches never replace the latest complete comparison.
+
+Additional modules are off by default because pronunciation, meter, and rhyme
+can add substantial processing time to a large collection. Selecting meter or
+rhyme automatically includes the pronunciation dependency. The corpus path
+calls the same tested modules as One Poem and does not duplicate their
+calculations.
 
 ## Filter and compare
 
@@ -904,6 +912,24 @@ Neither is universally correct. Their difference can itself be important evidenc
 ## Cumulative corpus results
 
 Length-sensitive cumulative totals remain separate from means. Use them when the number and repetition of matched ratings across a work or volume is substantively relevant, while retaining the warning that they are normative lexical totals rather than measured reader impact.
+
+## Additional module corpus results
+
+Choose one enabled module under **Additional Module Results**. VerseVAD shows
+compatible collection summaries followed by the original work, line, stanza,
+token, type, or distribution rows. Equal-work means and observation-weighted
+means are separate. An observation-weighted mean appears only when every
+included work supplies a defensible count for that metric.
+
+Lexical-style pooled TTR, MATTR, HD-D, MTLD, and mean word length are
+recalculated from the ordered pooled token evidence and are not averages of
+work-level diversity scores. Meter and rhyme remain work-level
+candidates/evidence; no corpus-wide definitive meter or rhyme scheme is
+created.
+
+Coverage, unmatched evidence, warnings, configuration IDs, and denominators
+remain visible. **Download module audit ZIP** reconstructs and checksum-checks
+the persisted CSV/JSON bundle for one work and module.
 
 ## Corpus Language Profile
 
@@ -958,7 +984,7 @@ Under **Analyze & Compare**, choose two completed batches to see like-for-like c
 
 ## Excel Export
 
-After a complete batch, download the corpus workbook. It includes a reading guide, both collection weighting views, both stopword views, work-level data, cumulative totals, coverage, separately labeled emotion/sentiment/intensity constructs, unmatched notes, text/version provenance, review decisions when applicable, and the recorded methodology.
+After a complete batch, download the corpus workbook. It includes a reading guide, both collection weighting views, both stopword views, work-level data, cumulative totals, coverage, separately labeled emotion/sentiment/intensity constructs, unmatched notes, text/version provenance, review decisions when applicable, and the recorded methodology. Optional-module batches add **Module Collection**, **Module Categories**, **Module Work Results**, **Module Structure**, **Module Coverage**, **Module Provenance**, and **Module Warnings** sheets.
 
 ## Delete a project
 
@@ -1006,6 +1032,19 @@ For entries found in multiple VAD sources, VerseVAD reports the range of normali
 Where Warriner supplies them, the Explorer shows dimension-specific standard deviations and rater counts. A high source standard deviation indicates greater participant disagreement around that entry's mean.
 
 The provenance panel identifies the lexicon, version, source scale, adapter, imported file, checksum, and source details. Empty uncertainty fields mean the source did not provide those values.
+
+## Additional lexical evidence
+
+The Explorer also checks installed concreteness, SUBTLEX-US, Kuperman AoA, and
+CMUdict resources. It reports source-supplied concreteness fields; Zipf,
+frequency, contextual diversity, and source POS fields; AoA ratings and
+response evidence; and every exact CMUdict pronunciation candidate with
+ARPAbet phones, syllable count, and lexical-stress digits.
+
+**Matched**, **Source unrated**, **Unmatched**, and **Resource unavailable** are
+different statuses. A missing field remains missing. Pronunciation alternatives
+remain separate and are dictionary candidates rather than a context-sensitive
+performance or dialect judgment.
 
 ## Phrase and component behavior
 
@@ -1479,12 +1518,12 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - Concreteness ratings are decontextualized lexical norms and do not measure imagery quality, readability, cognition, or literary value.
 - Concreteness orientation thresholds are VerseVAD aids rather than validated source categories.
 - Default concreteness proper-name exclusion depends on a model tag that can be uncertain for poetic capitalization and syntax.
-- Concreteness is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
+- Corpus concreteness results persist by work with their exact configuration, coverage, warnings, provenance, and audit bundle.
 - SUBTLEX-US describes American subtitle usage, not poetry, historical English, or a universal language.
 - Zipf bands are VerseVAD orientation aids and do not measure difficulty, sophistication, accessibility, intelligence, or literary quality.
 - Frequency POS scope and proper-name exclusion depend on model-generated tags; the non-default content-word scope excludes `AUX`.
 - An unmatched frequency form remains missing; VerseVAD does not substitute `wordfreq`.
-- Frequency is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
+- Corpus frequency results persist by work; equal-work and safe observation-weighted summaries remain separately labeled.
 - Kuperman AoA values are adult retrospective estimates, not directly observed acquisition dates, grade levels, or contextual difficulty scores.
 - The source paper's content-word sampling rule and a poem occurrence's contextual model POS are separate evidence.
 - AoA proper-name, POS, and lemma decisions can be uncertain for poetic language.
@@ -1492,7 +1531,7 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - AoA early/middle/later thresholds are VerseVAD orientation aids rather than source-validated categories.
 - Optional AoA relationships are descriptive, require at least three paired surface types, and do not establish causation.
 - Age-of-acquisition results are not diagnostic of cognitive impairment or decline.
-- AoA is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
+- Corpus AoA results persist by work with source-unrated and unmatched evidence kept distinct.
 - CMUdict primarily represents North American dictionary pronunciation and
   can omit or misrepresent dialectal, historical, contextual, performed, or
   poetically elided forms.
@@ -1502,23 +1541,24 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   one-poem analysis, not to one individual occurrence.
 - Stage 5 includes no grapheme-to-phoneme prediction or hidden pronunciation
   selection. Its own tab does not classify meter or rhyme.
-- Pronunciation & Prosody is currently an optional one-poem in-memory module;
-  it is not yet persisted in corpus projects.
+- Corpus pronunciation results persist by work. The current corpus controls use
+  the recorded default pronunciation configuration rather than offering
+  project-wide scholar overrides.
 - Stage 6 meter starts from dictionary lexical stress; contextual promotion,
   demotion, dialect, historical pronunciation, elision, and performance may
   support a different scansion.
 - Meter costs, thresholds, fit, and confidence are transparent heuristics, not
   a probability model or validation against every poetic tradition.
-- Meter & Rhythm is currently an optional one-poem in-memory module; it is not
-  yet persisted or aggregated in corpus projects.
+- Corpus meter results persist as work-level candidates; categorical
+  prevalence does not declare one corpus-wide meter.
 - Stage 7 starts from North American dictionary phones and spelling; dialect,
   historical pronunciation, performance, and poetic elision can change rhyme
   and recurring-sound evidence.
 - Slant, eye, internal-rhyme, alliteration, assonance, and consonance methods
   are transparent descriptive heuristics, not probabilities or claims about
   authorial intention or perceptual effect.
-- Rhyme & Sound is currently an optional one-poem in-memory module; it is not
-  yet persisted or aggregated in corpus projects.
+- Corpus rhyme/sound results persist as work-level evidence; scheme prevalence
+  does not declare one corpus-wide rhyme scheme.
 
 # 15. Reproducibility and updating this manual
 

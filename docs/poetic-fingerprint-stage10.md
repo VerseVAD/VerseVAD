@@ -159,4 +159,5 @@ rather than duplicate its calculations.
 - Short poems can produce unstable diversity estimates even when a formula is
   mathematically available.
 - MATTR and HD-D are not comparable across different window/sample settings.
-- These values are not yet persisted or aggregated in Projects & Corpus.
+- Stage 11 now persists and aggregates these values in Projects & Corpus while
+  retaining the Stage 10 calculation and audit unchanged.

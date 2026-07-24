@@ -155,7 +155,7 @@ def test_review_mapping_exclusion_and_flag_are_explicit_and_hand_calculated(
     assert len(lexicon.entries) == original_entry_count
 
 
-def test_schema_three_migration_creates_a_verified_version_two_backup(
+def test_schema_four_migration_creates_a_verified_version_three_backup(
     tmp_path,
 ) -> None:
     database_path = tmp_path / "legacy.sqlite3"
@@ -166,19 +166,20 @@ def test_schema_three_migration_creates_a_verified_version_two_backup(
         )
         connection.executescript(repository_module._MIGRATION_1)
         connection.executescript(repository_module._MIGRATION_2)
+        connection.executescript(repository_module._MIGRATION_3)
         connection.executemany(
             "INSERT INTO schema_migrations(version, applied_at) VALUES (?, 'test')",
-            ((1,), (2,)),
+            ((1,), (2,), (3,)),
         )
     repository = ProjectRepository(database_path)
-    assert repository.schema_version() == 3
-    backup_path = tmp_path / "legacy.pre-v3.sqlite3"
+    assert repository.schema_version() == 4
+    backup_path = tmp_path / "legacy.pre-v4.sqlite3"
     assert backup_path.is_file()
     with sqlite3.connect(backup_path) as backup:
         assert backup.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
         assert backup.execute(
             "SELECT MAX(version) FROM schema_migrations"
-        ).fetchone()[0] == 2
+        ).fetchone()[0] == 3
 
 
 def test_same_scope_conflicting_review_mappings_are_rejected(preprocessor) -> None:
@@ -212,7 +213,7 @@ def test_same_scope_conflicting_review_mappings_are_rejected(preprocessor) -> No
 
 def test_scenario_decisions_are_versioned_revocable_and_restorable(tmp_path) -> None:
     repository = ProjectRepository(tmp_path / "versevad.sqlite3")
-    assert repository.schema_version() == 3
+    assert repository.schema_version() == 4
     project = repository.create_project("Review project")
     text = repository.import_texts(
         project.project_id,

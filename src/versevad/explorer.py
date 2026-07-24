@@ -4,9 +4,34 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from difflib import get_close_matches
+from functools import lru_cache
+from pathlib import Path
 from typing import Iterable
 
-from versevad.application import LEXICON_SPECS, load_lexicon
+from versevad.adapters.cmudict import CMUDictEntry, CMUPronunciation
+from versevad.adapters.concreteness import (
+    BrysbaertConcretenessAdapter,
+    ConcretenessEntry,
+)
+from versevad.adapters.kuperman_aoa import (
+    KupermanAoAAdapter,
+    KupermanAoAEntry,
+)
+from versevad.adapters.subtlex_us import SubtlexUsAdapter, SubtlexUsEntry
+from versevad.application import (
+    LEXICON_SPECS,
+    RESOURCE_ROOT,
+    load_lexicon,
+)
+from versevad.lexical_semantic.aoa import AoAModule, KUPERMAN_AOA_SPEC
+from versevad.lexical_semantic.concreteness import (
+    BRYSBAERT_CONCRETENESS_SPEC,
+    ConcretenessModule,
+)
+from versevad.lexical_semantic.frequency import (
+    FrequencyModule,
+    SUBTLEX_US_SPEC,
+)
 from versevad.models import (
     EmotionAssociationEntry,
     EmotionIntensityEntry,
@@ -16,6 +41,10 @@ from versevad.models import (
 )
 from versevad.normalization import normalize_lookup
 from versevad.preprocessing import TextPreprocessor, create_text_document
+from versevad.prosody.pronunciation import (
+    CMUDICT_DICTIONARY_SPEC,
+    PronunciationModule,
+)
 
 
 @dataclass(frozen=True)
@@ -62,12 +91,59 @@ class CrossLexiconSpread:
 
 
 @dataclass(frozen=True)
+class SupplementaryEvidenceValue:
+    field: str
+    value: object
+    unit: str = ""
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class SupplementaryExplorerResource:
+    """One installed or expected non-affective lexical lookup resource."""
+
+    resource_id: str
+    resource: str
+    construct: str
+    state: str
+    status_message: str
+    lexicon: object | None
+    source_file: str
+    source_sha256: str
+    version: str
+    adapter_version: str
+    citation: str
+    source_hashes: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class SupplementaryExplorerEntry:
+    resource_id: str
+    resource: str
+    construct: str
+    status: str
+    status_message: str
+    matched_term: str
+    match_method: str
+    variant_label: str
+    source_rows: tuple[int, ...]
+    values: tuple[SupplementaryEvidenceValue, ...]
+    source_file: str
+    source_sha256: str
+    source_hashes: tuple[tuple[str, str], ...]
+    version: str
+    adapter_version: str
+    citation: str
+
+
+@dataclass(frozen=True)
 class LexiconExplorerResult:
     query: str
     normalized_query: str
     processing_lemma: str
     processing_pos: str
     entries: tuple[LexiconExplorerEntry, ...]
+    supplementary_entries: tuple[SupplementaryExplorerEntry, ...]
     component_averages: tuple[ComponentAverage, ...]
     comparisons: tuple[CrossLexiconSpread, ...]
     suggestions: tuple[str, ...]
@@ -140,12 +216,445 @@ def _entry_view(lexicon, entry, method: str) -> LexiconExplorerEntry:
     raise TypeError(f"Unsupported lexicon entry: {type(entry)!r}")
 
 
+def _supplementary_entry(
+    resource: SupplementaryExplorerResource,
+    *,
+    status: str,
+    status_message: str,
+    matched_term: str = "",
+    match_method: str = "",
+    variant_label: str = "",
+    source_rows: tuple[int, ...] = (),
+    values: tuple[SupplementaryEvidenceValue, ...] = (),
+) -> SupplementaryExplorerEntry:
+    return SupplementaryExplorerEntry(
+        resource_id=resource.resource_id,
+        resource=resource.resource,
+        construct=resource.construct,
+        status=status,
+        status_message=status_message,
+        matched_term=matched_term,
+        match_method=match_method,
+        variant_label=variant_label,
+        source_rows=source_rows,
+        values=values,
+        source_file=resource.source_file,
+        source_sha256=resource.source_sha256,
+        source_hashes=resource.source_hashes,
+        version=resource.version,
+        adapter_version=resource.adapter_version,
+        citation=resource.citation,
+    )
+
+
+def _concreteness_evidence(
+    resource: SupplementaryExplorerResource,
+    entry: ConcretenessEntry,
+    method: str,
+) -> SupplementaryExplorerEntry:
+    return _supplementary_entry(
+        resource,
+        status="matched",
+        status_message="A source rating was found.",
+        matched_term=entry.source_term,
+        match_method=method,
+        source_rows=(entry.source_row,),
+        values=(
+            SupplementaryEvidenceValue("Mean rating", entry.mean, "source 1-5"),
+            SupplementaryEvidenceValue(
+                "Rating standard deviation",
+                entry.standard_deviation,
+                "source 1-5",
+            ),
+            SupplementaryEvidenceValue("Rater count", entry.rater_count),
+            SupplementaryEvidenceValue("Unknown count", entry.unknown_count),
+            SupplementaryEvidenceValue(
+                "Percent known",
+                entry.percent_known,
+                "percent",
+            ),
+            SupplementaryEvidenceValue(
+                "Source SUBTLEX count",
+                entry.subtlex_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Multiword source entry",
+                entry.is_multiword,
+            ),
+        ),
+    )
+
+
+def _frequency_evidence(
+    resource: SupplementaryExplorerResource,
+    entry: SubtlexUsEntry,
+    method: str,
+) -> SupplementaryExplorerEntry:
+    return _supplementary_entry(
+        resource,
+        status="matched",
+        status_message="A SUBTLEX-US word-form entry was found.",
+        matched_term=entry.source_term,
+        match_method=method,
+        source_rows=(entry.source_row,),
+        values=(
+            SupplementaryEvidenceValue(
+                "Zipf value",
+                entry.zipf_value,
+                "SUBTLEX-US Zipf",
+            ),
+            SupplementaryEvidenceValue(
+                "Frequency count",
+                entry.frequency_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Contextual-diversity count",
+                entry.contextual_diversity_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Frequency per million",
+                entry.frequency_per_million,
+            ),
+            SupplementaryEvidenceValue(
+                "Log10 frequency",
+                entry.log10_frequency,
+            ),
+            SupplementaryEvidenceValue(
+                "Contextual diversity",
+                entry.contextual_diversity_percent,
+                "percent",
+            ),
+            SupplementaryEvidenceValue(
+                "Log10 contextual diversity",
+                entry.log10_contextual_diversity,
+            ),
+            SupplementaryEvidenceValue(
+                "Lowercase frequency count",
+                entry.lowercase_frequency_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Lowercase contextual-diversity count",
+                entry.lowercase_contextual_diversity_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Dominant source POS",
+                entry.dominant_source_pos,
+            ),
+            SupplementaryEvidenceValue(
+                "Dominant source POS frequency",
+                entry.dominant_source_pos_frequency,
+            ),
+            SupplementaryEvidenceValue(
+                "Dominant source POS proportion",
+                entry.dominant_source_pos_proportion,
+                "proportion",
+            ),
+            SupplementaryEvidenceValue(
+                "All source POS labels",
+                entry.all_source_pos,
+            ),
+            SupplementaryEvidenceValue(
+                "All source POS frequencies",
+                entry.all_source_pos_frequencies,
+            ),
+        ),
+    )
+
+
+def _aoa_evidence(
+    resource: SupplementaryExplorerResource,
+    entry: KupermanAoAEntry,
+    method: str,
+) -> SupplementaryExplorerEntry:
+    status = "matched" if entry.mean_age is not None else "source_unrated"
+    message = (
+        "A numeric retrospective source rating was found."
+        if entry.mean_age is not None
+        else (
+            "The source contains this word but supplies no numeric AoA mean. "
+            "The missing rating remains missing."
+        )
+    )
+    return _supplementary_entry(
+        resource,
+        status=status,
+        status_message=message,
+        matched_term=entry.source_term,
+        match_method=method,
+        source_rows=(entry.source_row,),
+        values=(
+            SupplementaryEvidenceValue(
+                "Mean AoA",
+                entry.mean_age,
+                "retrospective source years",
+            ),
+            SupplementaryEvidenceValue(
+                "Rating standard deviation",
+                entry.standard_deviation,
+                "years",
+            ),
+            SupplementaryEvidenceValue(
+                "Total responses",
+                entry.occurrence_total,
+            ),
+            SupplementaryEvidenceValue(
+                "Numeric responses",
+                entry.numeric_response_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Unknown responses",
+                entry.unknown_response_count,
+            ),
+            SupplementaryEvidenceValue(
+                "Numeric-response proportion",
+                entry.numeric_response_proportion,
+                "proportion",
+            ),
+            SupplementaryEvidenceValue(
+                "Source Dunno value",
+                entry.source_dunno_value,
+            ),
+            SupplementaryEvidenceValue(
+                "Source frequency per million",
+                entry.frequency_per_million,
+            ),
+        ),
+    )
+
+
+def _pronunciation_evidence(
+    resource: SupplementaryExplorerResource,
+    entry: CMUDictEntry,
+    method: str,
+) -> tuple[SupplementaryExplorerEntry, ...]:
+    return tuple(
+        _supplementary_entry(
+            resource,
+            status="matched",
+            status_message=(
+                "An exact CMUdict pronunciation candidate was found. "
+                "Alternatives remain separate."
+            ),
+            matched_term=entry.source_term,
+            match_method=method,
+            variant_label=f"Variant {candidate.variant_number}",
+            source_rows=(candidate.source_line,),
+            values=(
+                SupplementaryEvidenceValue(
+                    "ARPAbet phones",
+                    candidate.phones_text,
+                ),
+                SupplementaryEvidenceValue(
+                    "Syllable count",
+                    candidate.syllable_count,
+                ),
+                SupplementaryEvidenceValue(
+                    "Lexical stress",
+                    candidate.stress_pattern,
+                    "CMUdict stress digits",
+                    "0 unstressed; 1 primary; 2 secondary.",
+                ),
+                SupplementaryEvidenceValue(
+                    "Source comment",
+                    candidate.source_comment,
+                ),
+            ),
+        )
+        for candidate in entry.pronunciations
+    )
+
+
+def _lookup_supplementary_resources(
+    *,
+    normalized: str,
+    lemma: str,
+    mapped_query: str,
+    resources: Iterable[SupplementaryExplorerResource],
+) -> tuple[SupplementaryExplorerEntry, ...]:
+    rows = []
+    mapped = mapped_query.strip()
+    for resource in resources:
+        if resource.state != "available" or resource.lexicon is None:
+            rows.append(
+                _supplementary_entry(
+                    resource,
+                    status="resource_unavailable",
+                    status_message=resource.status_message,
+                )
+            )
+            continue
+        entry = resource.lexicon.lookup(normalized)
+        method = "exact entry"
+        if (
+            entry is None
+            and resource.construct != "pronunciation"
+            and lemma
+            and lemma != normalized
+        ):
+            entry = resource.lexicon.lookup(lemma)
+            if entry is not None:
+                method = "lemma-derived entry"
+        if entry is None and mapped:
+            entry = resource.lexicon.lookup(normalize_lookup(mapped))
+            if entry is not None:
+                method = "user-supplied mapped lookup"
+        if entry is None:
+            rows.append(
+                _supplementary_entry(
+                    resource,
+                    status="unmatched",
+                    status_message=(
+                        "The resource is available, but no accepted entry was "
+                        "found. No neutral value was assigned."
+                    ),
+                )
+            )
+            continue
+        if isinstance(entry, ConcretenessEntry):
+            rows.append(_concreteness_evidence(resource, entry, method))
+        elif isinstance(entry, SubtlexUsEntry):
+            rows.append(_frequency_evidence(resource, entry, method))
+        elif isinstance(entry, KupermanAoAEntry):
+            rows.append(_aoa_evidence(resource, entry, method))
+        elif isinstance(entry, CMUDictEntry):
+            rows.extend(_pronunciation_evidence(resource, entry, method))
+        else:
+            raise TypeError(
+                "Unsupported supplementary Explorer entry: "
+                f"{type(entry)!r}"
+            )
+    return tuple(rows)
+
+
+@lru_cache(maxsize=4)
+def load_supplementary_explorer_resources(
+    resource_root: str = str(RESOURCE_ROOT),
+) -> tuple[SupplementaryExplorerResource, ...]:
+    """Validate and load every local non-affective lexical lookup source."""
+
+    root = Path(resource_root)
+    resources = []
+
+    concreteness_module = ConcretenessModule(root)
+    concreteness_status = concreteness_module.validate_resources()[0]
+    concreteness_lexicon = (
+        concreteness_module._available()[1]
+        if concreteness_status.available
+        else None
+    )
+    resources.append(
+        SupplementaryExplorerResource(
+            resource_id=BRYSBAERT_CONCRETENESS_SPEC.resource_id,
+            resource=BRYSBAERT_CONCRETENESS_SPEC.display_name,
+            construct="concreteness",
+            state=concreteness_status.state.value,
+            status_message=concreteness_status.message,
+            lexicon=concreteness_lexicon,
+            source_file=str(concreteness_status.configured_path),
+            source_sha256=concreteness_status.source_sha256,
+            version=BRYSBAERT_CONCRETENESS_SPEC.version,
+            adapter_version=BrysbaertConcretenessAdapter.adapter_version,
+            citation=BRYSBAERT_CONCRETENESS_SPEC.citation,
+        )
+    )
+
+    frequency_module = FrequencyModule(root)
+    frequency_status = frequency_module.validate_resources()[0]
+    frequency_lexicon = (
+        frequency_module._available()[1]
+        if frequency_status.available
+        else None
+    )
+    resources.append(
+        SupplementaryExplorerResource(
+            resource_id=SUBTLEX_US_SPEC.resource_id,
+            resource=SUBTLEX_US_SPEC.display_name,
+            construct="frequency",
+            state=frequency_status.state.value,
+            status_message=frequency_status.message,
+            lexicon=frequency_lexicon,
+            source_file=str(frequency_status.configured_path),
+            source_sha256=frequency_status.source_sha256,
+            version=SUBTLEX_US_SPEC.version,
+            adapter_version=SubtlexUsAdapter.adapter_version,
+            citation=SUBTLEX_US_SPEC.citation,
+        )
+    )
+
+    aoa_module = AoAModule(root)
+    aoa_status = aoa_module.validate_resources()[0]
+    aoa_lexicon = aoa_module._available()[1] if aoa_status.available else None
+    resources.append(
+        SupplementaryExplorerResource(
+            resource_id=KUPERMAN_AOA_SPEC.resource_id,
+            resource=KUPERMAN_AOA_SPEC.display_name,
+            construct="aoa",
+            state=aoa_status.state.value,
+            status_message=aoa_status.message,
+            lexicon=aoa_lexicon,
+            source_file=str(aoa_status.configured_path),
+            source_sha256=aoa_status.source_sha256,
+            version=KUPERMAN_AOA_SPEC.version,
+            adapter_version=KupermanAoAAdapter.adapter_version,
+            citation=KUPERMAN_AOA_SPEC.citation,
+        )
+    )
+
+    pronunciation_module = PronunciationModule(root)
+    pronunciation_statuses = pronunciation_module.validate_resources()
+    pronunciation_available = all(
+        status.available for status in pronunciation_statuses
+    )
+    pronunciation_lexicon = (
+        pronunciation_module._load()[0]
+        if pronunciation_available
+        else None
+    )
+    dictionary_status = pronunciation_statuses[0]
+    resources.append(
+        SupplementaryExplorerResource(
+            resource_id=CMUDICT_DICTIONARY_SPEC.resource_id,
+            resource=CMUDICT_DICTIONARY_SPEC.display_name,
+            construct="pronunciation",
+            state=(
+                "available"
+                if pronunciation_available
+                else next(
+                    status.state.value
+                    for status in pronunciation_statuses
+                    if not status.available
+                )
+            ),
+            status_message=" ".join(
+                status.message for status in pronunciation_statuses
+            ),
+            lexicon=pronunciation_lexicon,
+            source_file="; ".join(
+                str(status.configured_path)
+                for status in pronunciation_statuses
+            ),
+            source_sha256=dictionary_status.source_sha256,
+            version=CMUDICT_DICTIONARY_SPEC.version,
+            adapter_version="1.0.0",
+            citation=CMUDICT_DICTIONARY_SPEC.citation,
+            source_hashes=tuple(
+                (status.resource_id, status.source_sha256)
+                for status in pronunciation_statuses
+            ),
+        )
+    )
+    return tuple(resources)
+
+
 def explore_loaded_lexicons(
     query: str,
     lexicons: Iterable[object],
     preprocessor: TextPreprocessor,
     *,
     mapped_query: str = "",
+    supplementary_resources: Iterable[
+        SupplementaryExplorerResource
+    ] = (),
 ) -> LexiconExplorerResult:
     """Search loaded source entries without silently substituting a lemma."""
 
@@ -273,12 +782,19 @@ def explore_loaded_lexicons(
                 source_terms.setdefault(key, entry.source_term)
         close = get_close_matches(normalized, source_terms.keys(), n=8, cutoff=0.72)
         suggestions = tuple(source_terms[key] for key in close)
+    supplementary_entries = _lookup_supplementary_resources(
+        normalized=normalized,
+        lemma=lemma,
+        mapped_query=mapped_query,
+        resources=supplementary_resources,
+    )
     return LexiconExplorerResult(
         query=raw_query,
         normalized_query=normalized,
         processing_lemma=lemma,
         processing_pos=pos,
         entries=tuple(views),
+        supplementary_entries=supplementary_entries,
         component_averages=tuple(component_averages),
         comparisons=tuple(comparisons),
         suggestions=suggestions,
@@ -299,4 +815,7 @@ def explore_lexicons(
         (load_lexicon(spec.lexicon_id) for spec in LEXICON_SPECS),
         preprocessor,
         mapped_query=mapped_query,
+        supplementary_resources=load_supplementary_explorer_resources(
+            str(RESOURCE_ROOT.resolve())
+        ),
     )

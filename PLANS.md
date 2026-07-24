@@ -705,7 +705,8 @@ review required.
   scholar's direction on 2026-07-24.
 - [x] Stage 10 narrowed lexical style: lexical diversity, alphabetic-character
   word length, physical-line word counts, and stanza word counts.
-- [ ] Stage 11: corpus and longitudinal analysis.
+- [x] Stage 11: project/corpus module port and foundational longitudinal
+  comparison, including expanded all-resource Lexicon Explorer lookup.
 - [ ] Stage 12: visualization and reporting.
 
 ## Poetic Fingerprint expansion - Stage 10 narrowed lexical style
@@ -753,6 +754,64 @@ review required.
   rhyme, review, database, export, and resource behavior remains unchanged.
 - [x] All automated/local software and Word documentation checks pass.
 - [x] Create the expansion Stage 10 source-control checkpoint.
+
+## Poetic Fingerprint expansion - Stage 11 project/corpus and Explorer
+
+- [x] Add a verified schema-4 migration that preserves schema-3 projects and
+  adds generic immutable module results, metrics, coverage, warnings,
+  provenance, and audit artifacts.
+- [x] Extend corpus batches with exact optional-module selections and
+  serialized configurations; permit optional-module-only batches.
+- [x] Run selected concreteness, SUBTLEX-US frequency, Kuperman AoA,
+  pronunciation, meter, rhyme/sound, and lexical-style modules through the
+  existing One Poem engines over each stored text version.
+- [x] Persist full per-work module evidence transactionally and expose
+  downloadable work-level audit bundles without copying any research source.
+- [x] Add collection summaries that distinguish equal-work, defensible
+  observation-weighted, categorical-prevalence, and pooled-token-sequence
+  calculations; never average rhyme schemes or imply a corpus-wide meter.
+- [x] Add per-work and collection module views to Projects & Corpus plus
+  dedicated workbook sheets and methodology records.
+- [x] Expand Lexicon Explorer across all installed lexical resources:
+  affective lexicons, concreteness, SUBTLEX-US, AoA, and exact CMUdict
+  pronunciation/syllable/stress candidates.
+- [x] Keep resource absence, source-unrated entries, unmatched searches,
+  lemma-derived evidence, pronunciation alternatives, and provenance
+  explicitly distinct in Explorer.
+- [x] Add schema, repository, corpus aggregation, artifact, Explorer,
+  application, UI, workbook, migration, and regression tests using small
+  synthetic fixtures.
+- [x] Update methodology, architecture, data model, user guidance, testing,
+  changelog, roadmap, and both Word guides.
+- [x] Run the complete suite, every synthetic demonstration, diagnostics,
+  source/resource checks, lock-file check, Word structural/accessibility
+  checks, and document render verification where installed tools permit.
+- [x] Create the expansion Stage 11 source-control checkpoint.
+
+### Expansion Stage 11 exit criteria
+
+- [x] Project/corpus analysis invokes existing module engines and performs one
+  shared preprocessing pass per work; no optional calculation is duplicated.
+- [x] Completed work and batch results are immutable and tied to exact active
+  text versions, configurations, source hashes, and software/module versions.
+- [x] Missing module observations remain missing; failed or incomplete batches
+  never replace the latest complete comparison.
+- [x] Collection summaries state work and observation counts, preserve work
+  boundaries, and label exploratory aggregation methods.
+- [x] Lexical-diversity comparisons use matching parameters; pooled values are
+  calculated from the ordered pooled token sequence rather than averaged from
+  work-level MATTR, HD-D, or MTLD values.
+- [x] Meter and rhyme remain work-level candidates/evidence; collection views
+  summarize prevalence or distributions without inventing one corpus-wide
+  scheme or definitive meter.
+- [x] Explorer reports only source-supplied or direct dictionary evidence,
+  clearly labels lookup method and missingness, and makes no contextual claim.
+- [x] Existing affective, review, One Poem, source-resource, and export behavior
+  remains unchanged.
+- [x] All automated/local software and Word documentation checks pass, with
+  the canonical page-image renderer attempted but unavailable because
+  LibreOffice is not installed.
+- [x] Create the expansion Stage 11 source-control checkpoint.
 
 ## Cross-cutting later work - Scholarly diagnostics
 

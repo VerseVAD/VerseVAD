@@ -285,33 +285,120 @@ def _render_components(result: LexiconExplorerResult) -> None:
     )
 
 
-def _render_provenance(result: LexiconExplorerResult) -> None:
-    if not result.entries:
+def _render_supplementary(result: LexiconExplorerResult) -> None:
+    if not result.supplementary_entries:
         return
-    with st.expander("Source provenance"):
+    st.subheader("Additional Lexical Evidence")
+    st.caption(
+        "These are separate local datasets and constructs. Missing entries remain "
+        "unmatched; VerseVAD never supplies a neutral replacement value."
+    )
+    status_rows = {}
+    for entry in result.supplementary_entries:
+        status_rows.setdefault(
+            entry.resource_id,
+            {
+                "Resource": entry.resource,
+                "Construct": entry.construct.replace("_", " ").title(),
+                "Status": entry.status.replace("_", " ").title(),
+                "Matched entry": entry.matched_term or "—",
+                "Method": entry.match_method or "—",
+                "Note": entry.status_message,
+            },
+        )
+    st.dataframe(
+        pd.DataFrame(status_rows.values()),
+        hide_index=True,
+        width="stretch",
+    )
+
+    evidence_rows = []
+    for entry in result.supplementary_entries:
+        for value in entry.values:
+            evidence_rows.append(
+                {
+                    "Resource": entry.resource,
+                    "Variant": entry.variant_label or "—",
+                    "Field": value.field,
+                    "Value": "—" if value.value is None else value.value,
+                    "Unit": value.unit or "—",
+                    "Note": value.note or "—",
+                }
+            )
+    if evidence_rows:
         st.dataframe(
-            pd.DataFrame(
-                [
-                    {
-                        "Lexicon": row.lexicon,
-                        "Version": row.version,
-                        "Matched entry": row.matched_term,
-                        "Method": row.match_method,
-                        "Source rows": ", ".join(str(value) for value in row.source_rows),
-                        "Original scale": row.original_scale,
-                        "Formula": row.normalization_formula,
-                        "Adapter": row.adapter_version,
-                        "Source file": row.source_file,
-                        "SHA-256": row.source_sha256,
-                        "Citation": row.citation,
-                    }
-                    for row in result.entries
-                ]
-            ),
+            pd.DataFrame(evidence_rows),
             hide_index=True,
             width="stretch",
-            height=340,
         )
+    st.caption(
+        "Concreteness and age-of-acquisition values are normative source ratings; "
+        "SUBTLEX-US values describe corpus frequency; CMUdict supplies candidate "
+        "pronunciations and lexical stress, not a context-sensitive performance."
+    )
+
+
+def _render_provenance(result: LexiconExplorerResult) -> None:
+    if not result.entries and not result.supplementary_entries:
+        return
+    with st.expander("Source provenance"):
+        if result.entries:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Resource": row.lexicon,
+                            "Version": row.version,
+                            "Matched entry": row.matched_term,
+                            "Method": row.match_method,
+                            "Source rows": ", ".join(
+                                str(value) for value in row.source_rows
+                            ),
+                            "Original scale": row.original_scale,
+                            "Formula": row.normalization_formula,
+                            "Adapter": row.adapter_version,
+                            "Source file": row.source_file,
+                            "SHA-256": row.source_sha256,
+                            "Citation": row.citation,
+                        }
+                        for row in result.entries
+                    ]
+                ),
+                hide_index=True,
+                width="stretch",
+                height=340,
+            )
+        supplementary = {}
+        for row in result.supplementary_entries:
+            supplementary.setdefault(
+                row.resource_id,
+                {
+                    "Resource": row.resource,
+                    "Version": row.version,
+                    "Matched entry": row.matched_term or "—",
+                    "Method": row.match_method or "—",
+                    "Source rows": ", ".join(
+                        str(value) for value in row.source_rows
+                    )
+                    or "—",
+                    "Adapter": row.adapter_version,
+                    "Source file": row.source_file,
+                    "SHA-256": row.source_sha256 or "—",
+                    "Additional hashes": "; ".join(
+                        f"{resource_id}: {sha256}"
+                        for resource_id, sha256 in row.source_hashes
+                    )
+                    or "—",
+                    "Citation": row.citation,
+                },
+            )
+        if supplementary:
+            st.dataframe(
+                pd.DataFrame(supplementary.values()),
+                hide_index=True,
+                width="stretch",
+                height=300,
+            )
 
 
 def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
@@ -327,8 +414,9 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
     )
     st.title("Lexicon Explorer")
     st.write(
-        "Look up a word or phrase across all five installed lexicons. Original source "
-        "values remain visible; normalized values are a separate comparison view."
+        "Look up a word or phrase across all installed affective lexicons plus "
+        "concreteness, SUBTLEX-US frequency, age of acquisition, and CMUdict "
+        "pronunciation and stress. Each source remains separate and auditable."
     )
     with st.form("lexicon_explorer_search"):
         query = st.text_input(
@@ -343,7 +431,7 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
         search = st.form_submit_button("Search installed lexicons", type="primary")
     if search:
         try:
-            with st.spinner("Searching the five local source lexicons…"):
+            with st.spinner("Searching all local lexical resources…"):
                 st.session_state["lexicon_explorer_result"] = explore_lexicons(
                     query,
                     preprocessor,
@@ -367,7 +455,10 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
     for notice in result.notices:
         st.info(notice)
     if not result.entries:
-        st.warning("No exact or lemma-derived published entry was found in the installed sources.")
+        st.warning(
+            "No exact or lemma-derived affective entry was found in the installed "
+            "affective sources."
+        )
         if result.suggestions:
             st.write("**Possible spelling or nearby-form suggestions (not substitutes):**")
             st.write(", ".join(result.suggestions))
@@ -387,6 +478,7 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
     _render_vad(result)
     _render_emotion(result)
     _render_components(result)
+    _render_supplementary(result)
     _render_provenance(result)
     st.warning(
         "A lookup reports decontextualized normative ratings or associations. It does "

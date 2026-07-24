@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from io import BytesIO
+import json
 from typing import Iterable, Mapping, Sequence
 
 from openpyxl import Workbook
@@ -13,9 +14,18 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
-from versevad.corpus import corpus_vad_profiles
+from versevad.corpus import (
+    corpus_module_category_profiles,
+    corpus_module_profiles,
+    corpus_vad_profiles,
+)
 from versevad.db import (
     CorpusMetricRecord,
+    CorpusModuleAggregateRecord,
+    CorpusModuleCoverageRecord,
+    CorpusModuleMetricRecord,
+    CorpusModuleResultRecord,
+    CorpusModuleWarningRecord,
     CorpusTextRecord,
     ProjectRecord,
     UnmatchedQcRecord,
@@ -29,7 +39,7 @@ PAPER = "FBF8F1"
 PALE = "EEF3EC"
 WHITE = "FFFFFF"
 
-CORPUS_WORKBOOK_API_VERSION = 4
+CORPUS_WORKBOOK_API_VERSION = 5
 
 
 def _label(name: str) -> str:
@@ -44,6 +54,12 @@ def _construct_label(metric: str, category: str) -> str:
     if metric.startswith("intensity_"):
         return "Emotion Intensity"
     return "Coverage"
+
+
+def _cell_value(value: object) -> object:
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return value
 
 
 def _write_sheet(
@@ -112,6 +128,11 @@ def build_corpus_workbook(
     methodology: Mapping[str, object] | None = None,
     review_decisions: Sequence[Mapping[str, object]] = (),
     part_of_speech_rows: Sequence[Mapping[str, object]] = (),
+    module_metrics: Sequence[CorpusModuleMetricRecord] = (),
+    module_coverage: Sequence[CorpusModuleCoverageRecord] = (),
+    module_results: Sequence[CorpusModuleResultRecord] = (),
+    module_aggregates: Sequence[CorpusModuleAggregateRecord] = (),
+    module_warnings: Sequence[CorpusModuleWarningRecord] = (),
 ) -> bytes:
     """Return an in-memory `.xlsx`; no project text is sent elsewhere."""
 
@@ -131,6 +152,14 @@ def build_corpus_workbook(
         (
             "Part-of-speech profile",
             "Counts and shares use all eligible lexical tokens and are independent of affective-lexicon coverage.",
+        ),
+        (
+            "Additional modules",
+            "Module Collection summarizes compatible work-level values. Module Work Results, Module Structure, Module Coverage, and Module Provenance retain their scopes, denominators, configurations, and source evidence.",
+        ),
+        (
+            "Lexical diversity aggregation",
+            "Equal-work summaries and ordered pooled-token calculations are separate. VerseVAD does not average MATTR, HD-D, or MTLD as though work-level values were interchangeable pooled observations.",
         ),
         (
             "Emotion and sentiment",
@@ -246,6 +275,284 @@ def build_corpus_workbook(
         chart.series[1].graphicalProperties.solidFill = "C0504D"
         chart.legend.position = "b"
         profile_sheet.add_chart(chart, "L4")
+
+    module_profiles = corpus_module_profiles(
+        module_metrics,
+        total_works=len({row.text_id for row in module_metrics}),
+    )
+    _write_sheet(
+        workbook,
+        title="Module Collection",
+        purpose=(
+            "Compatible numeric document metrics summarized across works. "
+            "Equal-work and observation-weighted means remain separate; explicitly "
+            "pooled calculations are labeled by their aggregation method."
+        ),
+        headers=(
+            "Module",
+            "Metric",
+            "Unit",
+            "Weighting",
+            "Works included",
+            "Works omitted",
+            "Equal-work mean",
+            "Observation-weighted mean",
+            "Observations",
+            "Configuration",
+            "Aggregation method",
+            "Note",
+        ),
+        rows=tuple(
+            (
+                row.module_name,
+                row.metric_id,
+                row.unit,
+                row.weighting,
+                row.works_included,
+                row.works_omitted,
+                row.equal_work_mean,
+                row.observation_weighted_mean,
+                row.total_observations or None,
+                row.configuration_id,
+                "compatible_work_values",
+                row.note,
+            )
+            for row in module_profiles
+        )
+        + tuple(
+            (
+                row.module_name,
+                row.metric_id,
+                row.unit,
+                "",
+                row.works_included,
+                row.works_omitted,
+                _cell_value(row.value),
+                None,
+                row.observation_count,
+                row.configuration_id,
+                row.aggregation_method,
+                row.note,
+            )
+            for row in module_aggregates
+        ),
+        table_name="ModuleCollection",
+    )
+    module_categories = corpus_module_category_profiles(module_metrics)
+    _write_sheet(
+        workbook,
+        title="Module Categories",
+        purpose=(
+            "Work-level prevalence of selected meter and rhyme categories. "
+            "These distributions do not declare one corpus-wide scheme."
+        ),
+        headers=(
+            "Module",
+            "Metric",
+            "Category",
+            "Works with category",
+            "Eligible works",
+            "Prevalence",
+            "Configuration",
+            "Note",
+        ),
+        rows=(
+            (
+                row.module_name,
+                row.metric_id,
+                row.category,
+                row.works_with_category,
+                row.works_included,
+                row.prevalence,
+                row.configuration_id,
+                row.note,
+            )
+            for row in module_categories
+        ),
+        table_name="ModuleCategories",
+    )
+
+    module_headers = (
+        "Work",
+        "Author",
+        "Collection",
+        "Date",
+        "Genre",
+        "Module",
+        "Module version",
+        "Metric",
+        "Value",
+        "Layer",
+        "Scope",
+        "Scope ID",
+        "Unit",
+        "Weighting",
+        "Denominator",
+        "Observations",
+        "Configuration",
+        "Note",
+    )
+    for title, purpose, rows, table_name in (
+        (
+            "Module Work Results",
+            "Document-scope results from every enabled non-affective module.",
+            (row for row in module_metrics if row.scope == "document"),
+            "ModuleWorkResults",
+        ),
+        (
+            "Module Structure",
+            "Line-, stanza-, token-, type-, distribution-, and other non-document module results retain their original scope IDs.",
+            (row for row in module_metrics if row.scope != "document"),
+            "ModuleStructure",
+        ),
+    ):
+        _write_sheet(
+            workbook,
+            title=title,
+            purpose=purpose,
+            headers=module_headers,
+            rows=(
+                (
+                    row.title,
+                    row.author,
+                    row.collection,
+                    row.date_label,
+                    row.genre,
+                    row.module_name,
+                    row.module_version,
+                    row.metric_id,
+                    _cell_value(row.value),
+                    row.layer,
+                    row.scope,
+                    row.scope_id,
+                    row.unit,
+                    row.weighting,
+                    row.denominator,
+                    row.observation_count,
+                    row.configuration_id,
+                    row.note,
+                )
+                for row in rows
+            ),
+            table_name=table_name,
+        )
+
+    _write_sheet(
+        workbook,
+        title="Module Coverage",
+        purpose=(
+            "Eligible, matched, and unmatched module evidence. Empty coverage rates "
+            "remain missing rather than becoming zero or neutral."
+        ),
+        headers=(
+            "Work",
+            "Module",
+            "Coverage measure",
+            "Scope",
+            "Scope ID",
+            "Eligible",
+            "Matched",
+            "Unmatched",
+            "Coverage",
+            "Unit",
+            "Unmatched items",
+            "Configuration",
+            "Note",
+        ),
+        rows=(
+            (
+                row.title,
+                row.module_name,
+                row.coverage_id,
+                row.scope,
+                row.scope_id,
+                row.eligible_count,
+                row.matched_count,
+                row.unmatched_count,
+                row.coverage_rate,
+                row.unit,
+                ", ".join(row.unmatched_items),
+                row.configuration_id,
+                row.note,
+            )
+            for row in module_coverage
+        ),
+        table_name="ModuleCoverage",
+    )
+    _write_sheet(
+        workbook,
+        title="Module Provenance",
+        purpose=(
+            "One row per persisted module result with stable IDs, configuration, "
+            "source-text hash, and serialized local provenance."
+        ),
+        headers=(
+            "Work",
+            "Module",
+            "Module version",
+            "Result ID",
+            "Run ID",
+            "Text ID",
+            "Text version ID",
+            "Configuration",
+            "Scenario",
+            "Source text SHA-256",
+            "Completed at",
+            "Provenance",
+        ),
+        rows=(
+            (
+                row.title,
+                row.module_name,
+                row.module_version,
+                row.result_id,
+                row.run_id,
+                row.text_id,
+                row.text_version_id,
+                row.configuration_id,
+                row.scenario_id,
+                row.source_text_sha256,
+                row.completed_at,
+                _cell_value(dict(row.provenance)),
+            )
+            for row in module_results
+        ),
+        table_name="ModuleProvenance",
+    )
+    _write_sheet(
+        workbook,
+        title="Module Warnings",
+        purpose=(
+            "Plain-language module warnings remain linked to their work and exact "
+            "configuration. Technical detail is retained for diagnosis."
+        ),
+        headers=(
+            "Work",
+            "Module",
+            "Severity",
+            "Code",
+            "Message",
+            "Technical detail",
+            "Configuration",
+            "Run ID",
+            "Completed at",
+        ),
+        rows=(
+            (
+                row.title,
+                row.module_name,
+                row.severity,
+                row.code,
+                row.message,
+                row.technical_detail,
+                row.configuration_id,
+                row.run_id,
+                row.completed_at,
+            )
+            for row in module_warnings
+        ),
+        table_name="ModuleWarnings",
+    )
 
     work_vad = [
         row
@@ -569,6 +876,25 @@ def build_corpus_workbook(
                 (
                     "Minimum match requirement",
                     methodology.get("minimum_match_requirement", ""),
+                ),
+                (
+                    "Optional modules",
+                    json.dumps(
+                        methodology.get("optional_modules", ()),
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    ),
+                ),
+                (
+                    "Optional module configurations",
+                    json.dumps(
+                        methodology.get(
+                            "optional_module_configurations",
+                            {},
+                        ),
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    ),
                 ),
                 ("Stopword mode", stopword.get("mode", "")),
                 ("Stopword source", stopword.get("source", "")),

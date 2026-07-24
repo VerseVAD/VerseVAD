@@ -9,9 +9,9 @@ versioned review scenarios persist in the local `projects` database. One-poem
 analysis can also enable the optional local normative lexical concreteness
 module, the optional SUBTLEX-US Zipf frequency module, and/or the optional
 Kuperman retrospective Age of Acquisition module when their exact local
-workbooks are installed under `resources/`. These three optional modules are
-currently available only in **One Poem**; Projects & Corpus does not yet batch,
-persist, or aggregate their results.
+workbooks are installed under `resources/`. **Projects & Corpus** can now run
+and persist these plus pronunciation, meter, rhyme/sound, and lexical-style
+modules through the same analysis engines used by **One Poem**.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -338,8 +338,9 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
 4. Edit author, collection, date label, genre, notes, or custom JSON metadata.
 5. Use **Language Profile** to compare part-of-speech count and relative share
    in the combined project and work by work.
-6. Under **Analyze & Compare**, select works and lexicons, choose an unreviewed
-   baseline or exact scenario version, then click **Analyze selected works**.
+6. Under **Analyze & Compare**, select works, affective lexicons, and any
+   **Additional analysis modules**. Choose an unreviewed baseline or exact
+   scenario version, then click **Analyze selected works**.
    VerseVAD processes one work at a time and publishes the dashboard only when
    the entire selected batch completes.
 7. Filter a completed comparison by collection, author, or genre.
@@ -349,6 +350,23 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
 9. Rerun with that scenario and compare the new immutable batch with the
    unreviewed baseline.
 10. Download the Excel workbook under **Excel Export**.
+
+Additional modules are off by default. Frequency and AoA each retain a
+non-default **content words only** setting under **Advanced batch methodology**.
+Meter or rhyme automatically includes their pronunciation dependency.
+
+The **Additional Module Results** section keeps work, line, stanza, token, type,
+and distribution evidence at its original scope. Equal-work collection means
+are always labeled. Observation-weighted means appear only where a defensible
+observation count exists for every included work. Lexical-style pooled results
+are recalculated from the ordered pooled token sequence and are not averages of
+work-level MATTR, HD-D, or MTLD. Meter and rhyme remain work-level candidates;
+VerseVAD does not invent one corpus-wide meter or rhyme scheme.
+
+Use **Download module audit ZIP** to obtain one persisted work/module bundle.
+The Excel workbook adds separate Module Collection, Module Categories, Module
+Work Results, Module Structure, Module Coverage, Module Provenance, and Module
+Warnings sheets.
 
 To delete a project, open **Project Settings**, read the warning, and type the
 project title exactly—including capitalization—before clicking **Delete this
@@ -401,6 +419,14 @@ version and decision revisions used, so the baseline is never overwritten.
 4. Leave **Original and normalized** selected to retain source ratings and the
    separate derived 0-1 comparison together.
 5. Expand variation/provenance panels when investigating a surprising entry.
+
+The **Additional Lexical Evidence** section searches installed concreteness,
+SUBTLEX-US, Kuperman AoA, and CMUdict resources. It reports source-supplied
+ratings and response fields, Zipf and accompanying frequency/contextual-
+diversity fields, and every exact pronunciation candidate with ARPAbet phones,
+syllable count, and lexical-stress digits. Available-but-unmatched,
+source-entry-without-numeric-rating, and resource-unavailable are distinct
+states. Missing evidence never becomes zero or neutral.
 
 Warriner standard deviations and rater counts appear where supplied. Empty
 uncertainty cells mean the source did not provide those fields. Cross-lexicon
