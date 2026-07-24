@@ -25,6 +25,9 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     assert "Poem title or working label" in [field.label for field in app.text_input]
     assert "Analyze this text" in [button.label for button in app.button]
     assert "Run self-test" in [button.label for button in app.button]
+    assert "Concreteness profile (Brysbaert et al. ratings)" in [
+        field.label for field in app.checkbox
+    ]
     assert not app.tabs
 
 
@@ -154,6 +157,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert [tab.label for tab in app.tabs] == [
         "Overview",
         "Language Profile",
+        "Concreteness Profile",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -180,6 +184,60 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert any(
         "Shared Processing Record" in heading.value for heading in app.subheader
     )
+    assert any(
+        "Concreteness was not selected" in message.value
+        for message in app.info
+    )
+
+
+def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -> None:
+    resource = (
+        APP_PATH.parents[3]
+        / "resources"
+        / "brysbaert_warriner_kuperman_concreteness_DATA.xlsx"
+    )
+    if not resource.is_file():
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("Concreteness interface validation")
+    app.text_area[0].input("Stone and justice.\n\nThe grasshopper jumps.")
+    app.multiselect[0].set_value([])
+    concreteness = next(
+        field
+        for field in app.checkbox
+        if field.label == "Concreteness profile (Brysbaert et al. ratings)"
+    )
+    assert not concreteness.disabled
+    concreteness.set_value(True)
+    app.run(timeout=90)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert any("Analysis complete" in message.value for message in app.success)
+    assert [tab.label for tab in app.tabs] == [
+        "Overview",
+        "Language Profile",
+        "Concreteness Profile",
+        "VAD Profile",
+        "Emotion Profile",
+        "Evidence",
+        "Downloads",
+        "How to Read",
+    ]
+    assert any(
+        heading.value == "Normative Lexical Concreteness"
+        for heading in app.subheader
+    )
+    assert ("Lexicons analyzed", "0") in [
+        (metric.label, metric.value) for metric in app.metric
+    ]
 
 
 def test_windows_helpers_are_local_and_telemetry_disabled() -> None:

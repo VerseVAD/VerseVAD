@@ -218,3 +218,16 @@ ratings or the suitability of a particular match in context.
 
 To repeat the read-only check, run `python scripts/inspect_lexicons.py` once the
 project runtime is installed.
+
+## Optional local concreteness resource
+
+The Poetic Fingerprint Stage 2 concreteness workbook is a separate optional
+research resource under `resources/`, not one of the five supplied affective
+lexicons above. The inspected Brysbaert, Warriner, and Kuperman (2014)
+workbook contains 39,954 ratings on a 1-5 scale, including 2,896 two-word
+expressions, and has SHA-256
+`1673ead761e28833a40e82c0d20f10782955ced9366d600eafeefee0f2254545`.
+Its adapter is read-only and the full workbook is never copied into VerseVAD
+exports. See
+[`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md) for the exact
+source contract, matching policy, citation, calculations, and limitations.

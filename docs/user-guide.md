@@ -5,7 +5,9 @@
 VerseVAD provides three local workspaces: **One Poem**, **Projects & Corpus**,
 and **Lexicon Explorer**. One-poem analyses remain temporary unless downloaded.
 Corpus projects, preserved text versions, metadata, completed results, and
-versioned review scenarios persist in the local `projects` database.
+versioned review scenarios persist in the local `projects` database. One-poem
+analysis can also enable the optional local normative lexical concreteness
+module when the exact ratings workbook is installed under `resources/`.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -48,12 +50,14 @@ reinstall dependencies or deliberately update the software.
 2. Enter a poem title or working label.
 3. Leave all five lexicons selected for a broad first look, or remove sources
    that are outside the current question.
-4. Leave **Advanced methodology settings** closed for the default
+4. Under **Choose Evidence**, optionally enable **Normative lexical
+   concreteness**. It can run with the affective sources or by itself.
+5. Leave **Advanced methodology settings** closed for the default
    phrase-preferred and standard stopword analysis. Open it when you
    deliberately want a different phrase policy, sparse-result threshold, or
    custom stopword additions/removals.
-5. Click **Analyze this text**. Wait for the green completion message.
-6. If you edit the text or change the lexicons afterward, click **Analyze this
+6. Click **Analyze this text**. Wait for the green completion message.
+7. If you edit the text or change the evidence afterward, click **Analyze this
    text** again before using the displayed result.
 
 The app never assigns an unmatched token a neutral score. It attempts an exact
@@ -130,6 +134,34 @@ detailed table and evidence/audit data. The `ADP` tag is displayed as
 It also combines main-verb (`VERB`) and auxiliary/copular (`AUX`) tags into
 **Verb**. Thus `was` is counted as a verb even when the model uses `AUX` for
 its grammatical role.
+
+### Normative lexical concreteness
+
+Under **Choose Evidence**, enable **Normative lexical concreteness** to analyze
+the poem against the locally supplied Brysbaert, Warriner, and Kuperman (2014)
+ratings. You can run it with affective lexicons or by itself. The dedicated
+**Concreteness Profile** reports:
+
+- mean, median, population SD, and interquartile range on the original 1-5
+  source scale;
+- token and unique normalized-surface-type coverage;
+- configurable lower and upper orientation bands;
+- physical-line, stanza, and model-assigned part-of-speech summaries;
+- most concrete and most abstract represented source terms; and
+- a token audit with exact, phrase, lemma, fallback, unmatched, and ineligible
+  decisions.
+
+The default bands at or below 2.0 and at or above 4.0 are VerseVAD orientation
+aids, not categories validated by the paper. A matched two-word expression
+assigns its rating to both covered token positions for token-weighted
+statistics; the rows share one audit group. Repetition therefore matters.
+Model-tagged proper nouns are excluded by default.
+
+Describe the result as normative lexical concreteness evidence among matched
+tokens. It does not measure imagery quality, readability, cognition, or
+whether the poem itself is abstract or concrete. Always read coverage,
+dispersion, terms, and line/stanza evidence before interpreting the mean.
+Unmatched tokens remain missing.
 
 ### Comparing the three VAD scales
 
@@ -319,12 +351,15 @@ files plus:
 - `poem_document.json` — exact original text, stanza/line and model-sentence
   structure, shared tokens and annotations, orthographic spans, processing
   configuration/provenance, coverage, and warnings.
+- six `concreteness_*` CSV/JSON files when the optional module is enabled:
+  summary, structure, POS, terms, token audit, and complete result.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. Both JSON files are local machine-readable records.
 `poem_document.json` contains the original text, so protect it as research
-material. The full ZIP is the reproducibility record; the friendly summary is
-the reading aid.
+material. The concreteness exports retain source-row provenance but do not copy
+the full ratings workbook. The full ZIP is the reproducibility record; the
+friendly summary is the reading aid.
 
 ## Diagnostics and troubleshooting
 

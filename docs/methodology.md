@@ -109,6 +109,36 @@ Categorical emotion associations and numeric word-emotion intensities are not
 alternate scales for VAD. They retain their own value kinds and denominators
 and are never normalized into or averaged with the VAD dimensions.
 
+## Normative lexical concreteness
+
+The optional Stage 2 module reads the user-supplied Brysbaert, Warriner, and
+Kuperman (2014) workbook in place and retains its original 1-5 ratings. It uses
+the same shared token and poetic-structure record as the affective analysis but
+remains a separate construct and result.
+
+Eligible lexical tokens are matched longest exact two-word expression first,
+then exact normalized surface form, lemma, and a documented conservative
+apostrophe/possessive fallback. Exact surface evidence always precedes lemma
+evidence. Punctuation remains auditable but ineligible. Model-tagged proper
+nouns are excluded by default, with an explicit configurable policy.
+
+For a source-supplied two-word expression, VerseVAD assigns the expression's
+rating to each covered token position for the declared token-weighted
+statistics. The token rows share one group identity so this assignment remains
+visible. Repetition contributes repeatedly.
+
+The module reports the mean, median, inclusive quartiles, interquartile range,
+and population standard deviation among rated tokens, plus token and unique
+normalized-surface-type coverage. Empty denominators remain missing. Wholly
+unmatched eligible texts have zero coverage and missing rating aggregates.
+
+The default lower band at 2.0 and upper band at 4.0 are configurable VerseVAD
+orientation aids. They are not source-published diagnostic categories. Results
+must be described as normative lexical concreteness evidence, not imagery
+quality, readability, cognition, or a declaration that a poem is concrete or
+abstract. See
+[`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md).
+
 ## Part-of-speech profile
 
 The linguistic profile is independent of lexicon matching. It counts every

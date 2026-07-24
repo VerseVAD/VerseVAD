@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "versevad"
-version = "0.7.0.dev0"
-description = "Transparent local affective lexicon analysis for literary texts"
+version = "0.8.0.dev0"
+description = "Transparent local lexical-evidence analysis for literary texts"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 license = { text = "Source code license not yet selected" }
@@ -21,6 +21,7 @@ dependencies = [
 [project.scripts]
 versevad-phase1-demo = "versevad.demo:main"
 versevad-phase2-demo = "versevad.phase2_demo:main"
+versevad-concreteness-demo = "versevad.concreteness_validation:main"
 versevad-diagnose = "versevad.diagnostics:main"
 
 [dependency-groups]

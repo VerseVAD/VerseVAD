@@ -1,7 +1,7 @@
 # Architecture Decision: Local Modular Python Application
 
 Status: accepted; the Phase 5 local workspace and Poetic Fingerprint expansion
-Stage 1 shared-processing layer have been validated.
+Stage 2 concreteness module have been validated.
 
 Date: 2026-07-23
 
@@ -71,6 +71,15 @@ The common document is available to Stage 0 module inputs and is exported
 locally as `poem_document.json`. Stage 1 does not change database schema 3 or
 existing affective calculations. See
 [`poetic-fingerprint-stage1.md`](poetic-fingerprint-stage1.md).
+
+Expansion Stage 2 advances the development package to `0.8.0.dev0`. Its
+read-only workbook adapter and framework-independent concreteness module
+consume the shared document without changing it. The optional one-poem path
+adds source-scale descriptive statistics, coverage, structural/POS groups,
+term rankings, warnings, provenance, and token-level audit exports. The
+Streamlit page only presents these tested application results. Stage 2 remains
+in memory and does not change database schema 3. See
+[`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md).
 
 The future lexical-frequency module will use one explicitly versioned local
 SUBTLEX-US source. It will not use `wordfreq` as a fallback. The formal

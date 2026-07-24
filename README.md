@@ -26,16 +26,20 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion Stage 1 is also complete. Stage 0 added
+The Poetic Fingerprint expansion Stage 2 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
 linguistic records, explicit configuration, coverage, and warnings. Each
 one-poem request is processed once for all selected lexicons, the Language
 Profile exposes the shared processing record, and the full audit ZIP includes
-`poem_document.json`. Current affective calculations and database schema 3
-remain unchanged. The planned lexical-frequency module will use SUBTLEX-US
-only; `wordfreq` is not a planned fallback. A formal centroid/region-based
+`poem_document.json`. Stage 2 adds optional local normative lexical
+concreteness analysis from the user-supplied Brysbaert, Warriner, and Kuperman
+workbook, with exact/lemma/phrase audits, token/type coverage, descriptive
+statistics, structural views, configurable orientation bands, and six
+dedicated exports. Current affective calculations and database schema 3 remain
+unchanged. The planned lexical-frequency module will use SUBTLEX-US only;
+`wordfreq` is not a planned fallback. A formal centroid/region-based
 emotional-profile classifier remains explicitly deferred.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
@@ -60,6 +64,8 @@ See:
 - [Poetic Fingerprint Stage 0 validation](docs/poetic-fingerprint-stage0-validation.md)
 - [Poetic Fingerprint Stage 1 shared processing](docs/poetic-fingerprint-stage1.md)
 - [Poetic Fingerprint Stage 1 validation](docs/poetic-fingerprint-stage1-validation.md)
+- [Poetic Fingerprint Stage 2 concreteness](docs/poetic-fingerprint-stage2.md)
+- [Poetic Fingerprint Stage 2 validation](docs/poetic-fingerprint-stage2-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

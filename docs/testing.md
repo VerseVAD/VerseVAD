@@ -24,6 +24,10 @@ blank terms, malformed rows, category sets, phrase counts, and checksums.
 
 Tests in a distributable repository must not embed restricted source entries.
 
+The Stage 2 workbook contract additionally verifies read-only loading, 39,954
+usable entries, 37,058 single words, 2,896 two-word expressions, source rating
+and rater-field consistency, normalized-key uniqueness, and exact source hash.
+
 ### Integration tests
 
 Exercise text version -> tokenization -> matching -> inclusion -> summary ->
@@ -82,6 +86,17 @@ cross-lexicon results with no consensus score. Phase 3 reuses those engine
 fixtures through framework-independent application services and adds UTF-8
 import, friendly-view, download-bundle, diagnostic, launcher, and interface
 smoke cases.
+
+Stage 2 adds `python -m versevad.concreteness_validation`. It generates a
+temporary synthetic workbook and checks one phrase, exact forms, a lemma
+fallback, an unmatched form, 5/6 coverage, and a token-weighted source-scale
+mean of 4.0. The generated workbook checksum must remain unchanged.
+
+The Stage 2 completion suite passed `143 passed` on 2026-07-23. The synthetic
+demonstration, all 11 diagnostics, source and lock checks, and visual inspection
+of the 28-page user manual and 21-page Values and Terminology Guide are
+recorded in
+[`poetic-fingerprint-stage2-validation.md`](poetic-fingerprint-stage2-validation.md).
 
 ## Validation performed
 

@@ -126,6 +126,21 @@ made a public release.
   stanza separators, em dashes, apostrophes, contractions, hyphenated forms,
   capitalization, one-word and punctuation-free lines, archaisms, repeated
   refrains, optional NER, unavailable OOV coverage, and multi-lexicon reuse.
+- Read-only Brysbaert, Warriner, and Kuperman concreteness workbook adapter
+  with exact SHA-256, worksheet/header, range, rater-field, phrase, collision,
+  and expected-count validation.
+- Optional framework-independent one-poem concreteness module with exact
+  phrase/surface priority, explicit lemma and conservative fallbacks, default
+  proper-name exclusion, missing unmatched values, and complete provenance.
+- Token-weighted source-scale mean, median, inclusive quartiles, IQR,
+  population SD, configurable orientation bands, token/type coverage,
+  physical-line/stanza/POS summaries, term rankings, and warnings.
+- Dedicated Concreteness Profile, mixed or concreteness-only one-poem runs,
+  readable summary rows, five UTF-8 CSV audit files, and a structured JSON
+  result.
+- Hand-calculated Stage 2 demonstration plus adapter, matching, Unicode,
+  missing/empty, repetition, configuration, deterministic, UI, and export
+  regression tests.
 
 ### Changed
 
@@ -170,6 +185,9 @@ made a public release.
 - One-poem analysis now creates the shared processing representation once
   instead of invoking the statistical pipeline separately for each selected
   lexicon.
+- Project development version advanced to `0.8.0.dev0`; Stage 2 remains
+  additive, in memory, and leaves database schema 3 and affective results
+  unchanged.
 
 ### Fixed
 

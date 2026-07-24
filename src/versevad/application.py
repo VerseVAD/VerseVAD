@@ -22,8 +22,16 @@ from versevad.adapters import (
 )
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.core.documents import PoemDocument
+from versevad.core.modules import ModuleInput
+from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.poem_document_json import export_poem_document_json
+from versevad.lexical_semantic.concreteness import (
+    ConcretenessAnalysisResult,
+    ConcretenessConfiguration,
+    ConcretenessModule,
+    ConcretenessModuleError,
+)
 from versevad.models import (
     CrossLexiconComparison,
     MatchSelection,
@@ -45,6 +53,7 @@ from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "source_lexicons"
+RESOURCE_ROOT = PROJECT_ROOT / "resources"
 MAX_TEXT_BYTES = 5 * 1024 * 1024
 
 
@@ -135,6 +144,10 @@ class AnalysisRequest:
     scenario_id: str = "phase2-multi-lexicon-v1"
     scenario_version_id: str = ""
     review_rules: tuple[ReviewRule, ...] = ()
+    include_concreteness: bool = False
+    concreteness_configuration: ConcretenessConfiguration = (
+        ConcretenessConfiguration()
+    )
 
 
 @dataclass(frozen=True)
@@ -144,6 +157,7 @@ class WorkspaceAnalysis:
     results: tuple[Phase2AnalysisResult, ...]
     comparison: CrossLexiconComparison
     poem_document: PoemDocument | None = None
+    concreteness: ConcretenessAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -303,9 +317,11 @@ def part_of_speech_views(
 ) -> tuple[PartOfSpeechView, ...]:
     """Return a lexicon-independent POS profile for one analyzed text."""
 
-    if not workspace.results:
-        return ()
-    return part_of_speech_views_for_tokens(workspace.results[0].tokens)
+    if workspace.poem_document is not None:
+        return part_of_speech_views_for_tokens(workspace.poem_document.tokens)
+    if workspace.results:
+        return part_of_speech_views_for_tokens(workspace.results[0].tokens)
+    return ()
 
 
 def detailed_part_of_speech_views(
@@ -313,9 +329,15 @@ def detailed_part_of_speech_views(
 ) -> tuple[PartOfSpeechView, ...]:
     """Return the unmerged universal-tag profile for one analyzed text."""
 
-    if not workspace.results:
-        return ()
-    return detailed_part_of_speech_views_for_tokens(workspace.results[0].tokens)
+    if workspace.poem_document is not None:
+        return detailed_part_of_speech_views_for_tokens(
+            workspace.poem_document.tokens
+        )
+    if workspace.results:
+        return detailed_part_of_speech_views_for_tokens(
+            workspace.results[0].tokens
+        )
+    return ()
 
 
 @dataclass(frozen=True)
@@ -492,13 +514,17 @@ def run_workspace_analysis(
     *,
     preprocessor: TextPreprocessor | None = None,
     source_root: Path = SOURCE_ROOT,
+    resource_root: Path = RESOURCE_ROOT,
+    concreteness_module: ConcretenessModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
     if not request.original_text.strip():
         raise WorkspaceAnalysisError("Paste a poem or choose a UTF-8 text file before analyzing.")
-    if not request.lexicon_ids:
-        raise WorkspaceAnalysisError("Select at least one lexicon before analyzing.")
+    if not request.lexicon_ids and not request.include_concreteness:
+        raise WorkspaceAnalysisError(
+            "Select at least one lexicon or optional analysis module before analyzing."
+        )
     unknown = set(request.lexicon_ids) - set(LEXICON_SPEC_BY_ID)
     if unknown:
         raise WorkspaceAnalysisError(f"Unknown lexicon selection: {sorted(unknown)}")
@@ -541,12 +567,44 @@ def run_workspace_analysis(
         )
         for lexicon_id in request.lexicon_ids
     )
+    if results:
+        comparison = compare_lexicons(results)
+    else:
+        comparison_signature = "|".join(
+            (
+                document.text_version_id,
+                request.scenario_id,
+                request.phrase_policy.value,
+                "no-affective-lexicons",
+            )
+        )
+        comparison = CrossLexiconComparison(
+            comparison_id=hashlib.sha256(
+                comparison_signature.encode("utf-8")
+            ).hexdigest(),
+            text_version_id=document.text_version_id,
+            scenario_id=request.scenario_id,
+            phrase_policy=request.phrase_policy,
+            lexicon_ids=(),
+            metrics=(),
+        )
+    concreteness = None
+    if request.include_concreteness:
+        module = concreteness_module or ConcretenessModule(resource_root)
+        try:
+            concreteness = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                request.concreteness_configuration,
+            )
+        except ConcretenessModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
         request,
         document,
         results,
-        compare_lexicons(results),
+        comparison,
         poem_document,
+        concreteness,
     )
 
 
@@ -1124,6 +1182,12 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
         notes.append(
             "Emotion intensity means use only supplied word-emotion pairs; missing pairs are not treated as zero."
         )
+    if workspace.concreteness is not None:
+        notes.append(
+            "Concreteness results describe matched normative lexical ratings on "
+            "the source 1-5 scale. They do not measure imagery success, "
+            "readability, literary quality, intelligence, or comprehension."
+        )
     if workspace.request.scenario_version_id:
         notes.append(
             f"This is a reviewed scenario result pinned to "
@@ -1370,6 +1434,87 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 "plain_language_note": "Absent word-emotion pairs are missing, not zero.",
             }
         )
+    if workspace.concreteness is not None:
+        concreteness = workspace.concreteness
+        summary = concreteness.summary
+        stats = summary.statistics
+        for metric, value, unit in (
+            ("Mean normative concreteness", stats.mean, "source 1-5"),
+            ("Median normative concreteness", stats.median, "source 1-5"),
+            (
+                "Population standard deviation",
+                stats.population_standard_deviation,
+                "source-scale points",
+            ),
+            ("Interquartile range", summary.interquartile_range, "source-scale points"),
+        ):
+            rows.append(
+                {
+                    "section": "Concreteness",
+                    "lexicon": concreteness.resource_status.display_name,
+                    "analysis_view": "Rated eligible token occurrences",
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": (
+                        f"{summary.rated_token_count} rated eligible token occurrences"
+                    ),
+                    "plain_language_note": (
+                        "Normative lexical evidence only; unmatched observations "
+                        "remain missing."
+                    ),
+                }
+            )
+        for metric, value, denominator, note in (
+            (
+                "Rated-token coverage",
+                summary.token_coverage,
+                (
+                    f"{summary.rated_token_count} of "
+                    f"{summary.eligible_token_count} eligible token occurrences"
+                ),
+                "Multiword ratings retain a shared expression group in the audit.",
+            ),
+            (
+                "Rated unique-word coverage",
+                summary.unique_type_coverage,
+                (
+                    f"{summary.rated_unique_type_count} of "
+                    f"{summary.eligible_unique_type_count} normalized surface types"
+                ),
+                "The denominator uses observed surface types, not lemma types.",
+            ),
+            (
+                "Configured highly concrete proportion",
+                summary.highly_concrete_proportion,
+                f"{summary.rated_token_count} rated token occurrences",
+                (
+                    f"VerseVAD orientation band >= "
+                    f"{summary.highly_concrete_min:g}; not a source-paper category."
+                ),
+            ),
+            (
+                "Configured highly abstract proportion",
+                summary.highly_abstract_proportion,
+                f"{summary.rated_token_count} rated token occurrences",
+                (
+                    f"VerseVAD orientation band <= "
+                    f"{summary.highly_abstract_max:g}; not a source-paper category."
+                ),
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Concreteness",
+                    "lexicon": concreteness.resource_status.display_name,
+                    "analysis_view": "Rated eligible token occurrences",
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": "proportion",
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
     return _csv_bytes(fields, rows)
 
 
@@ -1379,8 +1524,44 @@ def csv_reading_guide() -> bytes:
         {
             "file": "scholar_summary.csv",
             "what_it_answers": "What are the principal readable results?",
-            "start_with": "Coverage, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
+            "start_with": "Coverage, concreteness, token/type VAD means, cumulative load, contributors, association rates, and matched intensity means.",
             "important_caution": "Read every metric with its denominator and plain-language note.",
+        },
+        {
+            "file": "concreteness_summary.csv",
+            "what_it_answers": "What is the matched normative lexical concreteness profile?",
+            "start_with": "mean, median, dispersion, rated-token coverage, and rated unique-word coverage.",
+            "important_caution": "The 1-5 ratings describe source norms; they do not measure imagery success, readability, quality, intelligence, or comprehension.",
+        },
+        {
+            "file": "concreteness_by_structure.csv",
+            "what_it_answers": "How do rated-token summaries vary by physical line and stanza?",
+            "start_with": "scope, ordinal, token_coverage, mean, and median.",
+            "important_caution": "Missing line or stanza aggregates mean that no eligible tokens were rated there; they are not zero.",
+        },
+        {
+            "file": "concreteness_by_pos.csv",
+            "what_it_answers": "How do normative ratings and coverage vary by model-generated part-of-speech tag?",
+            "start_with": "label, rated_token_count, token_coverage, mean, and median.",
+            "important_caution": "Part-of-speech labels are model outputs and may be uncertain in poetic language.",
+        },
+        {
+            "file": "concreteness_terms.csv",
+            "what_it_answers": "Which matched source terms have the highest and lowest ratings?",
+            "start_with": "rating, rated_token_occurrences, and the two rank columns.",
+            "important_caution": "Rankings concern matched normative source ratings, not contextual interpretation.",
+        },
+        {
+            "file": "concreteness_token_audit.csv",
+            "what_it_answers": "How was every token included, matched, excluded, or left unmatched?",
+            "start_with": "surface_form, match_method, matched_source_term, rating, and reason.",
+            "important_caution": "Phrase components share a match_group_id; unmatched and ineligible rows carry no rating.",
+        },
+        {
+            "file": "concreteness_result.json",
+            "what_it_answers": "Can software reproduce the complete concreteness result and method?",
+            "start_with": "module_result, configuration, summary, structural summaries, token_audit, and resource provenance.",
+            "important_caution": "Thresholds are configurable VerseVAD orientation aids, not categories validated by the source paper.",
         },
         {
             "file": "phase2_coverage.csv",
@@ -1445,11 +1626,20 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
 
     with TemporaryDirectory(prefix="versevad-export-") as temporary:
         directory = Path(temporary)
-        paths = export_phase2_csv(workspace.results, workspace.comparison, directory)
+        paths = (
+            export_phase2_csv(workspace.results, workspace.comparison, directory)
+            if workspace.results
+            else ()
+        )
         archive = io.BytesIO()
         with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
             for path in paths:
                 bundle.write(path, arcname=path.name)
+            if workspace.concreteness is not None:
+                for filename, content in export_concreteness_bundle(
+                    workspace.concreteness
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -1464,6 +1654,9 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "poem_document.json preserves the exact text, poetic structure, "
                 "shared processing configuration, model annotations, coverage, "
                 "and warnings used by every selected lexicon.\n"
+                "When present, the concreteness files report normative lexical "
+                "concreteness, line/stanza and part-of-speech summaries, term "
+                "rankings, token matching, resource provenance, and configuration.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

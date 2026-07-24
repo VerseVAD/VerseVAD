@@ -63,7 +63,15 @@ Lexicon Explorer exposes exact source rows, source values, optional Warriner
 standard-deviation/rater fields, normalization formulas, and provenance without
 creating a second authoritative copy.
 
-## Poetic Fingerprint expansion Stages 0 and 1
+Expansion Stage 2 adds an optional `ConcretenessAnalysisResult` to the
+one-poem `WorkspaceAnalysis`. It contains a common `ModuleResult`, exact
+configuration, resource status/validation, overall and grouped summaries,
+term summaries, and a complete `ConcretenessTokenRating` audit. Phrase-covered
+tokens share a stable match-group identity. Missing ratings remain nullable
+and never become numeric placeholders. These records are in memory and in
+one-poem exports only; schema version 3 remains unchanged.
+
+## Poetic Fingerprint expansion Stages 0-2
 
 Stage 0 adds an immutable, framework-independent common envelope for future
 optional modules:

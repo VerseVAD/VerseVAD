@@ -31,6 +31,7 @@ _application_was_reloaded = (
             "vad_sensitivity_views",
             "part_of_speech_views",
             "detailed_part_of_speech_views",
+            "RESOURCE_ROOT",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -51,8 +52,11 @@ if _application_was_reloaded:
         "versevad.adapters.nrc_vad",
         "versevad.adapters.nrc_emotion",
         "versevad.adapters.nrc_intensity",
+        "versevad.adapters.concreteness",
         "versevad.adapters",
         "versevad.analysis.phase2",
+        "versevad.lexical_semantic.concreteness",
+        "versevad.exports.concreteness",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -70,6 +74,7 @@ from versevad import __version__
 from versevad.application import (
     AnalysisRequest,
     LEXICON_SPECS,
+    RESOURCE_ROOT,
     TextImportError,
     VAD_DEFINITIONS,
     WorkspaceAnalysisError,
@@ -94,6 +99,10 @@ from versevad.application import (
     vad_views,
 )
 from versevad.diagnostics import run_self_test
+from versevad.lexical_semantic.concreteness import (
+    ConcretenessConfiguration,
+    ConcretenessModule,
+)
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
 from versevad.ui.stopwords import render_stopword_settings
@@ -322,6 +331,28 @@ if workspace_page == "One Poem":
                     spec = spec_by_id[lexicon_id]
                     st.markdown(f"**{spec.display_name}:** {spec.short_description}")
 
+        st.markdown("**Optional lexical-semantic modules**")
+        concreteness_status = ConcretenessModule(
+            RESOURCE_ROOT
+        ).validate_resources()[0]
+        include_concreteness = st.checkbox(
+            "Concreteness profile (Brysbaert et al. ratings)",
+            value=False,
+            disabled=not concreteness_status.available,
+            key="include_concreteness",
+            help=(
+                "Measures matched normative lexical concreteness on the source "
+                "1-5 scale. The module is independent of the affective lexicons."
+            ),
+        )
+        if concreteness_status.available:
+            st.caption(
+                "Available locally. The source workbook is read in place, its "
+                "SHA-256 is recorded, and it is not added to source control."
+            )
+        else:
+            st.info(concreteness_status.message)
+
         with st.expander("Advanced methodology settings"):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -345,6 +376,57 @@ if workspace_page == "One Poem":
             )
             st.caption(
                 "This threshold marks a result as sparse; it does not invent values or remove the audit trail."
+            )
+            st.markdown("**Concreteness settings**")
+            concreteness_columns = st.columns(2)
+            highly_abstract_max = concreteness_columns[0].number_input(
+                "Highly abstract band: rating at or below",
+                min_value=1.0,
+                max_value=4.9,
+                value=2.0,
+                step=0.1,
+                key="concreteness_abstract_max",
+                disabled=not include_concreteness,
+            )
+            highly_concrete_min = concreteness_columns[1].number_input(
+                "Highly concrete band: rating at or above",
+                min_value=1.1,
+                max_value=5.0,
+                value=4.0,
+                step=0.1,
+                key="concreteness_concrete_min",
+                disabled=not include_concreteness,
+            )
+            concreteness_policy_columns = st.columns(2)
+            exclude_concreteness_proper_nouns = concreteness_policy_columns[
+                0
+            ].checkbox(
+                "Exclude model-tagged proper nouns",
+                value=True,
+                key="concreteness_exclude_proper",
+                disabled=not include_concreteness,
+            )
+            activate_concreteness_phrases = concreteness_policy_columns[
+                1
+            ].checkbox(
+                "Activate exact two-word source expressions",
+                value=True,
+                key="concreteness_phrases",
+                disabled=not include_concreteness,
+            )
+            concreteness_warning_threshold = st.number_input(
+                "Concreteness rated-token coverage caution threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.6,
+                step=0.05,
+                key="concreteness_coverage_warning",
+                disabled=not include_concreteness,
+            )
+            st.caption(
+                "The extreme bands and coverage caution are configurable "
+                "VerseVAD orientation aids, not categories or validity cutoffs "
+                "defined by the source paper."
             )
         st.markdown("**Stopword reporting**")
         reporting_columns = st.columns(2)
@@ -372,8 +454,28 @@ if workspace_page == "One Poem":
             key="analyze_text",
         )
 
+    concreteness_configuration_error = ""
+    try:
+        concreteness_configuration = ConcretenessConfiguration(
+            highly_abstract_max=float(highly_abstract_max),
+            highly_concrete_min=float(highly_concrete_min),
+            exclude_proper_nouns=exclude_concreteness_proper_nouns,
+            activate_multiword_expressions=activate_concreteness_phrases,
+            minimum_rated_tokens=int(minimum_matches),
+            low_coverage_warning_threshold=float(
+                concreteness_warning_threshold
+            ),
+        )
+    except ValueError as error:
+        concreteness_configuration_error = str(error)
+        concreteness_configuration = ConcretenessConfiguration()
+        if include_concreteness:
+            st.warning(concreteness_configuration_error)
+
     if analyze_clicked:
         try:
+            if concreteness_configuration_error:
+                raise ValueError(concreteness_configuration_error)
             request = AnalysisRequest(
                 project_name=st.session_state["project_name"],
                 title=st.session_state["poem_title"],
@@ -385,6 +487,8 @@ if workspace_page == "One Poem":
                 protected_stopwords=stopword_settings.protected_words,
                 custom_stopword_additions=stopword_settings.custom_additions,
                 custom_stopword_removals=stopword_settings.custom_removals,
+                include_concreteness=include_concreteness,
+                concreteness_configuration=concreteness_configuration,
             )
             with st.spinner("Analyzing locally and preserving the audit trail…"):
                 st.session_state["workspace"] = run_workspace_analysis(
@@ -412,9 +516,16 @@ if workspace_page == "One Poem":
     if (
         st.session_state["poem_text"] != workspace.request.original_text
         or tuple(selected_lexicons) != workspace.request.lexicon_ids
+        or include_concreteness != workspace.request.include_concreteness
+        or (
+            include_concreteness
+            and concreteness_configuration
+            != workspace.request.concreteness_configuration
+        )
     ):
         st.warning(
-            "The text or lexicon selection has changed since this result was calculated. "
+            "The text, lexicon selection, or optional-module settings have "
+            "changed since this result was calculated. "
             "Click Analyze this text again before using the results."
         )
 
@@ -429,6 +540,7 @@ if workspace_page == "One Poem":
     (
         overview_tab,
         language_tab,
+        concreteness_tab,
         vad_tab,
         emotion_tab,
         evidence_tab,
@@ -438,6 +550,7 @@ if workspace_page == "One Poem":
         [
             "Overview",
             "Language Profile",
+            "Concreteness Profile",
             "VAD Profile",
             "Emotion Profile",
             "Evidence",
@@ -449,7 +562,11 @@ if workspace_page == "One Poem":
     with overview_tab:
         coverage = coverage_views(workspace)
         metrics = st.columns(4)
-        lexical_tokens = coverage[0].lexical_tokens if coverage else 0
+        lexical_tokens = (
+            workspace.poem_document.coverage.lexical_token_count
+            if workspace.poem_document is not None
+            else (coverage[0].lexical_tokens if coverage else 0)
+        )
         metrics[0].metric("Lexical tokens", f"{lexical_tokens:,}")
         metrics[1].metric("Lexicons analyzed", len(workspace.results))
         metrics[2].metric("Lines preserved", len(workspace.document.original_text.splitlines()))
@@ -461,38 +578,81 @@ if workspace_page == "One Poem":
             "Every aggregate below is based only on matched evidence.</div>",
             unsafe_allow_html=True,
         )
-        coverage_frame = _frame(
-            coverage,
-            {
-                "lexicon": "Lexicon",
-                "matched_tokens": "Matched tokens",
-                "lexical_tokens": "Lexical tokens",
-                "coverage": "Coverage",
-                "matched_types": "Matched types",
-                "total_types": "Total types",
-                "exact_matches": "Exact",
-                "lemma_matches": "Lemma",
-                "phrase_matches": "Phrases",
-                "note": "Reading note",
-            },
-        )
-        coverage_frame["Coverage"] = coverage_frame["Coverage"].map(_percentage)
-        st.dataframe(
-            coverage_frame[
-                [
-                    "Lexicon",
-                    "Matched tokens",
-                    "Lexical tokens",
-                    "Coverage",
-                    "Exact",
-                    "Lemma",
-                    "Phrases",
-                    "Reading note",
-                ]
-            ],
-            hide_index=True,
-            width="stretch",
-        )
+        if coverage:
+            coverage_frame = _frame(
+                coverage,
+                {
+                    "lexicon": "Lexicon",
+                    "matched_tokens": "Matched tokens",
+                    "lexical_tokens": "Lexical tokens",
+                    "coverage": "Coverage",
+                    "matched_types": "Matched types",
+                    "total_types": "Total types",
+                    "exact_matches": "Exact",
+                    "lemma_matches": "Lemma",
+                    "phrase_matches": "Phrases",
+                    "note": "Reading note",
+                },
+            )
+            coverage_frame["Coverage"] = coverage_frame["Coverage"].map(
+                _percentage
+            )
+            st.dataframe(
+                coverage_frame[
+                    [
+                        "Lexicon",
+                        "Matched tokens",
+                        "Lexical tokens",
+                        "Coverage",
+                        "Exact",
+                        "Lemma",
+                        "Phrases",
+                        "Reading note",
+                    ]
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+        else:
+            st.info(
+                "No affective lexicon was selected for this result. Optional "
+                "module coverage is reported separately below."
+            )
+        if workspace.concreteness is not None:
+            concrete_summary = workspace.concreteness.summary
+            st.markdown("**Concreteness coverage**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Resource": (
+                                workspace.concreteness.resource_status.display_name
+                            ),
+                            "Rated tokens": concrete_summary.rated_token_count,
+                            "Eligible tokens": concrete_summary.eligible_token_count,
+                            "Rated-token coverage": (
+                                concrete_summary.token_coverage
+                            ),
+                            "Rated unique words": (
+                                concrete_summary.rated_unique_type_count
+                            ),
+                            "Eligible unique words": (
+                                concrete_summary.eligible_unique_type_count
+                            ),
+                            "Unique-word coverage": (
+                                concrete_summary.unique_type_coverage
+                            ),
+                        }
+                    ]
+                ).style.format(
+                    {
+                        "Rated-token coverage": lambda value: _percentage(value),
+                        "Unique-word coverage": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
         if show_stopword_excluded:
             filtered_coverage = [
                 {
@@ -510,20 +670,24 @@ if workspace_page == "One Poem":
                 for result in workspace.results
                 if result.stopword_coverage is not None
             ]
-            st.markdown("**Stopwords-excluded coverage**")
-            st.dataframe(
-                pd.DataFrame(filtered_coverage).style.format(
-                    {
-                        "Content-focused coverage": lambda value: _percentage(value),
-                    }
-                ),
-                hide_index=True,
-                width="stretch",
-            )
-            st.caption(
-                "Content-focused coverage uses eligible non-stopword tokens as its "
-                "denominator, so intentional exclusions do not appear as failed matches."
-            )
+            if filtered_coverage:
+                st.markdown("**Stopwords-excluded coverage**")
+                st.dataframe(
+                    pd.DataFrame(filtered_coverage).style.format(
+                        {
+                            "Content-focused coverage": lambda value: _percentage(
+                                value
+                            ),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(
+                    "Content-focused coverage uses eligible non-stopword tokens as "
+                    "its denominator, so intentional exclusions do not appear as "
+                    "failed matches."
+                )
             policy = next(
                 (
                     result.stopword_policy
@@ -572,6 +736,14 @@ if workspace_page == "One Poem":
             for result in workspace.results
             for warning in result.warnings
         ]
+        if workspace.concreteness is not None:
+            warnings.extend(
+                (
+                    "Concreteness",
+                    warning.message,
+                )
+                for warning in workspace.concreteness.module_result.warnings
+            )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
                 for lexicon, warning in warnings:
@@ -693,6 +865,303 @@ if workspace_page == "One Poem":
             )
         else:
             st.info("This text contains no eligible lexical tokens to profile.")
+
+    with concreteness_tab:
+        concreteness = workspace.concreteness
+        if concreteness is None:
+            st.info(
+                "Concreteness was not selected for this result. Enable the "
+                "optional Concreteness profile under Choose Evidence, then run "
+                "the analysis again."
+            )
+            if not concreteness_status.available:
+                st.warning(concreteness_status.message)
+        else:
+            summary = concreteness.summary
+            st.subheader("Normative Lexical Concreteness")
+            st.write(
+                "These values summarize matched Brysbaert, Warriner, and "
+                "Kuperman ratings. On the source scale, 1 is very abstract "
+                "(language-based) and 5 is very concrete (experience-based). "
+                "They describe normative lexical evidence, not the poem's "
+                "quality, imagery success, readability, intelligence, or "
+                "comprehensibility."
+            )
+            headline = st.columns(6)
+            headline[0].metric("Mean", _decimal(summary.statistics.mean))
+            headline[1].metric("Median", _decimal(summary.statistics.median))
+            headline[2].metric(
+                "Population SD",
+                _decimal(summary.statistics.population_standard_deviation),
+            )
+            headline[3].metric(
+                "IQR",
+                _decimal(summary.interquartile_range),
+            )
+            headline[4].metric(
+                "Rated-token coverage",
+                _percentage(summary.token_coverage),
+            )
+            headline[5].metric(
+                "Unique-word coverage",
+                _percentage(summary.unique_type_coverage),
+            )
+            st.caption(
+                f"{summary.rated_token_count:,} of "
+                f"{summary.eligible_token_count:,} eligible token occurrences "
+                f"and {summary.rated_unique_type_count:,} of "
+                f"{summary.eligible_unique_type_count:,} unique normalized "
+                "surface types were rated. Unmatched values remain missing."
+            )
+
+            band_columns = st.columns(2)
+            band_columns[0].metric(
+                f"Rating >= {summary.highly_concrete_min:g}",
+                _percentage(summary.highly_concrete_proportion),
+                help=(
+                    "Configurable VerseVAD orientation band among rated token "
+                    "occurrences; not a category defined by the source paper."
+                ),
+            )
+            band_columns[1].metric(
+                f"Rating <= {summary.highly_abstract_max:g}",
+                _percentage(summary.highly_abstract_proportion),
+                help=(
+                    "Configurable VerseVAD orientation band among rated token "
+                    "occurrences; not a category defined by the source paper."
+                ),
+            )
+            st.caption(
+                "The extreme bands are configurable display aids. Values between "
+                "them remain part of the full continuous 1-5 distribution."
+            )
+
+            if concreteness.module_result.warnings:
+                with st.expander(
+                    "Concreteness warnings and method notices "
+                    f"({len(concreteness.module_result.warnings)})"
+                ):
+                    for warning in concreteness.module_result.warnings:
+                        if warning.severity.value == "information":
+                            st.info(warning.message)
+                        else:
+                            st.warning(warning.message)
+
+            rated_lines = [
+                group
+                for group in concreteness.line_summaries
+                if group.statistics.mean is not None
+            ]
+            st.subheader("Physical-Line Profile")
+            if rated_lines:
+                line_frame = pd.DataFrame(
+                    [
+                        {
+                            "Line": group.ordinal,
+                            "Mean normative concreteness": group.statistics.mean,
+                            "Median": group.statistics.median,
+                            "Rated tokens": group.rated_token_count,
+                            "Eligible tokens": group.eligible_token_count,
+                            "Coverage": group.token_coverage,
+                            "Text": group.source_text,
+                        }
+                        for group in rated_lines
+                    ]
+                )
+                st.line_chart(
+                    line_frame.set_index("Line")[
+                        ["Mean normative concreteness"]
+                    ],
+                    height=280,
+                )
+                st.dataframe(
+                    line_frame.style.format(
+                        {
+                            "Mean normative concreteness": lambda value: _decimal(
+                                value
+                            ),
+                            "Median": lambda value: _decimal(value),
+                            "Coverage": lambda value: _percentage(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+            else:
+                st.info("No physical line contains a rated eligible token.")
+
+            st.subheader("Stanza Profile")
+            stanza_frame = pd.DataFrame(
+                [
+                    {
+                        "Stanza": group.ordinal,
+                        "Mean": group.statistics.mean,
+                        "Median": group.statistics.median,
+                        "Population SD": (
+                            group.statistics.population_standard_deviation
+                        ),
+                        "Rated tokens": group.rated_token_count,
+                        "Eligible tokens": group.eligible_token_count,
+                        "Coverage": group.token_coverage,
+                    }
+                    for group in concreteness.stanza_summaries
+                ]
+            )
+            if not stanza_frame.empty:
+                st.dataframe(
+                    stanza_frame.style.format(
+                        {
+                            "Mean": lambda value: _decimal(value),
+                            "Median": lambda value: _decimal(value),
+                            "Population SD": lambda value: _decimal(value),
+                            "Coverage": lambda value: _percentage(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+            else:
+                st.info("No stanza units were available.")
+
+            st.subheader("Concreteness by Model Part of Speech")
+            pos_frame = pd.DataFrame(
+                [
+                    {
+                        "Universal POS tag": group.label,
+                        "Mean": group.statistics.mean,
+                        "Median": group.statistics.median,
+                        "Rated tokens": group.rated_token_count,
+                        "Eligible tokens": group.eligible_token_count,
+                        "Coverage": group.token_coverage,
+                    }
+                    for group in concreteness.part_of_speech_summaries
+                ]
+            )
+            if not pos_frame.empty:
+                st.dataframe(
+                    pos_frame.style.format(
+                        {
+                            "Mean": lambda value: _decimal(value),
+                            "Median": lambda value: _decimal(value),
+                            "Coverage": lambda value: _percentage(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(
+                    "Part-of-speech tags come from the installed English model "
+                    "and may be uncertain for poetic syntax, fragments, names, "
+                    "archaic language, and deliberate ambiguity."
+                )
+
+            st.subheader("Matched Term Extremes")
+            concrete_column, abstract_column = st.columns(2)
+            with concrete_column:
+                st.markdown("**Highest source ratings**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Term": term.source_term,
+                                "Rating": term.rating,
+                                "Rated token occurrences": (
+                                    term.rated_token_occurrences
+                                ),
+                            }
+                            for term in concreteness.most_concrete_terms
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+            with abstract_column:
+                st.markdown("**Lowest source ratings**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Term": term.source_term,
+                                "Rating": term.rating,
+                                "Rated token occurrences": (
+                                    term.rated_token_occurrences
+                                ),
+                            }
+                            for term in concreteness.most_abstract_terms
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+            st.caption(
+                "These are rankings among matched source entries, not claims "
+                "about contextual meaning or the poem as a whole."
+            )
+
+            with st.expander(
+                f"Concreteness token audit ({len(concreteness.token_audit):,} rows)"
+            ):
+                audit_frame = _frame(
+                    concreteness.token_audit,
+                    {
+                        "surface_form": "Surface",
+                        "normalized_form": "Normalized surface",
+                        "lemma": "Model lemma",
+                        "part_of_speech": "POS",
+                        "line_number": "Line",
+                        "stanza_number": "Stanza",
+                        "eligible": "Eligible",
+                        "included": "Rated",
+                        "match_method": "Method",
+                        "matched_source_term": "Source entry",
+                        "rating": "Rating",
+                        "source_rating_standard_deviation": "Source rating SD",
+                        "source_percent_known": "Source percent known",
+                        "match_group_id": "Match group",
+                        "reason": "Why",
+                    },
+                )
+                st.dataframe(
+                    audit_frame[
+                        [
+                            "Surface",
+                            "Normalized surface",
+                            "Model lemma",
+                            "POS",
+                            "Line",
+                            "Stanza",
+                            "Eligible",
+                            "Rated",
+                            "Method",
+                            "Source entry",
+                            "Rating",
+                            "Source rating SD",
+                            "Source percent known",
+                            "Match group",
+                            "Why",
+                        ]
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                    height=420,
+                )
+            with st.expander("Concreteness resource and calculation provenance"):
+                provenance = concreteness.module_result.provenance
+                resource = provenance.resources[0]
+                st.write(
+                    f"**Resource:** {resource.display_name}  \n"
+                    f"**Version:** {resource.version}  \n"
+                    f"**SHA-256:** `{resource.source_sha256}`  \n"
+                    f"**Adapter:** {resource.adapter_version}  \n"
+                    f"**Module:** {concreteness.module_result.module_name} "
+                    f"{concreteness.module_result.module_version}  \n"
+                    f"**Configuration:** "
+                    f"`{provenance.configuration_id}`  \n"
+                    f"**Lookup policy:** {provenance.lookup_policy}  \n"
+                    f"**Inclusion policy:** {provenance.inclusion_policy}"
+                )
+                st.write(f"**Citation:** {resource.citation}")
+                st.caption(resource.license_notice)
 
     with vad_tab:
         visible_vad_views = set()
@@ -1237,10 +1706,11 @@ if workspace_page == "One Poem":
             options=["All lexicons", *sorted({row.lexicon for row in all_matches})],
             key="evidence_lexicon_filter",
         )
+        status_options = sorted({row.status for row in all_matches})
         status_filter = st.multiselect(
             "Match status",
-            options=sorted({row.status for row in all_matches}),
-            default=["included"],
+            options=status_options,
+            default=["included"] if "included" in status_options else [],
             key="evidence_status_filter",
         )
         stopword_filter = st.multiselect(
@@ -1318,8 +1788,13 @@ if workspace_page == "One Poem":
             st.caption(
                 "A model lemma is proposed processing evidence, not an approved historical or scholarly mapping."
             )
-        else:
+        elif workspace.results:
             st.success("Every lexical token matched each selected lexicon under this policy.")
+        else:
+            st.info(
+                "No affective lexicon was selected. Concreteness matching is "
+                "available in the Concreteness Profile token audit and downloads."
+            )
 
     with download_tab:
         st.subheader("Readable First, Audit Trail Second")
@@ -1359,7 +1834,9 @@ if workspace_page == "One Poem":
         st.info(
             "The full bundle contains START_HERE.txt, the readable summary, the CSV "
             "guide, match audit, coverage, VAD, association, intensity, comparison, "
-            "reproducibility-manifest, and complete JSON result files."
+            "reproducibility-manifest, shared poem document, and complete JSON "
+            "result files. When concreteness is selected, it also includes its "
+            "summary, structural, POS, term, token-audit, and JSON files."
         )
 
     with help_tab:
@@ -1367,11 +1844,12 @@ if workspace_page == "One Poem":
         st.markdown(
             """
             1. **Coverage:** Is enough vocabulary represented to make the aggregate useful?
-            2. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
-            3. **Emotion associations:** Read category rates as overlapping lexical associations.
-            4. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
-            5. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
-            6. **Manifest:** Use this only when you need provenance or reproducibility details.
+            2. **Concreteness:** Read the source 1-5 distribution with both coverage denominators and configured bands.
+            3. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
+            4. **Emotion associations:** Read category rates as overlapping lexical associations.
+            5. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
+            6. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
+            7. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
         st.subheader("What the Main Terms Mean")
@@ -1382,6 +1860,9 @@ if workspace_page == "One Poem":
             ("Work-weighted corpus", "Each eligible work contributes one work-level mean regardless of length."),
             ("Cumulative lexical load", "A length-sensitive sum of matched normative ratings or midpoint deviations."),
             ("Normalized VAD", "A derived 0-1 version used for legitimate side-by-side VAD comparison."),
+            ("Normative lexical concreteness", "A matched source rating from 1 (very abstract or language-based) to 5 (very concrete or experience-based)."),
+            ("Rated-token coverage", "The share of eligible lexical token occurrences assigned a source rating; missing tokens stay missing."),
+            ("Rated unique-word coverage", "The share of unique normalized observed surface forms assigned a source rating."),
             ("Association", "A binary category link; it is not an intensity or contextual interpretation."),
             ("Intensity", "A source rating for a supplied word-category pair; missing pairs stay missing."),
             ("Suppressed component", "A visible unigram candidate not counted because a preferred phrase was selected."),

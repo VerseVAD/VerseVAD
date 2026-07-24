@@ -1,12 +1,12 @@
 # VerseVAD User Manual
 
-## Local, auditable affective-lexicon analysis for literary texts
+## Local, auditable lexical-evidence analysis for literary texts
 
 **Software version:** {{VERSION}}  
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes affective **lexical evidence**: normative ratings and associations attached to matched words and phrases. It does not determine the emotion of a poem, speaker, author, or reader, and it does not replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**: normative ratings and associations attached to matched words and phrases. Its optional concreteness module remains a separate normative lexical construct. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, and it does not replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read **VAD Profile** and **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -48,6 +48,8 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
 - work-level and collection-level corpus comparisons;
 - named, versioned review scenarios for flags, exclusions, and approved mappings;
 - source provenance and uncertainty fields in Lexicon Explorer.
+- optional normative lexical concreteness statistics, coverage, structural
+  summaries, term rankings, and token audit from a local research workbook.
 
 ## What VerseVAD does not do
 
@@ -58,6 +60,8 @@ VerseVAD does not infer an author's intention, diagnose a speaker, identify a po
 Ordinary use runs locally on this computer at `http://127.0.0.1:8501`. VerseVAD does not send literary texts, lexicons, projects, or results to ChatGPT, OpenAI, or another external service. Once the local environment is installed, ordinary analysis does not require a ChatGPT subscription.
 
 The supplied lexicons remain under `source_lexicons/` and must not be renamed, edited, merged, or redistributed. VerseVAD reads them in place, records SHA-256 checksums, and stores derived project data separately.
+
+Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper must retain their exact filenames and checksums. VerseVAD reads the workbook in place and does not copy the full ratings source into an export.
 
 # 2. Installation, startup, and shutdown
 
@@ -94,13 +98,15 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 2. Enter a title or working label.
 3. Paste a short poem, or upload a UTF-8 `.txt` file.
 4. Keep the selected lexicons and default methodology for the first run.
-5. Keep both reporting views enabled.
-6. Click **Analyze this text**.
-7. In **Overview**, inspect coverage and warnings.
-8. In **VAD Profile**, compare all matched observations with stopwords excluded.
-9. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
-10. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
-11. In **Downloads**, save the readable summary or full audit bundle.
+5. Optionally enable **Normative lexical concreteness** under **Choose Evidence**.
+6. Keep both affective reporting views enabled.
+7. Click **Analyze this text**.
+8. In **Overview**, inspect coverage and warnings.
+9. In **VAD Profile**, compare all matched observations with stopwords excluded.
+10. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
+11. If enabled, inspect the separate **Concreteness Profile**.
+12. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
+13. In **Downloads**, save the readable summary or full audit bundle.
 
 > SAFE PRACTICE: A high or low mean is not self-interpreting. Always read it with the lexicon name, analysis view, weighting, matched count, coverage, and evidence table.
 
@@ -133,6 +139,17 @@ NRC VAD v1 and NRC VAD v2.1 are versions of the same lexicon family, not indepen
 ## Phrase coverage
 
 NRC VAD v2.1 explicitly contains multiword expressions. VerseVAD also activates the 102 whitespace-containing rows in the local Warriner source and the 132 whitespace-containing rows in NRC VAD v1 as exact, auditable phrase candidates at the user's request. This is a declared processing choice and does not claim that Warriner or NRC VAD v1 supplied a separate phrase-specific validation study.
+
+## Optional concreteness resource
+
+The one-poem workspace can read the user-supplied Brysbaert, Warriner, and Kuperman (2014) supplementary workbook directly from `resources/`. Its 39,954 rows contain 37,058 single words and 2,896 two-word expressions rated on an original 1-5 concreteness scale. The source paper describes the endpoints as very abstract or language-based and very concrete or experience-based.
+
+Keep these exact local files:
+
+- `resources/brysbaert_warriner_kuperman_concreteness_DATA.xlsx`
+- `resources/brysbaert_warriner_kuperman_concreteness_PAPER.pdf`
+
+The workbook's `SUBTLEX` field is retained as source-row provenance. It is not the planned VerseVAD lexical-frequency module; that later module will use a separately installed, versioned SUBTLEX-US resource and will not use `wordfreq`.
 
 # 5. How text becomes auditable matches
 
@@ -169,6 +186,8 @@ Named-entity recognition is disabled by default. The installed small English mod
 8. Leave unresolved or unmatched items missing.
 
 An exact surface match is never silently replaced by a lemma match. Lemma matching is explicitly labeled because model-proposed lemmas can be wrong for poetic, historical, or unusual language.
+
+The optional concreteness module has its own recorded sequence over the same tokens: longest exact source-supplied two-word expression within one physical line, exact normalized surface, lemma, then a documented conservative apostrophe or possessive fallback. Model-tagged proper nouns are excluded by default. Unmatched and ineligible tokens retain missing ratings.
 
 ## Phrase-policy choices
 
@@ -323,6 +342,14 @@ For each dimension and result view, VerseVAD ranks matched entries by signed mid
 
 Positive values contribute above the normalized midpoint; negative values contribute below it. Frequency makes repetition visible. The table also retains the change in the token mean when all occurrences of that type are removed.
 
+## Normative lexical concreteness
+
+When enabled, **Concreteness Profile** reports token-weighted mean, median, population SD, inclusive quartiles, and interquartile range among source-rated lexical tokens on the original 1-5 scale. It also reports token coverage and unique normalized-surface-type coverage, physical-line and stanza summaries, model-assigned POS summaries, most concrete and most abstract represented source terms, and a complete token audit.
+
+The default bands at or below 2.0 and at or above 4.0 are configurable VerseVAD orientation aids. They are not validated categories claimed by the paper. A matched two-word expression receives one match-group identity, while its source rating is assigned to both covered token positions for the declared token-weighted statistics. Repetition contributes repeatedly.
+
+Read the mean with coverage, dispersion, terms, and structural evidence. The result describes normative lexical concreteness evidence among represented vocabulary. It does not measure imagery quality, readability, cognition, literary value, or whether the poem itself is abstract or concrete.
+
 ## Eight emotion associations
 
 NRC Emotion values are binary, multi-label associations. VerseVAD reports the eight emotions—anger, anticipation, disgust, fear, joy, sadness, surprise, and trust—in their own section. An entry can be associated with several categories, so percentages do not need to total 100 percent. Read the labeled denominator.
@@ -351,14 +378,18 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more lexicons. VAD, categorical association, and intensity resources answer different questions and remain separate.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness module. VAD, categorical association, intensity, and concreteness resources answer different questions and remain separate. A concreteness-only one-poem run is allowed when the exact workbook is available.
 
 Under **Advanced methodology settings**, choose:
 
 - phrase policy;
 - minimum matched observations for sparse-result warnings;
 - whether to display all-matched results;
-- whether to display stopword-excluded results.
+- whether to display stopword-excluded results;
+- concreteness lower and upper orientation thresholds;
+- whether concreteness excludes model-tagged proper nouns;
+- whether source-supplied concreteness phrases are activated; and
+- the concreteness low-coverage caution threshold.
 
 Under **Stopword settings**, inspect or change the secondary-view policy. The all-matched result is always preserved even when only one view is displayed.
 
@@ -389,6 +420,12 @@ This tab contains:
 ## Emotion Profile tab
 
 The eight emotion associations, positive/negative sentiment associations, and numeric emotion intensities appear in three separate sections. Do not compare their values as though they were alternate VAD scales.
+
+## Concreteness Profile tab
+
+This tab appears as the dedicated home for the optional result. It shows overall 1-5 source-scale statistics, token/type coverage, configured bands, warnings, line and stanza patterns, model-assigned POS groups, represented term extremes, a token audit, and source/configuration provenance. Exact surface, exact phrase, lemma, documented fallback, unmatched, and ineligible rows stay distinct.
+
+The source workbook is read-only. If it is missing, changed, malformed, or unsupported, the checkbox is unavailable and VerseVAD presents a plain-language status instead of partially activating the module.
 
 ## Evidence tab
 
@@ -602,8 +639,14 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `phase2_manifest.csv` | Software, source hashes, adapters, recipe, scenario, stopword policy, and inclusion metadata |
 | `phase2_results.json` | Complete structured analysis result for machine-readable reuse |
 | `poem_document.json` | Exact original text, poetic/model structure, shared tokens and annotations, orthographic spans, processing configuration/provenance, coverage, and warnings |
+| `concreteness_summary.csv` | Overall source-scale statistics, thresholds, token/type coverage, and source identity when the module is enabled |
+| `concreteness_by_structure.csv` | Physical-line and stanza summaries with eligible/rated counts and coverage |
+| `concreteness_by_pos.csv` | Model-assigned part-of-speech summaries |
+| `concreteness_terms.csv` | Represented source terms, ratings, repetition, ranks, and source-row fields |
+| `concreteness_token_audit.csv` | Every token's eligibility, matching method, group, source row, rating or missing value, and reason |
+| `concreteness_result.json` | Complete structured concreteness result, configuration, warnings, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The two JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, while `poem_document.json` contains its shared processing representation. The latter includes the original text, so protect it as research material. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, and `concreteness_result.json` contains the optional normative lexical concreteness result. `poem_document.json` includes the original text, so protect it as research material. Concreteness exports retain source-row provenance but do not copy the 39,954-row ratings workbook. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -661,6 +704,20 @@ The type-weighted dispersion uses the analogous formula over distinct entries.
 `content_coverage = matched eligible non-stopword token occurrences / eligible non-stopword token occurrences`
 
 Phrase coverage counts unique covered token positions, so exploratory phrase-and-component double counting does not inflate the coverage numerator.
+
+## Concreteness statistics and coverage
+
+Let `c_i` be the original 1-5 concreteness rating assigned to rated lexical-token position `i`, and let `R` be the number of rated token positions.
+
+`mean_concreteness = sum(c_i) / R`
+
+`SD_population = sqrt(sum((c_i - mean_concreteness)^2) / R)`
+
+`concreteness_token_coverage = rated eligible lexical-token positions / eligible lexical-token positions`
+
+`concreteness_type_coverage = rated unique normalized-surface types / eligible unique normalized-surface types`
+
+The module also reports median, inclusive quartiles, and interquartile range. A source-supplied two-word expression assigns its rating to each of its two covered token positions for these token-weighted formulas; both audit rows retain one shared match-group ID. Empty denominators remain missing.
 
 ## Part-of-speech share
 
@@ -760,6 +817,8 @@ The divergence is substantial because the long work dominates the token-weighted
 | Arousal | Normative activation associated with a lexical item |
 | Association | Binary lexicon membership for an emotion or sentiment category |
 | Approved user mapping | Scenario-pinned link from a form to a verified exact source entry, applied only after ordinary matching fails |
+| Concreteness rating | Source-supplied 1-5 normative rating for how abstract/language-based or concrete/experience-based a lexical item was judged |
+| Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Coverage | Proportion of eligible token positions represented by included matches |
 | Cumulative load | Length-sensitive sum of normalized lexical ratings or midpoint distances |
 | Dominance | Normative control, power, or agency associated with a lexical item |
@@ -832,10 +891,14 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - Current corpus comparisons are descriptive and do not provide confidence intervals or hypothesis tests.
 - Review mappings are scholar-authored scenario decisions, not source-published equivalences.
 - Broad project or global review scopes require extra caution; prefer the narrowest defensible scope.
+- Concreteness ratings are decontextualized lexical norms and do not measure imagery quality, readability, cognition, or literary value.
+- Concreteness orientation thresholds are VerseVAD aids rather than validated source categories.
+- Default concreteness proper-name exclusion depends on a model tag that can be uncertain for poetic capitalization and syntax.
+- Concreteness is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum.
 
 The companion definitions guide is maintained from:
 

@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes affective lexical evidence found in published word-rating resources. It does not discover the emotion of a poem, diagnose a speaker, recover an author's intention, or measure what an individual reader feels.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating resources. Its optional concreteness result is separate from affective constructs. VerseVAD does not discover the emotion of a poem, diagnose a speaker, recover an author's intention, or measure what an individual reader feels.
 
 [[PAGEBREAK]]
 
@@ -15,7 +15,7 @@
 1. The one-minute mental model
 2. A safe reading order
 3. Valence, arousal, and dominance
-4. Original and normalized scales
+4. Original and normalized scales, including concreteness
 5. Tokens, types, phrases, lemmas, and matches
 6. Part-of-speech profiles
 7. Coverage and unmatched vocabulary
@@ -55,7 +55,7 @@ For every analysis, read the results in this order:
 1. **Confirm the text and lexicons.** Make sure you analyzed the intended version and sources.
 2. **Read coverage.** Determine how much eligible vocabulary was represented.
 3. **Read warnings.** Note sparse evidence, lemma reliance, review exclusions, or other methodological cautions.
-4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, and emotion intensities are different kinds of evidence.
+4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, and normative lexical concreteness are different kinds of evidence.
 5. **Choose one analysis view.** Compare all matched observations with stopwords excluded; do not merge them.
 6. **Choose one weighting.** Token weighting answers a repetition-sensitive question; type weighting answers a vocabulary-sensitive question.
 7. **Inspect dispersion and contributors.** A mean alone can conceal mixed ratings or one repeated influential word.
@@ -139,6 +139,23 @@ Normalization does **not** prove that two sources are interchangeable. Lexicons 
 - does not create a default cross-lexicon consensus score.
 
 NRC VAD v1 and NRC VAD v2.1 are versions of one lexicon family, not fully independent replications.
+
+## Normative Lexical Concreteness
+
+The optional one-poem module uses the Brysbaert, Warriner, and Kuperman (2014) source's original 1-to-5 ratings. It does not normalize them into VAD or combine them with affective evidence.
+
+| Source-scale orientation | Meaning in the source task |
+|---|---|
+| Near 1 | More abstract or language-based |
+| Near 5 | More concrete or experience-based |
+
+VerseVAD reports the token-weighted mean, median, inclusive quartiles, interquartile range, and population standard deviation among rated lexical-token positions. It also reports token and unique normalized-surface-type coverage.
+
+The default lower band at or below 2.0 and upper band at or above 4.0 are configurable VerseVAD orientation aids, not validated categories claimed by the paper. A source-supplied two-word expression receives one audit group, while its rating is assigned to both covered token positions for the declared token-weighted statistics. Repetition therefore matters.
+
+Safe wording: “The matched tokens have a mean normative lexical concreteness of 3.7 on the source 1-5 scale, with 72% token coverage.”
+
+Avoid: “The poem is concrete,” “the imagery succeeds,” or “the reader visualizes the poem.” The rating is a decontextualized lexical norm, not a contextual literary or cognitive measurement.
 
 # 5. Tokens, Types, Phrases, Lemmas, and Matches
 
@@ -348,6 +365,10 @@ A mean identifies a center. It does not show whether the values cluster tightly 
 ## Median
 
 The **median** is the middle value after sorting. For an even number of values, it is the mean of the two middle values. It is less sensitive than the mean to a small number of extreme values.
+
+For concreteness, VerseVAD applies the same mean and median definitions to the
+source 1-5 ratings assigned to included lexical-token positions. Empty or
+wholly unmatched inputs have missing aggregates, never a neutral midpoint.
 
 ## Dispersion of Matched Ratings
 
@@ -663,10 +684,10 @@ Incomplete report:
 Include these elements for every numeric claim:
 
 - text, work, or collection being analyzed;
-- exact lexicon and version;
+- exact lexicon or research resource and version;
 - original or normalized scale;
-- construct: VAD, emotion association, sentiment association, or emotion intensity;
-- analysis view: all matched or stopwords excluded;
+- construct: VAD, emotion association, sentiment association, emotion intensity, or normative lexical concreteness;
+- analysis view when applicable: all matched or stopwords excluded;
 - weighting: token, type, token-weighted collection, or work-weighted collection;
 - phrase policy when relevant;
 - matched observations or relevant denominator;
@@ -679,7 +700,7 @@ Include these elements for every numeric claim:
 
 ## Reporting Template
 
-“Using **[lexicon and version]**, **[text or collection]** had **[statistic] = [value]** for **[construct/dimension]** on the **[scale]**, using **[analysis view]** and **[weighting]** across **[matched count/denominator]**, with **[coverage]** coverage. **[Dispersion, contributors, sensitivity, or corpus divergence]**. The result describes matched normative lexical evidence and is interpreted alongside the text.”
+“Using **[lexicon or resource and version]**, **[text or collection]** had **[statistic] = [value]** for **[construct/dimension]** on the **[scale]**, using **[analysis view when applicable]** and **[weighting]** across **[matched count/denominator]**, with **[coverage]** coverage. **[Dispersion, contributors, sensitivity, or corpus divergence]**. The result describes matched normative lexical evidence and is interpreted alongside the text.”
 
 # 19. Quick-Reference Glossary
 
@@ -690,6 +711,8 @@ Include these elements for every numeric claim:
 | Analysis view | All matched observations or stopwords excluded |
 | Arousal | Normative activation or energy associated with a lexical item |
 | Association | Binary source label linking an entry to an emotion or sentiment |
+| Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
+| Concreteness rating | Source-supplied 1-5 normative rating from abstract/language-based toward concrete/experience-based |
 | Coverage | Share of eligible lexical token positions represented by matches |
 | Cumulative normative lexical load | Length- and repetition-sensitive sums of normalized ratings or midpoint distances |
 | Dominance | Normative control, power, or agency associated with a lexical item |
@@ -720,4 +743,4 @@ Include these elements for every numeric claim:
 | Valence | Normative pleasantness or unpleasantness associated with a lexical item |
 | Work-weighted | Every eligible work-level mean contributes equally |
 
-> FINAL CHECK: If you cannot identify the lexicon, scale, view, weighting, denominator, coverage, and scenario behind a number, return to the result or export before interpreting it.
+> FINAL CHECK: If you cannot identify the lexicon or resource, scale, view, weighting, denominator, coverage, and scenario behind a number, return to the result or export before interpreting it.

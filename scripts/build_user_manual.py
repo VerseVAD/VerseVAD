@@ -319,13 +319,24 @@ def _add_numbering_definition(document: Document, *, bullet: bool) -> int:
         r_pr.append(fonts)
         level.append(r_pr)
     abstract.append(level)
-    numbering.append(abstract)
+    first_number = numbering.find(qn("w:num"))
+    if first_number is None:
+        numbering.append(abstract)
+    else:
+        numbering.insert(numbering.index(first_number), abstract)
 
     num = OxmlElement("w:num")
     num.set(qn("w:numId"), str(num_id))
     abstract_ref = OxmlElement("w:abstractNumId")
     abstract_ref.set(qn("w:val"), str(abstract_id))
     num.append(abstract_ref)
+    if not bullet:
+        level_override = OxmlElement("w:lvlOverride")
+        level_override.set(qn("w:ilvl"), "0")
+        start_override = OxmlElement("w:startOverride")
+        start_override.set(qn("w:val"), "1")
+        level_override.append(start_override)
+        num.append(level_override)
     numbering.append(num)
     return num_id
 
@@ -519,7 +530,8 @@ def build_document_from_source(
     document.core_properties.subject = subject
     document.core_properties.author = "VerseVAD"
     document.core_properties.keywords = (
-        "VerseVAD, valence, arousal, dominance, affective lexicon, corpus"
+        "VerseVAD, valence, arousal, dominance, affective lexicon, "
+        "concreteness, corpus"
     )
     document.core_properties.comments = comments
 
@@ -650,7 +662,7 @@ def build_manual() -> Path:
         source=SOURCE,
         output=OUTPUT,
         title="VerseVAD User Manual",
-        subject="Local affective-lexicon analysis user manual",
+        subject="Local lexical-evidence analysis user manual",
         header_title="VerseVAD User Manual",
         comments="Generated from docs/VerseVAD_User_Manual_Source.md",
     )

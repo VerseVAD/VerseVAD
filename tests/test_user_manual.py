@@ -50,6 +50,10 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Installation Check",
             "Part-of-speech profile",
             "Detailed Model-Tag Breakdown",
+            "Concreteness Profile",
+            "Normative lexical concreteness",
+            "concreteness_token_audit.csv",
+            "39,954-row ratings workbook",
         ):
             assert required in text
 
@@ -92,6 +96,34 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             for element in numbering.iter(f"{W}numFmt")
         }
         assert {"bullet", "decimal"}.issubset(formats)
+        level_texts = {
+            element.get(f"{W}val")
+            for element in numbering.iter(f"{W}lvlText")
+        }
+        assert "\u2022" in level_texts
+        children = list(numbering)
+        first_number_index = next(
+            index
+            for index, element in enumerate(children)
+            if element.tag == f"{W}num"
+        )
+        assert all(
+            element.tag == f"{W}abstractNum"
+            for element in children[:first_number_index]
+        )
+        assert all(
+            element.tag == f"{W}num"
+            for element in children[first_number_index:]
+        )
+        decimal_restarts = numbering.findall(
+            ".//w:num/w:lvlOverride/w:startOverride",
+            NS,
+        )
+        assert decimal_restarts
+        assert all(
+            element.get(f"{W}val") == "1"
+            for element in decimal_restarts
+        )
 
 
 def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
@@ -123,5 +155,8 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "How to Report a Result",
             "mean_token = sum(x_i) / N",
             "absolute = above + below",
+            "Normative Lexical Concreteness",
+            "Concreteness orientation band",
+            "mean normative lexical concreteness of 3.7",
         ):
             assert required in text

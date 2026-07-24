@@ -339,6 +339,56 @@ review required.
   no clipped, overlapping, or broken content.
 - [x] Create the expansion Stage 1 source-control checkpoint.
 
+## Poetic Fingerprint expansion - Stage 2 concreteness
+
+- [x] Inspect the locally supplied Brysbaert, Warriner, and Kuperman
+  supplementary workbook and paper without changing or redistributing either
+  file; record their SHA-256 hashes, source structure, scale, citation, and
+  stated limitations.
+- [x] Add a versioned, read-only workbook adapter and an independent
+  Concreteness `AnalysisModule` using the shared `PoemDocument`.
+- [x] Apply exact normalized surface lookup before lemma lookup, followed only
+  by documented conservative fallbacks; keep every unmatched observation
+  missing and exclude model-tagged proper nouns by default.
+- [x] Calculate token-weighted descriptive statistics, configurable extreme
+  bands, token and normalized-surface-type coverage, part-of-speech summaries,
+  line and stanza summaries, term rankings, and low-coverage warnings.
+- [x] Activate exact source-supplied two-word expressions within physical-line
+  boundaries and retain the phrase-to-token rating assignment in the audit.
+- [x] Add optional one-poem interface controls, a dedicated Concreteness
+  Profile, readable summary rows, and complete CSV/JSON audit exports.
+- [x] Add synthetic adapter, matching, missing-resource, Unicode, proper-name,
+  repetition, empty-input, low-coverage, deterministic-output, and export
+  tests, plus an optional local-source contract check.
+- [x] Update methodology, architecture, user guidance, validation notes,
+  changelog, and the rendered Word manual with exact beginner-friendly test
+  steps.
+- [x] Run the complete automated suite, synthetic demonstrations, diagnostics,
+  source checks, lock-file check, and document render review.
+- [x] Create the expansion Stage 2 source-control checkpoint.
+
+### Expansion Stage 2 exit criteria
+
+- [x] The installed 39,954-row source passes its exact adapter contract in
+  place, including 37,058 single words, 2,896 two-word expressions, the 1-5
+  scale, and the recorded source checksum.
+- [x] Exact surface matches take priority over lemma matches; phrases,
+  fallbacks, proper-name exclusions, and unmatched tokens remain explicit in
+  the token audit.
+- [x] Empty and wholly unmatched inputs produce missing aggregates and missing
+  coverage rates rather than zero or neutral concreteness scores.
+- [x] Thresholds are configurable VerseVAD orientation aids and are not
+  attributed to the source paper as validated categories.
+- [x] Results are described as normative lexical concreteness evidence, not
+  imagery success, readability, literary quality, cognition, or the emotion
+  of a poem.
+- [x] Existing affective results, review behavior, database schema 3, source
+  lexicons, private texts, and local research resources remain unchanged and
+  excluded from source control.
+- [x] All automated and local validation checks pass, and the manual render has
+  no clipped, overlapping, or broken content.
+- [x] Create the expansion Stage 2 source-control checkpoint.
+
 ## Phase 6 - Scholarly diagnostics
 
 - [ ] Add anomaly candidates and structured close-reading prompts.
