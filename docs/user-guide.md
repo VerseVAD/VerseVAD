@@ -2,16 +2,17 @@
 
 ## What is available now
 
-VerseVAD provides three local workspaces: **One Poem**, **Projects & Corpus**,
-and **Lexicon Explorer**. One-poem analyses remain temporary unless downloaded.
+VerseVAD provides four local workspaces: **Single Poem**, **Project / Corpus**,
+**Other Text**, and **Lexicon Explorer**. Single-text analyses remain temporary
+unless downloaded.
 Corpus projects, preserved text versions, metadata, completed results, and
-versioned review scenarios persist in the local `projects` database. One-poem
+versioned review scenarios persist in the local `projects` database. Single-text
 analysis can also enable the optional local normative lexical concreteness
 module, the optional SUBTLEX-US Zipf frequency module, and/or the optional
 Kuperman retrospective Age of Acquisition module when their exact local
-workbooks are installed under `resources/`. **Projects & Corpus** can now run
+workbooks are installed under `resources/`. **Project / Corpus** can run
 and persist these plus pronunciation, meter, rhyme/sound, and lexical-style
-modules through the same analysis engines used by **One Poem**.
+modules through the same analysis engines used by **Single Poem**.
 
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
@@ -46,25 +47,37 @@ The installed app has no ChatGPT or OpenAI API dependency. It remains usable if
 you cancel a ChatGPT subscription. Internet access is needed only if you later
 reinstall dependencies or deliberately update the software.
 
+## Appearance
+
+The global header provides **Light**, **Dark**, and **System** appearance modes.
+System follows the browser or operating-system preference. VerseVAD saves this
+application-level preference locally under ignored private runtime data. It is
+not stored in a project, recorded as an analysis setting, or used to calculate
+or export a result. Exported charts remain publication-light.
+
 ## Analyze a poem
 
 1. Under **Add a Poem**, either paste the text or click **Upload** and choose a
    UTF-8 `.txt` file no larger than 5 MB. A chosen file fills the editable text
    box; VerseVAD preserves that string and its line breaks as the original.
 2. Enter a poem title or working label.
-3. Leave all five lexicons selected for a broad first look, or remove sources
+3. Under **Module preset**, leave **Custom** to retain the current selections,
+   or choose **Essential**, **Literary**, **Sound and Form**, or **Complete** and
+   click **Apply preset**. A preset changes module selections only; it does not
+   overwrite advanced thresholds or other methodology.
+4. Leave all five lexicons selected for a broad first look, or remove sources
    that are outside the current question.
-4. Under **Choose Evidence**, optionally enable **Normative lexical
+5. Under **Choose Evidence**, optionally enable **Normative lexical
    concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, and/or
    **Age of Acquisition profile (Kuperman et al. ratings)**. Any can run with
    the affective sources or by itself.
-5. Leave **Advanced methodology settings** closed for the default
+6. Leave **Analysis configuration and methodology** closed for the default
    phrase-preferred and standard stopword analysis. Open it when you
    deliberately want a different phrase policy, sparse-result threshold, or
    custom stopword additions/removals.
-6. Click **Analyze this text**. Wait for the green completion message.
-7. If you edit the text or change the evidence afterward, click **Analyze this
-   text** again before using the displayed result.
+7. Click **Analyze Poem**. The progress panel lists the major selected stages.
+8. If you edit the text or change the evidence afterward, click **Analyze
+   Poem** again before using the displayed result.
 
 The app never assigns an unmatched token a neutral score. It attempts an exact
 normalized surface match before a POS-sensitive lemma fallback and records the
@@ -77,32 +90,24 @@ Use this order:
 1. **Overview** — check coverage and matched counts first. A mean based on only
    a few matched observations should be treated cautiously. The displayed 60%
    and 80% coverage bands are orientation aids, not universal scholarly rules.
-2. **Language Profile** — inspect the shared poetry-preserving processing
-   record, then compare model-assigned part-of-speech counts and relative
-   shares across all eligible lexical tokens. This profile is independent of
-   affective-lexicon matching.
-3. **VAD Profile** — compare normative valence, arousal, and dominance ratings
-   among matched observations. Definitions, interpretations, token/type
-   weighting, cumulative loads, and top contributors appear beneath the
-   derived 0-1 comparison chart.
-4. **Emotion Profile** — read the eight emotion associations, positive/negative
-   sentiment associations, and numeric intensities as three separately labeled
-   kinds of evidence.
-5. **Concreteness Profile** — when enabled, read source-scale statistics with
-   coverage, dispersion, terms, structure, and the token audit.
-6. **Frequency & Rarity** — when enabled, read the primary median SUBTLEX-US
-   Zipf value with its distribution, coverage, scope, and audit.
-7. **Age of Acquisition** — when enabled, read the source age-in-years
-   statistics with coverage, source-response evidence, configured orientation
-   bands, structure, represented terms, and the token audit.
-8. **Evidence** — inspect which surface forms, phrases, lemmas, exclusions, or
-   approved mappings contributed;
-   filter the table when a result needs explanation. Review unmatched
-   vocabulary for coverage gaps and historically or poetically unusual words.
-9. **Downloads** — start with the friendly scholar summary. Use the full audit
-   ZIP when reproducing or closely reviewing the calculation.
-10. **How to Read** — return here for definitions and a reminder of the intended
-   scholarly language.
+2. **Affective Evidence** — open the VAD, emotion association/intensity, and
+   PoetryID sections. Each large section is collapsible and reports whether it
+   is complete or was not selected.
+3. **Lexical Character** — open concreteness, SUBTLEX-US frequency/rarity, and
+   Age of Acquisition sections when enabled.
+4. **Sound & Form** — open pronunciation/syllables/stress, candidate meter, and
+   rhyme/recurring-sound evidence.
+5. **Structure** — inspect the shared language profile plus lexical diversity,
+   word length, physical-line word counts, and stanza word counts.
+6. **Evidence & Diagnostics** — inspect surface forms, phrases, lemmas,
+   exclusions, approved mappings, coverage, unmatched vocabulary,
+   normalization, versions, and warnings.
+7. **Export & Help** — download the readable summary, tables, module exports,
+   or full audit ZIP, then open the methodology/how-to-read section as needed.
+
+The **Other Text** workspace reuses this sequence with **Analyze Text**
+terminology. Meter and rhyme remain available there but are visibly marked as
+experimental for non-lineated prose.
 
 ### Coverage
 
@@ -330,7 +335,7 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
 
 ## Build and compare a corpus
 
-1. Choose **Projects & Corpus** in the workspace tabs across the top.
+1. Choose **Project / Corpus** in the workspace navigation across the top.
 2. Create a project. It is stored in `projects/versevad.sqlite3` by default.
 3. Under **Works & Metadata**, choose a folder containing UTF-8 `.txt` files.
    Each file is a separate work and subfolder paths are retained. Re-importing
@@ -340,7 +345,7 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
    in the combined project and work by work.
 6. Under **Analyze & Compare**, select works, affective lexicons, and any
    **Additional analysis modules**. Choose an unreviewed baseline or exact
-   scenario version, then click **Analyze selected works**.
+   scenario version, then click **Analyze Corpus**.
    VerseVAD processes one work at a time and publishes the dashboard only when
    the entire selected batch completes.
 7. Filter a completed comparison by collection, author, or genre.
@@ -499,7 +504,7 @@ the reading aid.
 
 ## Pronunciation & Prosody foundation
 
-In **One Poem**, select **Pronunciation & prosody foundation (CMUdict)** and
+In **Single Poem**, select **Pronunciation & prosody foundation (CMUdict)** and
 analyze. No affective lexicon is required for a pronunciation-only run.
 
 The dedicated tab reports exact observed-form dictionary coverage, syllables
@@ -543,7 +548,7 @@ rhyme, or definitive performed scansion.
 
 ## Meter & Rhythm
 
-In **One Poem**, select **Meter & rhythmic regularity** and analyze. The option
+In **Single Poem**, select **Meter & rhythmic regularity** and analyze. The option
 is off by default. It automatically runs the local pronunciation foundation,
 so no affective lexicon is required.
 
@@ -573,7 +578,7 @@ alternative as the poet's performed pronunciation.
 
 ## Rhyme & Sound
 
-In **One Poem**, select **Rhyme & phonological patterns** and analyze. Stage 5
+In **Single Poem**, select **Rhyme & phonological patterns** and analyze. Stage 5
 runs automatically, so no affective lexicon is required.
 
 Open **Rhyme & Sound** to read the exact whole-poem and stanza schemes beside
@@ -594,7 +599,7 @@ proved how the poem must be pronounced, performed, heard, or intended.
 
 ## Lexical Style
 
-In **One Poem**, select **Lexical diversity, word length & structural word
+In **Single Poem**, select **Lexical diversity, word length & structural word
 counts** and analyze. The option is off by default and requires no external
 dataset.
 
@@ -689,7 +694,7 @@ The default fixed boundaries are 0.40 and 0.60. Custom fixed boundaries are
 available under advanced methodology. Corpus-relative thresholds are not
 implemented.
 
-In **Projects & Corpus**, add PoetryID to a batch after selecting at least one
+In **Project / Corpus**, add PoetryID to a batch after selecting at least one
 VAD lexicon. The module view shows compatible profile distributions, 3x3 map
 counts, continuous work positions, and token/type sensitivity. Filter to one
 source/view/weighting combination before interpreting a distribution.

@@ -15,6 +15,8 @@ import streamlit as st
 import versevad.application as _application_services
 import versevad.adapters.nrc_vad as _nrc_vad_services
 import versevad.db.repository as _repository_services
+import versevad.ui.design as _design_services
+import versevad.ui.preferences as _preference_services
 
 # Codex may update the local source while a Streamlit server is still open.
 # Streamlit reruns this page but Python normally retains already imported
@@ -157,6 +159,16 @@ from versevad.poetry_id import (
 )
 from versevad.ui.poetry_id import render_poetry_id
 from versevad.ui.stopwords import render_stopword_settings
+from versevad.ui.design import (
+    MODULE_PRESETS,
+    PUBLICATION_CHART_COLORS,
+    publication_chart,
+    preset_widget_state,
+    render_app_shell,
+    render_empty_state,
+    render_section_intro,
+    render_workspace_header,
+)
 
 
 st.set_page_config(
@@ -198,51 +210,36 @@ if _corpus_was_reloaded:
         importlib.reload(sys.modules["versevad.ui.corpus"])
     st.session_state["_corpus_runtime_revision"] = _CORPUS_RUNTIME_REVISION
 
+# Stage 13 centralizes the shell and appearance tokens. Reload the presentation
+# modules once in an already-open local server so theme and workspace changes
+# do not require the scholar to restart VerseVAD manually.
+_DESIGN_RUNTIME_REVISION = "2026-07-24-design-3"
+_design_was_reloaded = (
+    st.session_state.get("_design_runtime_revision") != _DESIGN_RUNTIME_REVISION
+)
+if _design_was_reloaded:
+    importlib.reload(_design_services)
+    import versevad.ui.poetry_id as _poetry_id_ui_services
+
+    importlib.reload(_poetry_id_ui_services)
+    for _module_name in ("versevad.ui.corpus", "versevad.ui.explorer"):
+        if _module_name in sys.modules:
+            importlib.reload(sys.modules[_module_name])
+    MODULE_PRESETS = _design_services.MODULE_PRESETS
+    PUBLICATION_CHART_COLORS = _design_services.PUBLICATION_CHART_COLORS
+    publication_chart = _design_services.publication_chart
+    preset_widget_state = _design_services.preset_widget_state
+    render_app_shell = _design_services.render_app_shell
+    render_empty_state = _design_services.render_empty_state
+    render_section_intro = _design_services.render_section_intro
+    render_workspace_header = _design_services.render_workspace_header
+    render_poetry_id = _poetry_id_ui_services.render_poetry_id
+    st.session_state["_design_runtime_revision"] = _DESIGN_RUNTIME_REVISION
+
 if _application_was_reloaded:
     st.session_state.pop("workspace", None)
 if _application_was_reloaded or _explorer_was_reloaded:
     st.session_state.pop("lexicon_explorer_result", None)
-
-st.markdown(
-    """
-    <style>
-    :root {
-      --verse-ink: #172a3a;
-      --verse-rust: #a34f32;
-      --verse-sage: #5f7661;
-      --verse-paper: #fbf8f1;
-    }
-    .stApp { background: linear-gradient(180deg, #fbf8f1 0%, #ffffff 34%); }
-    h1, h2, h3 { color: var(--verse-ink); letter-spacing: -0.015em; }
-    h1 { font-family: Georgia, 'Times New Roman', serif; }
-    [data-testid="stMetric"] {
-      background: rgba(255,255,255,.82);
-      border: 1px solid #ded8cc;
-      border-radius: 12px;
-      padding: .8rem 1rem;
-    }
-    [data-testid="stSidebar"] { background: #f3efe5; }
-    #MainMenu, footer { visibility: hidden; }
-    .verse-kicker {
-      color: var(--verse-rust);
-      font-size: .78rem;
-      font-weight: 700;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      margin-bottom: -.65rem;
-    }
-    .verse-callout {
-      background: #eef3ec;
-      border-left: 4px solid var(--verse-sage);
-      border-radius: 6px;
-      color: #24392b;
-      padding: .85rem 1rem;
-      margin: .5rem 0 1rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 
 @st.cache_resource(show_spinner=False)
@@ -269,15 +266,8 @@ def _display_self_test() -> None:
     st.session_state["self_test_checks"] = checks
 
 
-workspace_page = st.segmented_control(
-    "Workspace",
-    options=["One Poem", "Projects & Corpus", "Lexicon Explorer"],
-    default="One Poem",
-    selection_mode="single",
-    key="workspace_page",
-)
-workspace_page = workspace_page or "One Poem"
-if workspace_page == "Projects & Corpus":
+workspace_page, _appearance_mode = render_app_shell()
+if workspace_page == "Project / Corpus":
     from versevad.ui.corpus import render_corpus_workspace
 
     render_corpus_workspace(_preprocessor())
@@ -287,19 +277,23 @@ if workspace_page == "Lexicon Explorer":
     render_lexicon_explorer(_preprocessor())
 
 
-if workspace_page == "One Poem":
+if workspace_page in {"Single Poem", "Other Text"}:
+    is_other_text = workspace_page == "Other Text"
     st.session_state.setdefault("project_name", "Temporary private workspace")
     st.session_state.setdefault("poem_title", "")
     st.session_state.setdefault("poem_text", "")
+    st.session_state.setdefault("text_author", "")
+    st.session_state.setdefault("text_year", "")
+    st.session_state.setdefault("text_source_notes", "")
     st.session_state.setdefault("workspace", None)
 
     with st.sidebar:
-        st.markdown("### Local Workspace")
-        st.caption(f"VerseVAD {__version__}")
+        st.markdown("### Local Session")
+        st.caption(f"{workspace_page} · VerseVAD {__version__}")
         st.success("Private by design: analysis stays on this computer.")
         st.info(
-            "One-poem results last only while the app is open. Download them before "
-            "closing, or use Projects & Corpus for persistent local work."
+            "Single-text results last only while the app is open. Download them "
+            "before closing, or use Project / Corpus for persistent local work."
         )
         st.markdown("### Installation Check")
         if st.button("Run self-test", width="stretch", key="run_self_test"):
@@ -317,20 +311,26 @@ if workspace_page == "One Poem":
         st.markdown("---")
         st.caption(
             "VerseVAD describes lexical evidence. It does not determine the emotion "
-            "of a poem, speaker, author, or reader."
+            "of a text, speaker, author, or reader."
         )
 
-    st.markdown('<p class="verse-kicker">Local literary text analysis</p>', unsafe_allow_html=True)
-    st.title("VerseVAD")
-    st.write(
-        "Paste or choose one poem, select the lexical evidence you want to inspect, "
-        "and receive a readable analysis with its full audit trail."
+    render_workspace_header(
+        "Other Text" if is_other_text else "Single Poem",
+        (
+            "Paste or import prose or another non-poetic text, choose the evidence "
+            "to inspect, and receive the same auditable report structure."
+            if is_other_text
+            else "Paste or import one poem, choose the lexical and formal evidence "
+            "to inspect, and receive a readable report with its full audit trail."
+        ),
+        kicker="Local literary text analysis",
+        status="Session only",
     )
 
     with st.container(border=True):
-        st.subheader("1. Add a Poem")
+        st.subheader("1. Add the Text" if is_other_text else "1. Add a Poem")
         uploaded = st.file_uploader(
-            "Choose a UTF-8 plain-text file (optional)",
+            "Choose a UTF-8 plain-text file",
             type=["txt"],
             help="The browser reads this file locally into the app. VerseVAD does not upload it to a cloud service.",
             key="uploaded_poem",
@@ -356,18 +356,133 @@ if workspace_page == "One Poem":
                 help="A temporary label for this session; Phase 3 does not create a persistent database.",
             )
         with right:
-            st.text_input("Poem title or working label", key="poem_title")
+            st.text_input(
+                (
+                    "Text title or working label"
+                    if is_other_text
+                    else "Poem title or working label"
+                ),
+                key="poem_title",
+            )
         st.text_area(
-            "Paste the poem exactly as you want it analyzed",
+            (
+                "Paste the text exactly as you want it analyzed"
+                if is_other_text
+                else "Paste the poem exactly as you want it analyzed"
+            ),
             key="poem_text",
             height=260,
-            placeholder="Paste a poem here, preserving its line and stanza breaks…",
+            placeholder=(
+                "Paste text here, preserving paragraph and line breaks…"
+                if is_other_text
+                else "Paste a poem here, preserving its line and stanza breaks…"
+            ),
             help="VerseVAD keeps this original string unchanged and creates a separate processing representation.",
         )
+        text = st.session_state.get("poem_text", "")
+        line_count = len(text.splitlines()) if text else 0
+        stanza_count = (
+            len(
+                [
+                    part
+                    for part in text.replace("\r\n", "\n").split("\n\n")
+                    if part.strip()
+                ]
+            )
+            if text
+            else 0
+        )
+        st.caption(
+            f"{len(text.split()):,} whitespace-separated words · "
+            f"{line_count:,} physical lines · {stanza_count:,} text blocks. "
+            "Analysis uses the shared linguistic tokenizer, not these live estimates."
+        )
+        with st.popover("Clear text"):
+            st.warning(
+                "This clears the current session text. Completed results remain "
+                "visible but will be marked stale."
+            )
+            if st.button(
+                "Confirm clear text",
+                disabled=not bool(text),
+                key="confirm_clear_text",
+            ):
+                st.session_state["poem_text"] = ""
+                st.session_state.pop("upload_signature", None)
+                st.rerun()
+        with st.expander("Optional bibliographic metadata"):
+            metadata_columns = st.columns([2, 1])
+            with metadata_columns[0]:
+                st.text_input("Author or creator", key="text_author")
+            with metadata_columns[1]:
+                st.text_input("Date or year", key="text_year")
+            st.text_area(
+                "Source or edition notes",
+                key="text_source_notes",
+                height=90,
+            )
 
     with st.container(border=True):
         st.subheader("2. Choose Evidence")
         spec_by_id = {spec.lexicon_id: spec for spec in LEXICON_SPECS}
+        concreteness_status = ConcretenessModule(
+            RESOURCE_ROOT
+        ).validate_resources()[0]
+        frequency_status = FrequencyModule(RESOURCE_ROOT).validate_resources()[0]
+        aoa_status = AoAModule(RESOURCE_ROOT).validate_resources()[0]
+        pronunciation_statuses = PronunciationModule(
+            RESOURCE_ROOT
+        ).validate_resources()
+        pronunciation_available = all(
+            status.available for status in pronunciation_statuses
+        )
+
+        preset_choice, preset_action = st.columns([3, 1], vertical_alignment="bottom")
+        with preset_choice:
+            selected_preset = st.selectbox(
+                "Module preset",
+                options=list(MODULE_PRESETS),
+                index=list(MODULE_PRESETS).index("Custom"),
+                key="module_preset",
+                help=(
+                    "A preset changes module selections only. It never overwrites "
+                    "advanced thresholds, filters, or pronunciation decisions."
+                ),
+            )
+        with preset_action:
+            apply_preset = st.button(
+                "Apply preset",
+                width="stretch",
+                key="apply_module_preset",
+            )
+        st.caption(MODULE_PRESETS[selected_preset].description)
+        if apply_preset:
+            preset_state = preset_widget_state(
+                selected_preset,
+                available_lexicon_ids=tuple(spec_by_id),
+            )
+            if not preset_state:
+                st.info("Custom keeps the current manual selections unchanged.")
+            unavailable_modules = {
+                "include_concreteness": not concreteness_status.available,
+                "include_frequency": not frequency_status.available,
+                "include_aoa": not aoa_status.available,
+                "include_pronunciation": not pronunciation_available,
+                "include_meter": not pronunciation_available,
+                "include_phonology": not pronunciation_available,
+            }
+            for key, value in preset_state.items():
+                st.session_state[key] = (
+                    False if unavailable_modules.get(key, False) else value
+                )
+            if preset_state:
+                st.rerun()
+
+        st.markdown("#### Core Analysis")
+        st.caption(
+            "Affective sources stay separate. Repeated words contribute according "
+            "to each module's visible weighting and view."
+        )
         selected_lexicons = st.multiselect(
             "Lexicons",
             options=[spec.lexicon_id for spec in LEXICON_SPECS],
@@ -382,10 +497,7 @@ if workspace_page == "One Poem":
                     spec = spec_by_id[lexicon_id]
                     st.markdown(f"**{spec.display_name}:** {spec.short_description}")
 
-        st.markdown("**Optional lexical-semantic modules**")
-        concreteness_status = ConcretenessModule(
-            RESOURCE_ROOT
-        ).validate_resources()[0]
+        st.markdown("#### Lexical Character")
         include_concreteness = st.checkbox(
             "Concreteness profile (Brysbaert et al. ratings)",
             value=False,
@@ -404,7 +516,6 @@ if workspace_page == "One Poem":
         else:
             st.info(concreteness_status.message)
 
-        frequency_status = FrequencyModule(RESOURCE_ROOT).validate_resources()[0]
         include_frequency = st.checkbox(
             "Frequency & rarity profile (SUBTLEX-US Zipf)",
             value=False,
@@ -424,7 +535,6 @@ if workspace_page == "One Poem":
         else:
             st.info(frequency_status.message)
 
-        aoa_status = AoAModule(RESOURCE_ROOT).validate_resources()[0]
         include_aoa = st.checkbox(
             "Age of Acquisition profile (Kuperman et al. ratings)",
             value=False,
@@ -444,6 +554,7 @@ if workspace_page == "One Poem":
         else:
             st.info(aoa_status.message)
 
+        st.markdown("#### Structural and Lexical Measures")
         include_lexical_style = st.checkbox(
             "Lexical diversity, word length & structural word counts",
             value=False,
@@ -459,6 +570,11 @@ if workspace_page == "One Poem":
             "and reuses the shared poetry-preserving processing record."
         )
 
+        st.markdown("#### PoetryID")
+        st.caption(
+            "PoetryID requires completed VAD evidence and reuses it without "
+            "rematching or recalculating the text."
+        )
         available_poetry_id_sources = [
             lexicon_id
             for lexicon_id in selected_lexicons
@@ -527,12 +643,13 @@ if workspace_page == "One Poem":
             ),
         )
 
-        pronunciation_statuses = PronunciationModule(
-            RESOURCE_ROOT
-        ).validate_resources()
-        pronunciation_available = all(
-            status.available for status in pronunciation_statuses
-        )
+        st.markdown("#### Sound and Form")
+        if is_other_text:
+            st.info(
+                "Pronunciation, meter, and rhyme remain available for close reading "
+                "of prose, but meter and rhyme should be treated as experimental "
+                "outside lineated poetry."
+            )
         include_pronunciation = st.checkbox(
             "Pronunciation & prosody foundation (CMUdict)",
             value=False,
@@ -592,7 +709,7 @@ if workspace_page == "One Poem":
                 "evidence remain separately labeled."
             )
 
-        with st.expander("Advanced methodology settings"):
+        with st.expander("3. Analysis configuration and methodology"):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
                 "Use unigrams only": PhrasePolicy.UNIGRAM_ONLY,
@@ -1118,7 +1235,7 @@ if workspace_page == "One Poem":
             stopword_settings = render_stopword_settings("one_poem")
 
         analyze_clicked = st.button(
-            "Analyze this text",
+            "Analyze Text" if is_other_text else "Analyze Poem",
             type="primary",
             width="stretch",
             key="analyze_text",
@@ -1331,11 +1448,28 @@ if workspace_page == "One Poem":
                 include_phonology=include_phonology,
                 phonological_configuration=phonological_configuration,
             )
-            with st.spinner("Analyzing locally and preserving the audit trail…"):
+            with st.status("Analyzing locally…", expanded=True) as analysis_status:
+                st.write("Preparing one shared linguistic representation.")
+                if selected_lexicons:
+                    st.write("Analyzing selected affective lexicons independently.")
+                if include_pronunciation or include_meter or include_phonology:
+                    st.write(
+                        "Analyzing pronunciation and selected sound/form evidence."
+                    )
+                if include_poetry_id:
+                    st.write("Generating PoetryID from the completed VAD result.")
                 st.session_state["workspace"] = run_workspace_analysis(
                     request, preprocessor=_preprocessor()
                 )
-            st.success("Analysis complete. Start with Overview; use Evidence when you want to inspect why.")
+                analysis_status.update(
+                    label="Analysis complete",
+                    state="complete",
+                    expanded=False,
+                )
+            st.success(
+                "Analysis complete. Start with Overview; use Evidence & Diagnostics "
+                "when you want to inspect why."
+            )
         except (TextImportError, WorkspaceAnalysisError, ValueError) as error:
             st.error(str(error))
         except Exception as error:  # pragma: no cover - defensive UI boundary
@@ -1347,11 +1481,19 @@ if workspace_page == "One Poem":
 
     workspace = st.session_state.get("workspace")
     if workspace is None:
-        st.markdown("### What Happens Next")
-        steps = st.columns(3)
-        steps[0].markdown("**1 — Overview**  \nCoverage and a plain-language orientation.")
-        steps[1].markdown("**2 — Profiles**  \nComparable VAD plus separate association and intensity views.")
-        steps[2].markdown("**3 — Evidence**  \nMatches, phrases, lemmas, and unmatched vocabulary.")
+        render_empty_state(
+            "No analysis yet",
+            (
+                "Your text and module choices are ready when you are. VerseVAD "
+                "will keep the original text unchanged and build one auditable "
+                "processing representation."
+            ),
+            (
+                "Choose a preset or modules, then select Analyze Text."
+                if is_other_text
+                else "Choose a preset or modules, then select Analyze Poem."
+            ),
+        )
         st.stop()
 
     if (
@@ -1407,52 +1549,101 @@ if workspace_page == "One Poem":
         st.warning(
             "The text, lexicon selection, or optional-module settings have "
             "changed since this result was calculated. "
-            "Click Analyze this text again before using the results."
+            f"Click {'Analyze Text' if is_other_text else 'Analyze Poem'} again "
+            "before using the results."
         )
 
-    st.markdown("---")
-    st.markdown('<p class="verse-kicker">Current result</p>', unsafe_allow_html=True)
-    st.header(workspace.document.title)
+    st.divider()
+    render_section_intro(
+        workspace.document.title,
+        "Current completed result. Use the report-family navigation below to move "
+        "between overview, detailed evidence, diagnostics, and exports.",
+    )
     st.caption(
         f"Text version {workspace.document.text_version_id} · "
         f"Phrase policy: {workspace.request.phrase_policy.value.replace('_', ' ')}"
     )
+    bibliographic_details = [
+        value
+        for value in (
+            st.session_state.get("text_author", "").strip(),
+            st.session_state.get("text_year", "").strip(),
+            st.session_state.get("text_source_notes", "").strip(),
+        )
+        if value
+    ]
+    if bibliographic_details:
+        st.caption("Bibliographic notes · " + " · ".join(bibliographic_details))
 
     (
         overview_tab,
-        language_tab,
-        lexical_style_tab,
-        poetry_id_tab,
-        concreteness_tab,
-        frequency_tab,
-        aoa_tab,
-        pronunciation_tab,
-        meter_tab,
-        phonology_tab,
-        vad_tab,
-        emotion_tab,
-        evidence_tab,
-        download_tab,
-        help_tab,
+        affective_tab,
+        lexical_tab,
+        sound_tab,
+        structure_tab,
+        evidence_diagnostics_tab,
+        export_help_tab,
     ) = st.tabs(
         [
             "Overview",
-            "Language Profile",
-            "Lexical Style",
-            "PoetryID",
-            "Concreteness Profile",
-            "Frequency & Rarity",
-            "Age of Acquisition",
-            "Pronunciation & Prosody",
-            "Meter & Rhythm",
-            "Rhyme & Sound",
-            "VAD Profile",
-            "Emotion Profile",
-            "Evidence",
-            "Downloads",
-            "How to Read",
+            "Affective Evidence",
+            "Lexical Character",
+            "Sound & Form",
+            "Structure",
+            "Evidence & Diagnostics",
+            "Export & Help",
         ]
     )
+    def _section_label(label: str, available: bool) -> str:
+        return f"{label} · {'Complete' if available else 'Not selected'}"
+
+    with affective_tab:
+        vad_tab = st.expander(
+            _section_label("VAD", bool(workspace.results)),
+            expanded=True,
+        )
+        emotion_tab = st.expander(
+            _section_label("Emotion Association & Intensity", bool(workspace.results)),
+        )
+        poetry_id_tab = st.expander(
+            _section_label("PoetryID", workspace.poetry_id is not None),
+        )
+    with lexical_tab:
+        concreteness_tab = st.expander(
+            _section_label("Concreteness", workspace.concreteness is not None),
+        )
+        frequency_tab = st.expander(
+            _section_label("Frequency & Rarity", workspace.frequency is not None),
+        )
+        aoa_tab = st.expander(
+            _section_label("Age of Acquisition", workspace.aoa is not None),
+        )
+    with sound_tab:
+        pronunciation_tab = st.expander(
+            _section_label("Pronunciation, Syllables & Stress", workspace.pronunciation is not None),
+        )
+        meter_tab = st.expander(
+            _section_label("Meter & Rhythm", workspace.meter is not None),
+        )
+        phonology_tab = st.expander(
+            _section_label("Rhyme & Recurring Sound", workspace.phonology is not None),
+        )
+    with structure_tab:
+        language_tab = st.expander(
+            _section_label("Language Profile", workspace.poem_document is not None),
+            expanded=True,
+        )
+        lexical_style_tab = st.expander(
+            _section_label("Lexical & Structural Measures", workspace.lexical_style is not None),
+        )
+    with evidence_diagnostics_tab:
+        evidence_tab = st.expander(
+            "Token Evidence, Coverage & Diagnostics · Complete",
+            expanded=True,
+        )
+    with export_help_tab:
+        download_tab = st.expander("Export Report & Data", expanded=True)
+        help_tab = st.expander("Methodology & How to Read")
 
     with poetry_id_tab:
         render_poetry_id(workspace.poetry_id)
@@ -1470,8 +1661,103 @@ if workspace_page == "One Poem":
         metrics[2].metric("Lines preserved", len(workspace.document.original_text.splitlines()))
         metrics[3].metric("Text checksum", workspace.document.text_sha256[:10] + "…")
 
+        st.markdown("### Report at a Glance")
+        affective_summary, lexical_summary, sound_summary, structure_summary = (
+            st.columns(4)
+        )
+        primary_vad = next(
+            (
+                row
+                for row in vad_views(workspace)
+                if row.analysis_view == "All matched tokens"
+            ),
+            None,
+        )
+        primary_poetry_id = (
+            next(
+                (
+                    row
+                    for row in workspace.poetry_id.assignments
+                    if row.analysis_view == "all_matched"
+                    and row.weighting_mode == "token"
+                ),
+                None,
+            )
+            if workspace.poetry_id is not None
+            else None
+        )
+        with affective_summary:
+            st.markdown("#### Affective Evidence")
+            if primary_vad is not None:
+                st.write(
+                    f"V {_decimal(primary_vad.normalized_valence)} · "
+                    f"A {_decimal(primary_vad.normalized_arousal)} · "
+                    f"D {_decimal(primary_vad.normalized_dominance)}"
+                )
+                st.caption(primary_vad.lexicon)
+            else:
+                st.write("Not selected")
+            if primary_poetry_id is not None:
+                st.write(
+                    "**Nearest PoetryID profile:** "
+                    f"{primary_poetry_id.nearest_centroid_archetype.name}"
+                )
+            st.caption("Open Affective Evidence for sources, weighting, and details.")
+        with lexical_summary:
+            st.markdown("#### Lexical Character")
+            if workspace.concreteness is not None:
+                st.write(
+                    "Concreteness: "
+                    f"{_decimal(workspace.concreteness.summary.statistics.mean)}"
+                )
+            if workspace.frequency is not None:
+                st.write(
+                    "Median Zipf: "
+                    f"{_decimal(workspace.frequency.summary.statistics.median)}"
+                )
+            if workspace.aoa is not None:
+                st.write(
+                    "Mean AoA: "
+                    f"{_decimal(workspace.aoa.summary.statistics.mean)} years"
+                )
+            if all(
+                result is None
+                for result in (
+                    workspace.concreteness,
+                    workspace.frequency,
+                    workspace.aoa,
+                )
+            ):
+                st.write("Not selected")
+            st.caption("Open Lexical Character for distributions and coverage.")
+        with sound_summary:
+            st.markdown("#### Sound & Form")
+            if workspace.meter is not None:
+                st.write(
+                    "**Nearest meter candidate:** "
+                    f"{workspace.meter.summary.closest_candidate_label}"
+                )
+            if workspace.phonology is not None:
+                st.write(
+                    "**Rhyme scheme:** "
+                    f"{workspace.phonology.summary.whole_poem_rhyme_scheme or '—'}"
+                )
+            if workspace.meter is None and workspace.phonology is None:
+                st.write("Not selected")
+            st.caption("Open Sound & Form for line-level and pronunciation evidence.")
+        with structure_summary:
+            st.markdown("#### Structure")
+            st.write(f"{lexical_tokens:,} lexical tokens")
+            st.write(
+                f"{len(workspace.document.original_text.splitlines()):,} "
+                "physical lines"
+            )
+            if workspace.lexical_style is not None:
+                st.write("Lexical diversity and word-count profiles complete")
+            st.caption("Open Structure for language and line/stanza measures.")
+
         st.markdown(
-            '<div class="verse-callout"><strong>Begin here:</strong> Coverage is the '
+            '<div class="versevad-callout"><strong>Begin here:</strong> Coverage is the '
             "share of eligible vocabulary that found an entry in each lexicon. "
             "Every aggregate below is based only on matched evidence.</div>",
             unsafe_allow_html=True,
@@ -2400,7 +2686,7 @@ if workspace_page == "One Poem":
             statistics = summary.statistics
             st.subheader("SUBTLEX-US Lexical Frequency & Rarity")
             st.markdown(
-                '<div class="verse-callout"><strong>Primary reading:</strong> '
+                '<div class="versevad-callout"><strong>Primary reading:</strong> '
                 "Median Zipf describes the central corpus-relative frequency "
                 "among matched eligible token occurrences. The scale is "
                 "logarithmic: one Zipf point is roughly a tenfold frequency "
@@ -3817,7 +4103,13 @@ if workspace_page == "One Poem":
                     color=alt.Color(
                         "Dimension:N",
                         sort=dimension_order,
-                        scale=alt.Scale(range=["#a64b2a", "#d18b54", "#456b72"]),
+                        scale=alt.Scale(
+                            range=[
+                                PUBLICATION_CHART_COLORS[0],
+                                PUBLICATION_CHART_COLORS[1],
+                                PUBLICATION_CHART_COLORS[2],
+                            ]
+                        ),
                         title=None,
                     ),
                     tooltip=[
@@ -3829,7 +4121,7 @@ if workspace_page == "One Poem":
                 )
                 .properties(height=max(210, 80 * len(vad)))
             )
-            st.altair_chart(chart, width="stretch")
+            st.altair_chart(publication_chart(chart), width="stretch")
             st.caption(
                 "All three dimensions are normative lexical ratings. They do not identify "
                 "the poem's emotion or predict an individual reader's response."

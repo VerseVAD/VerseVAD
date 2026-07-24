@@ -8,6 +8,7 @@ import streamlit as st
 
 from versevad.exports.poetry_id import export_poetry_id_bundle
 from versevad.poetry_id import ARCHETYPES, PoetryIDAnalysisResult, VadLevel
+from versevad.ui.design import PUBLICATION_CHART_COLORS, publication_chart
 
 
 _LEVEL_ORDER = (VadLevel.LOW, VadLevel.MODERATE, VadLevel.HIGH)
@@ -75,7 +76,7 @@ def _render_vad_scale(result: PoetryIDAnalysisResult, assignment) -> None:
         )
     points = (
         alt.Chart(pd.DataFrame(score_rows))
-        .mark_point(filled=True, size=150, color="#a34f32")
+        .mark_point(filled=True, size=150, color=PUBLICATION_CHART_COLORS[0])
         .encode(
             x=alt.X("Score:Q", scale=alt.Scale(domain=[0, 1])),
             y=alt.Y(
@@ -98,7 +99,10 @@ def _render_vad_scale(result: PoetryIDAnalysisResult, assignment) -> None:
                 "Boundary kind:N",
                 scale=alt.Scale(
                     domain=["Low maximum", "High minimum"],
-                    range=["#5f7661", "#172a3a"],
+                    range=[
+                        PUBLICATION_CHART_COLORS[3],
+                        PUBLICATION_CHART_COLORS[2],
+                    ],
                 ),
             ),
             tooltip=[
@@ -109,7 +113,7 @@ def _render_vad_scale(result: PoetryIDAnalysisResult, assignment) -> None:
         )
     )
     st.altair_chart(
-        (boundaries + points).properties(height=180),
+        publication_chart((boundaries + points).properties(height=180)),
         width="stretch",
     )
     st.caption(
@@ -158,9 +162,10 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
     assignment = choices[selected_label]
 
     st.markdown(
-        f"### {assignment.categorical_archetype.name}: "
-        f"{assignment.categorical_archetype.short_descriptor}"
+        "### Nearest PoetryID profile: "
+        f"{assignment.nearest_centroid_archetype.name}"
     )
+    st.caption(assignment.nearest_centroid_archetype.short_descriptor)
     st.write(assignment.narrative_summary)
     metrics = st.columns(4)
     metrics[0].metric("Valence", f"{assignment.vad.valence:.3f}")
@@ -174,6 +179,8 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
         f"Levels: {assignment.valence_level.value} valence · "
         f"{assignment.arousal_level.value} arousal · "
         f"{assignment.dominance_level.value} dominance. "
+        f"Weighting: {assignment.weighting_mode}. "
+        f"Threshold profile: {result.configuration.threshold_profile.name}. "
         f"VAD token coverage {_percentage(assignment.coverage.token_coverage)}; "
         f"type coverage {_percentage(assignment.coverage.type_coverage)}."
     )

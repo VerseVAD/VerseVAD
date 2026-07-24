@@ -394,6 +394,34 @@ PoetryID's export boundary is intentionally different from older module
 bundles: it emits six CSV files and one plain-text report, with no PoetryID
 JSON. Existing module exports are unchanged.
 
+## Expansion Stage 13 interface architecture
+
+Expansion Stage 13 adds a presentation-only layer under `versevad.ui.design`
+and `versevad.ui.preferences`. `design` owns semantic Light, Dark, and System
+tokens, publication-light chart defaults, the shared application shell,
+workspace headers, status/empty-state patterns, module presets, and report
+section helpers. `preferences` owns one ignored application-level JSON file for
+appearance. Neither module imports an analysis engine, repository, adapter, or
+lexicon.
+
+The shell exposes **Single Poem**, **Project / Corpus**, **Other Text**, and
+**Lexicon Explorer** through one navigation pattern. Single Poem and Other Text
+share the existing `AnalysisRequest` construction and result objects. The
+Project / Corpus page continues to use schema 4 and the same corpus
+orchestrator. Explorer continues to call the same `explore_lexicons` service;
+its lookup and matching behavior did not change.
+
+Fifteen single-text result tabs are reorganized into seven report families.
+Within a family, each analytical module has a large native expander with a
+visible completion/not-selected state. This changes navigation and visual
+hierarchy only: the framework-independent result objects, exports, and stable
+provenance remain unchanged.
+
+Module presets write only existing module-selection widget keys after an
+explicit **Apply** action. They never write threshold, matching, filtering,
+pronunciation, or confidence settings. Appearance, collapse state, navigation,
+and other presentation state remain outside analytical configuration IDs.
+
 ## Implementation references
 
 - [Streamlit: run an app locally](https://docs.streamlit.io/develop/concepts/architecture/run-your-app)

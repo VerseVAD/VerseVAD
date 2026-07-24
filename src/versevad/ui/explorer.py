@@ -7,6 +7,7 @@ import streamlit as st
 
 from versevad.explorer import LexiconExplorerResult, explore_lexicons
 from versevad.preprocessing import TextPreprocessor
+from versevad.ui.design import render_empty_state, render_workspace_header
 
 
 def _score(value: float | None) -> str:
@@ -408,15 +409,13 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
         st.caption(
             "Exact entries, phrase entries, lemma-derived entries, and user-supplied mappings are always labeled separately."
         )
-    st.markdown(
-        '<p class="verse-kicker">Auditable word and phrase lookup</p>',
-        unsafe_allow_html=True,
-    )
-    st.title("Lexicon Explorer")
-    st.write(
+    render_workspace_header(
+        "Lexicon Explorer",
         "Look up a word or phrase across all installed affective lexicons plus "
         "concreteness, SUBTLEX-US frequency, age of acquisition, and CMUdict "
-        "pronunciation and stress. Each source remains separate and auditable."
+        "pronunciation and stress. Each source remains separate and auditable.",
+        kicker="Auditable word and phrase lookup",
+        status="Local resources",
     )
     with st.form("lexicon_explorer_search"):
         query = st.text_input(
@@ -442,7 +441,13 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
 
     result = st.session_state.get("lexicon_explorer_result")
     if result is None:
-        st.info("Enter one word or phrase to begin. Similar terms are suggestions only; they are never substituted automatically.")
+        render_empty_state(
+            "Inspect a word or phrase",
+            "The Explorer reports every available local lexical and phonological "
+            "source while keeping exact, lemma-derived, mapped, and missing "
+            "evidence distinct.",
+            "Enter one word or phrase above and select Search installed lexicons.",
+        )
         return
     st.divider()
     st.header(result.query)

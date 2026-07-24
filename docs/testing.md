@@ -402,3 +402,37 @@ distributions, workbook fields, and regressions.
 See
 [`poetic-fingerprint-stage12-validation.md`](poetic-fingerprint-stage12-validation.md)
 for the final completion record and beginner interface checks.
+
+## Stage 13 design and interface
+
+Stage 13 adds tests for:
+
+- missing, malformed, saved, and reloaded application appearance preferences;
+- semantic Light/Dark/System tokens, system preference media rules, visible
+  focus, reduced motion, and measured contrast;
+- Essential, Literary, Sound and Form, Complete, and Custom presets, including
+  the rule that advanced methodology keys are never changed;
+- the four-workspace shell and distinct Analyze Poem, Analyze Text, and Analyze
+  Corpus actions;
+- Other Text reuse without a second analytical engine;
+- grouped result navigation and module completion/not-selected sections;
+- Project / Corpus status, work search/filter fields, and schema-4 regression;
+- unchanged Explorer lookup controls and all-resource behavior;
+- appearance persistence without creating analysis state; and
+- all pre-existing analytical values, exports, source hashes, and project
+  behavior through the complete regression suite.
+
+The visual validation procedure checks Single Poem, Project / Corpus, Other
+Text, and Lexicon Explorer at desktop and narrow widths in Light, Dark, and
+System appearances. It inspects focus visibility, contrast, header wrapping,
+table access, empty states, and a completed-result overview. See
+[`design-stage13-validation.md`](design-stage13-validation.md).
+
+The Stage 13 completion suite passed `252 passed` on 2026-07-24. All ten
+direct synthetic demonstrations, all 11 diagnostics, the five-source
+read-only inspection, all six supplementary resource contracts, the
+86-package offline lock check, interface browser checks, documentation tests,
+and `git diff --check` passed. Both rebuilt Word guides passed structural and
+accessibility checks with no high-severity findings. The canonical page-image
+renderer was attempted but remains unavailable because LibreOffice/`soffice`
+is not installed; no visual-render success is claimed.

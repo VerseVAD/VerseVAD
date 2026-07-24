@@ -7,6 +7,34 @@ made a public release.
 
 ### Added
 
+- Poetic Fingerprint Stage 13 shared application shell with **Single Poem**,
+  **Project / Corpus**, **Other Text**, and **Lexicon Explorer** workspaces,
+  current-version context, visible appearance, settings, and help controls.
+- Central semantic Light/Dark/System design tokens, measured contrast, visible
+  focus, reduced-motion behavior, responsive stacking, stable
+  publication-light chart styling, and an ignored application-level appearance
+  preference that never enters analytical or project state.
+- Explicit Essential, Literary, Sound and Form, Complete, and Custom
+  module-selection presets for single-text and corpus work. Presets require an
+  Apply action and never overwrite advanced methodology.
+- Single-text input metadata, live orientation counts, confirmed clear-text
+  action, staged progress, grouped result overview, seven report families, and
+  collapsible module sections with visible completion states.
+- Other Text reuse of the Single Poem engines and report presentation, with
+  poetry-specific sound/form modules visibly marked experimental for prose.
+- Project status metrics, searchable/filterable sortable work list with
+  analysis status, corpus presets, and the **Analyze Corpus** action.
+- Stage 13 pre-implementation interface audit, preference/token/component and
+  interface regression tests, visual-validation procedure, and refreshed
+  documentation.
+- Project development version advanced to `0.17.0.dev0`.
+- Stage 13 completion validation: `252 passed`, all ten direct synthetic
+  demonstrations, 11 diagnostics, immutable source-lexicon inspection, six
+  supplementary resource contracts, the 86-package offline lock check,
+  four-workspace browser checks, documentation structure/content, and
+  accessibility checks passed. The canonical DOCX renderer was attempted but
+  remained unavailable because LibreOffice/`soffice` is not installed; no
+  visual-render success is claimed.
 - Poetic Fingerprint Stage 12 PoetryID as a dependent, framework-independent
   classifier over completed source-specific normalized VAD results, with no
   re-tokenization, lexicon reload, rematching, or VAD recalculation.

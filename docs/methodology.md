@@ -693,3 +693,21 @@ work-level evidence and do not create a corpus-wide identity.
 
 At the scholar's direction, PoetryID exports seven UTF-8 CSV/plain-text files
 and no JSON file.
+
+## Stage 13 interface-only invariants
+
+The Stage 13 redesign does not define a new analytical method. Light, Dark, and
+System appearance; active workspace; preset-menu choice; expanded/collapsed
+sections; search text; and project-list filters are presentation state. They do
+not participate in tokenization, matching, weighting, thresholds, confidence,
+result IDs, cached analysis, project records, or exports.
+
+A module preset is a visible convenience for selecting modules. It is applied
+only after an explicit action and never overwrites advanced methodology. The
+result and its exports continue to record the exact effective analysis
+configuration rather than a preset label.
+
+Publication-oriented chart rendering remains light and stable regardless of
+the application appearance. Interface charts use the same underlying data in
+all appearance modes. The lexical-evidence language, missing-value rules,
+coverage cautions, and per-module methodology remain unchanged.

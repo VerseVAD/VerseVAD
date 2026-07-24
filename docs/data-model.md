@@ -523,3 +523,19 @@ orientation without entering the VAD calculation.
 seven CSV/TXT artifacts are checksummed and persisted like other module
 artifacts. Corpus compatibility keys include module/configuration identity,
 metric, scope ID, and weighting.
+
+## Expansion Stage 13 UI preferences
+
+`UiPreferences` is deliberately not an analytical or project record. Version 1
+contains only:
+
+- `version`;
+- `appearance`, one of `Light`, `Dark`, or `System`.
+
+It is stored by default at `data/private/ui_preferences.json`, which is outside
+source control and separate from every project database. A malformed or absent
+file safely resolves to `System`. Saves use a temporary sibling followed by an
+atomic replacement.
+
+Module presets, workspace navigation, expanded report sections, search text,
+and filters remain Streamlit session state. They do not alter schema 4.

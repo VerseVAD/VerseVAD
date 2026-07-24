@@ -70,14 +70,14 @@ and syntax/lineation stages were skipped. Narrowed Stage 10 adds normalized
 observed surface-form diversity with configurable MATTR, HD-D, and
 bidirectional MTLD, Unicode alphabetic-character word length, and lexical-token
 counts for every preserved physical line and stanza. Stage 11 ports all seven
-optional modules to Projects & Corpus through the same tested engines, adds
+optional modules to Project / Corpus through the same tested engines, adds
 generic immutable schema-4 storage and auditable collection summaries, and
 retains pooled lexical-diversity calculations separately from equal-work
 summaries. Stage 12 adds PoetryID as a transparent dependent classifier over
 completed source-specific normalized VAD. It retains all 27 categorical
 profiles and centroid distances, nearest alternatives, non-probabilistic
 relative affinities and confidence, coverage/boundary evidence, optional
-concreteness/frequency/AoA character, One Poem maps/scales, and compatible
+concreteness/frequency/AoA character, Single Poem maps/scales, and compatible
 corpus distributions. Every source, all-matched/stopword-excluded view, and
 token/type weighting remains separate. PoetryID uses CSV and plain-text
 exports only; it has no JSON export.
@@ -163,15 +163,19 @@ local address `http://127.0.0.1:8501`. Keep the small launcher window open while
 working. Ordinary startup and analysis use the already installed local files
 and do not upload the poem or results.
 
-In the app, use the workspace tabs across the top:
+In the app, use the shared workspace navigation across the top. The same header
+also provides persistent Light, Dark, and System appearance modes:
 
-1. **One Poem** accepts pasted text or one `.txt` file and provides readable
+1. **Single Poem** accepts pasted text or one `.txt` file and provides readable
    results plus the audit bundle.
-2. **Projects & Corpus** creates persistent local projects, imports a folder of
+2. **Project / Corpus** creates persistent local projects, imports a folder of
    `.txt` works, analyzes complete affective and optional-module batches,
    compares collection and part-of-speech views, records versioned review
    scenarios, and exports Excel plus module audit bundles.
-3. **Lexicon Explorer** looks up one word or phrase in every installed
+3. **Other Text** reuses the single-text report pattern for prose and other
+   non-poetic material while marking poetry-specific sound/form modules as
+   experimental.
+4. **Lexicon Explorer** looks up one word or phrase in every installed
    affective and supplementary lexical resource while preserving original
    fields, missingness, alternatives, and match provenance.
 

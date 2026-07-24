@@ -3,9 +3,19 @@ from pathlib import Path
 from streamlit.testing.v1 import AppTest
 
 from versevad.db.repository import CorpusTextImport, ProjectRepository
+from versevad.ui.preferences import AppearanceMode, load_preferences
 
 
 APP_PATH = Path(__file__).parents[1] / "src" / "versevad" / "ui" / "app.py"
+REPORT_TABS = [
+    "Overview",
+    "Affective Evidence",
+    "Lexical Character",
+    "Sound & Form",
+    "Structure",
+    "Evidence & Diagnostics",
+    "Export & Help",
+]
 
 
 def _button(app: AppTest, label: str):
@@ -15,15 +25,17 @@ def _button(app: AppTest, label: str):
 def test_interface_starts_with_beginner_input_workflow() -> None:
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     assert not app.exception
-    assert [title.value for title in app.title] == ["VerseVAD"]
+    assert [title.value for title in app.title] == ["Single Poem"]
     assert "Paste the poem exactly as you want it analyzed" in [
         area.label for area in app.text_area
     ]
     navigation = app.get("button_group")[0]
     assert navigation.label == "Workspace"
-    assert navigation.value == "One Poem"
+    assert navigation.value == "Single Poem"
     assert "Poem title or working label" in [field.label for field in app.text_input]
-    assert "Analyze this text" in [button.label for button in app.button]
+    assert "Analyze Poem" in [button.label for button in app.button]
+    assert "Apply preset" in [button.label for button in app.button]
+    assert "Appearance" in [field.label for field in app.selectbox]
     assert "Run self-test" in [button.label for button in app.button]
     assert "Concreteness profile (Brysbaert et al. ratings)" in [
         field.label for field in app.checkbox
@@ -38,10 +50,10 @@ def test_interface_opens_persistent_corpus_workspace(tmp_path, monkeypatch) -> N
     monkeypatch.setenv("VERSEVAD_DATABASE_PATH", str(tmp_path / "versevad.sqlite3"))
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]
-    navigation.set_value("Projects & Corpus")
+    navigation.set_value("Project / Corpus")
     app.run(timeout=30)
     assert not app.exception
-    assert [title.value for title in app.title] == ["VerseVAD Projects & Corpus"]
+    assert [title.value for title in app.title] == ["Project / Corpus"]
     assert "Project title" in [field.label for field in app.text_input]
     assert "Create project" in [button.label for button in app.button]
 
@@ -65,7 +77,7 @@ def test_corpus_workspace_exposes_phase5_review_scenarios(
 
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]
-    navigation.set_value("Projects & Corpus")
+    navigation.set_value("Project / Corpus")
     app.run(timeout=30)
 
     assert not app.exception
@@ -91,7 +103,7 @@ def test_interface_deletes_only_exactly_confirmed_project(tmp_path, monkeypatch)
 
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]
-    navigation.set_value("Projects & Corpus")
+    navigation.set_value("Project / Corpus")
     app.run(timeout=30)
     active_project = next(
         field for field in app.selectbox if field.label == "Active project"
@@ -136,9 +148,47 @@ def test_interface_opens_lexicon_explorer() -> None:
     assert "Search installed lexicons" in [button.label for button in app.button]
 
 
+def test_interface_reuses_single_text_workflow_for_other_text() -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Other Text")
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert [title.value for title in app.title] == ["Other Text"]
+    assert "Text title or working label" in [
+        field.label for field in app.text_input
+    ]
+    assert "Paste the text exactly as you want it analyzed" in [
+        field.label for field in app.text_area
+    ]
+    assert "Analyze Text" in [button.label for button in app.button]
+    assert any(
+        "experimental" in message.value.lower() for message in app.info
+    )
+
+
+def test_interface_persists_application_appearance_without_analysis_state(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    preferences_path = tmp_path / "ui_preferences.json"
+    monkeypatch.setenv("VERSEVAD_PREFERENCES_PATH", str(preferences_path))
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    appearance = next(
+        field for field in app.selectbox if field.label == "Appearance"
+    )
+    appearance.set_value("Dark")
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert load_preferences(preferences_path).appearance is AppearanceMode.DARK
+    assert app.session_state["workspace"] is None
+
+
 def test_interface_shows_plain_language_input_error() -> None:
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run()
     assert not app.exception
     assert any("Enter a title" in error.value for error in app.error)
@@ -152,28 +202,12 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     app.multiselect[0].set_value(
         ["nrc_vad_v2_1", "nrc_emotion_v0_92", "nrc_emotion_intensity_v1"]
     )
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=60)
 
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
-    assert [tab.label for tab in app.tabs] == [
-        "Overview",
-            "Language Profile",
-            "Lexical Style",
-            "PoetryID",
-            "Concreteness Profile",
-            "Frequency & Rarity",
-            "Age of Acquisition",
-            "Pronunciation & Prosody",
-            "Meter & Rhythm",
-            "Rhyme & Sound",
-            "VAD Profile",
-        "Emotion Profile",
-        "Evidence",
-        "Downloads",
-        "How to Read",
-    ]
+    assert [tab.label for tab in app.tabs] == REPORT_TABS
     assert ("Lexicons analyzed", "3") in [
         (metric.label, metric.value) for metric in app.metric
     ]
@@ -219,7 +253,7 @@ def test_interface_renders_poetry_id_maps_scales_and_non_json_downloads() -> Non
     assert not poetry_id.disabled
     poetry_id.set_value(True)
     app.run(timeout=60)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=60)
 
     assert not app.exception
@@ -257,7 +291,7 @@ def test_interface_runs_optional_lexical_style_without_a_resource() -> None:
     )
     lexical_style.set_value(True)
     app.run(timeout=60)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=60)
 
     assert not app.exception
@@ -296,28 +330,12 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
     assert not concreteness.disabled
     concreteness.set_value(True)
     app.run(timeout=90)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
-    assert [tab.label for tab in app.tabs] == [
-        "Overview",
-        "Language Profile",
-        "Lexical Style",
-        "PoetryID",
-        "Concreteness Profile",
-        "Frequency & Rarity",
-        "Age of Acquisition",
-        "Pronunciation & Prosody",
-        "Meter & Rhythm",
-        "Rhyme & Sound",
-        "VAD Profile",
-        "Emotion Profile",
-        "Evidence",
-        "Downloads",
-        "How to Read",
-    ]
+    assert [tab.label for tab in app.tabs] == REPORT_TABS
     assert any(
         heading.value == "Normative Lexical Concreteness"
         for heading in app.subheader
@@ -360,28 +378,12 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
     assert not content_scope.disabled
     content_scope.set_value(True)
     app.run(timeout=90)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
-    assert [tab.label for tab in app.tabs] == [
-        "Overview",
-        "Language Profile",
-        "Lexical Style",
-        "PoetryID",
-        "Concreteness Profile",
-        "Frequency & Rarity",
-        "Age of Acquisition",
-        "Pronunciation & Prosody",
-        "Meter & Rhythm",
-        "Rhyme & Sound",
-        "VAD Profile",
-        "Emotion Profile",
-        "Evidence",
-        "Downloads",
-        "How to Read",
-    ]
+    assert [tab.label for tab in app.tabs] == REPORT_TABS
     assert any(
         heading.value == "SUBTLEX-US Lexical Frequency & Rarity"
         for heading in app.subheader
@@ -430,7 +432,7 @@ def test_interface_runs_optional_aoa_profile_and_contextual_scope_if_present() -
     assert not content_scope.disabled
     content_scope.set_value(True)
     app.run(timeout=90)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
     assert not app.exception
@@ -487,7 +489,7 @@ def test_interface_runs_optional_pronunciation_and_override_workflow() -> None:
         "permit = P ER0 M IH1 T | noun reading"
     )
     app.run(timeout=90)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
     assert not app.exception
@@ -533,7 +535,7 @@ def test_interface_runs_fixed_meter_workflow() -> None:
     assert not meter.disabled
     meter.set_value(True)
     app.run(timeout=90)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
     assert not app.exception
@@ -579,7 +581,7 @@ def test_interface_runs_rhyme_and_sound_workflow() -> None:
     assert not rhyme.disabled
     rhyme.set_value(True)
     app.run(timeout=90)
-    _button(app, "Analyze this text").click()
+    _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
     assert not app.exception

@@ -65,6 +65,21 @@ For every analysis, read the results in this order:
 
 > NEVER REPORT A BARE NUMBER: A result such as `valence = 0.62` is incomplete without the lexicon, scale, analysis view, weighting, matched count, coverage, and unit of analysis.
 
+## Interface Terms Are Not Analytical Terms
+
+**Single Poem**, **Project / Corpus**, **Other Text**, and **Lexicon Explorer**
+are workspaces. **Affective Evidence**, **Lexical Character**, **Sound & Form**,
+**Structure**, **Evidence & Diagnostics**, and **Export & Help** are report
+families used for navigation. A collapsed section retains its result.
+
+**Essential**, **Literary**, **Sound and Form**, and **Complete** are
+module-selection presets. A preset is not a methodology or an interpretive
+claim; the exact effective settings remain visible and recorded.
+
+**Light**, **Dark**, and **System** are appearance preferences. They do not
+change a score, result ID, coverage value, project, or export. Missing values
+remain missing in every appearance.
+
 # 3. Valence, Arousal, and Dominance
 
 Valence, arousal, and dominance are often abbreviated **VAD**. They are three separate dimensions. None is a synonym for “emotion.”

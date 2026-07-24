@@ -19,8 +19,8 @@
 5. How text becomes auditable matches
 6. Dual VAD reporting and stopwords
 7. How to interpret every result
-8. One Poem workspace
-9. Projects & Corpus workspace
+8. Single Poem and Other Text workspaces
+9. Project / Corpus workspace
 10. Lexicon Explorer
 11. Downloads, CSV files, JSON, and Excel
 12. Mathematical formulas
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, **Meter & Rhythm**, **Rhyme & Sound**, **Lexical Style**, and **PoetryID** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, then use the seven report families: **Affective Evidence**, **Lexical Character**, **Sound & Form**, **Structure**, **Evidence & Diagnostics**, and **Export & Help**. Each analytical module is a large collapsible section with a visible status. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -102,11 +102,21 @@ Setup is project-local. It does not require administrator access or a system-wid
 3. Your default browser should open `http://127.0.0.1:8501`.
 4. If the browser does not open automatically, type that address into a browser on the same computer.
 
-The workspace selector appears as three tabs across the top:
+The shared application header contains:
 
-- **One Poem**
-- **Projects & Corpus**
+- **Single Poem**
+- **Project / Corpus**
+- **Other Text**
 - **Lexicon Explorer**
+- the current VerseVAD version;
+- **Light**, **Dark**, and **System** appearance;
+- settings and help access.
+
+System appearance follows the browser or operating-system preference. The
+selection is stored as an application-level local preference, not in a
+project or analysis configuration. Appearance does not change calculations,
+result IDs, project data, or exports. Publication-oriented charts remain
+light.
 
 ## Stop VerseVAD
 
@@ -114,19 +124,20 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 
 # 3. Five-minute first analysis
 
-1. Open **One Poem**.
+1. Open **Single Poem**.
 2. Enter a title or working label.
 3. Paste a short poem, or upload a UTF-8 `.txt` file.
 4. Keep the selected lexicons and default methodology for the first run.
 5. Optionally enable **Normative lexical concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, **Age of Acquisition profile (Kuperman et al. ratings)**, **Pronunciation & prosody foundation (CMUdict)**, and/or **Meter & rhythmic regularity** under **Choose Evidence**.
 6. Keep both affective reporting views enabled.
-7. Click **Analyze this text**.
+7. Click **Analyze Poem**.
 8. In **Overview**, inspect coverage and warnings.
-9. In **VAD Profile**, compare all matched observations with stopwords excluded.
-10. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
-11. If enabled, inspect the separate **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, and **Meter & Rhythm** tabs.
-12. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
-13. In **Downloads**, save the readable summary or full audit bundle.
+9. In **Affective Evidence**, compare VAD sources/views, emotion evidence, and PoetryID when selected.
+10. In **Lexical Character**, inspect Concreteness, Frequency & Rarity, and Age of Acquisition when selected.
+11. In **Sound & Form**, inspect Pronunciation, Meter & Rhythm, and Rhyme & Sound when selected.
+12. In **Structure**, inspect the language profile and lexical/structural measures.
+13. In **Evidence & Diagnostics**, inspect exactly which surface forms, lemmas, or phrases matched.
+14. In **Export & Help**, save the readable summary or full audit bundle.
 
 > SAFE PRACTICE: A high or low mean is not self-interpreting. Always read it with the lexicon name, analysis view, weighting, matched count, coverage, and evidence table.
 
@@ -659,22 +670,49 @@ NRC Emotion Intensity supplies numeric values only for particular word-emotion p
 
 An absent word-emotion pair is missing, not an intensity of zero.
 
-# 8. One Poem Workspace
+# 8. Single Poem and Other Text Workspaces
 
 ## Add a poem
 
-Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working label. The optional workspace name labels the temporary session but does not create a persistent corpus project.
+Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working
+label. Optional author, date/year, and source/edition notes are available under
+bibliographic metadata. The live word, physical-line, and text-block counts
+are orientation only; the actual analysis uses the shared linguistic
+tokenizer. **Clear text** requires confirmation. The optional workspace name
+labels the temporary session but does not create a persistent corpus project.
+
+**Other Text** reuses this interface and the same analysis engines with
+**Analyze Text** terminology. Pronunciation, meter, and rhyme remain available,
+but meter and rhyme are visibly marked experimental for non-lineated prose.
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound, Lexical Style, or PoetryID modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, configured meter fit, rhyme/sound evidence, lexical diversity/word counts, and PoetryID candidate profiles answer different questions and remain separate. PoetryID requires an enabled VAD source and reuses its completed result; selecting meter or rhyme automatically runs its pronunciation dependency.
+Select one or more affective lexicons and/or enable the optional normative
+lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition,
+CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound,
+Lexical Style, or PoetryID modules. The controls are grouped as **Core
+Analysis**, **Lexical Character**, **Structural and Lexical Measures**,
+**PoetryID**, and **Sound and Form**.
 
-The same eight optional modules are also available in **Projects & Corpus**.
-One Poem results remain temporary unless downloaded; corpus runs persist the
+The optional **Essential**, **Literary**, **Sound and Form**, and **Complete**
+presets change module selections only after **Apply preset** is clicked.
+**Custom** retains the current manual selection. Presets never overwrite
+advanced thresholds, filtering, phrase policy, stopwords, pronunciation
+overrides, or other methodology.
+
+VAD, categorical association, intensity, concreteness, corpus-relative
+frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress,
+configured meter fit, rhyme/sound evidence, lexical diversity/word counts, and
+PoetryID candidate profiles answer different questions and remain separate.
+PoetryID requires an enabled VAD source and reuses its completed result;
+selecting meter or rhyme automatically runs its pronunciation dependency.
+
+The same eight optional modules are also available in **Project / Corpus**.
+Single Poem and Other Text results remain temporary unless downloaded; corpus runs persist the
 same module result envelopes, configurations, coverage, warnings, provenance,
 and audit artifacts against exact text versions.
 
-Under **Advanced methodology settings**, choose:
+Under **Analysis configuration and methodology**, choose:
 
 - phrase policy;
 - minimum matched observations for sparse-result warnings;
@@ -713,17 +751,20 @@ Under **Advanced methodology settings**, choose:
 
 Under **Stopword settings**, inspect or change the secondary-view policy. The all-matched result is always preserved even when only one view is displayed.
 
-## Overview tab
+## Overview report family
 
-Read coverage before means. The tab shows ordinary and content-focused coverage, matched counts, active methodology, excluded stopword counts, interpretive framing, and warnings.
+Read coverage before means. The Overview begins with a grouped at-a-glance
+summary for affective evidence, lexical character, sound/form, and structure.
+It then shows ordinary and content-focused coverage, matched counts, active
+methodology, excluded stopword counts, interpretive framing, and warnings.
 
-## Language Profile tab
+## Structure report family: Language Profile section
 
 The **Shared Processing Record** first reports stanzas, physical lines, model sentences, total and lexical tokens, recipe/configuration IDs, model pipeline, dependency coverage, named-entity status, and processing cautions. It is the common local representation used by every selected lexicon.
 
 The tab then reports part-of-speech counts and relative shares for all eligible lexical tokens, independently of lexicon coverage. It also shows unique normalized types and example forms. The denominator is displayed, and a caution explains that the labels are model-generated.
 
-## VAD Profile tab
+## Affective Evidence: VAD section
 
 This tab contains:
 
@@ -737,23 +778,23 @@ This tab contains:
 - top midpoint-centered contributors;
 - original source scales and normalization formulas.
 
-## Emotion Profile tab
+## Affective Evidence: Emotion Association and Intensity section
 
 The eight emotion associations, positive/negative sentiment associations, and numeric emotion intensities appear in three separate sections. Do not compare their values as though they were alternate VAD scales.
 
-## Concreteness Profile tab
+## Lexical Character: Concreteness section
 
 This tab appears as the dedicated home for the optional result. It shows overall 1-5 source-scale statistics, token/type coverage, configured bands, warnings, line and stanza patterns, model-assigned POS groups, represented term extremes, a token audit, and source/configuration provenance. Exact surface, exact phrase, lemma, documented fallback, unmatched, and ineligible rows stay distinct.
 
 The source workbook is read-only. If it is missing, changed, malformed, or unsupported, the checkbox is unavailable and VerseVAD presents a plain-language status instead of partially activating the module.
 
-## Frequency & Rarity tab
+## Lexical Character: Frequency & Rarity section
 
 This tab appears when the optional SUBTLEX-US module is enabled. It emphasizes the token-weighted median Zipf value and shows the mean, IQR, token/type coverage, configured bands, warnings, line and stanza patterns, model-assigned POS groups, lowest/highest represented terms, rare tail, complete token audit, and source/configuration provenance.
 
 The page identifies whether the default all-lexical-token scope or the non-default `NOUN`/`VERB`/`ADJ`/`ADV` scope was used. Exact observed form, lemma, documented fallback, unmatched, and ineligible decisions stay distinct. The source workbook is read-only; a missing, changed, malformed, or unsupported source prevents activation.
 
-## Age of Acquisition tab
+## Lexical Character: Age of Acquisition section
 
 This tab appears when the optional Kuperman module is enabled. It shows
 source-age mean, median, dispersion, range, token/type coverage, configured
@@ -770,7 +811,7 @@ decisions stay distinct. It always displays the required non-diagnostic
 caution. The source workbook is read-only; a missing, changed, malformed, or
 unsupported source prevents activation.
 
-## Pronunciation & Prosody tab
+## Sound & Form: Pronunciation, Syllables, and Stress section
 
 This tab appears when the optional CMUdict module is enabled. It shows
 resolved-token coverage, syllables per resolved word, median syllables per
@@ -786,7 +827,7 @@ The North American dictionary warning remains visible. `0`, `1`, and `2` are
 lexical-stress digits, not metrical beats. The Stage 5 tab does not report
 candidate meter or rhyme.
 
-## Meter & Rhythm tab
+## Sound & Form: Meter & Rhythm section
 
 This tab appears when **Meter & rhythmic regularity** is enabled. It reports
 the nearest fixed template, fit, matching lines, coverage, alternative,
@@ -796,7 +837,7 @@ evidence, all 40 fixed candidates, warnings, and configuration provenance.
 Do not mistake a metrically preferred stress path for a change to the Stage 5
 pronunciation result.
 
-## Rhyme & Sound tab
+## Sound & Form: Rhyme & Recurring Sound section
 
 This tab appears when **Rhyme & phonological patterns** is enabled. It reports
 the whole-poem and stanza exact-rhyme schemes with ending coverage, then
@@ -814,7 +855,7 @@ An unresolved line ending appears as `?` and reduces coverage. It receives no
 neutral value or fabricated rhyme label. Add a Stage 5 override only when you
 can document the intended pronunciation.
 
-## Lexical Style tab
+## Structure: Lexical and Structural Measures section
 
 This tab appears when **Lexical diversity, word length & structural word
 counts** is enabled. It reports token/type totals, MATTR, HD-D, MTLD,
@@ -830,7 +871,7 @@ The line and stanza tables also show local surface-type counts, descriptive
 TTR, and mean/median alphabetic word length. These local TTR values are not
 length-resistant comparison statistics.
 
-## PoetryID tab
+## Affective Evidence: PoetryID section
 
 This tab appears when **PoetryID lexical-affective profile** is enabled with
 at least one selected VAD source. PoetryID consumes the completed normalized
@@ -855,13 +896,13 @@ confidence labels are not probabilities. Profile names are interpretive
 labels for normative lexical neighborhoods, not declarations of the poem's
 emotion, speaker psychology, authorial intent, or reader response.
 
-## Evidence tab
+## Evidence & Diagnostics
 
 Filter by lexicon, match status, or stopword status. The excluded-only control isolates matched observations omitted from the stopword-excluded view. Inspect normalized form, lemma, match method, matched entry, source values, and the exact stopword reason.
 
 The unmatched-vocabulary table supports quality control. It does not silently guess replacements.
 
-## Downloads tab
+## Export & Help: Export Report and Data
 
 Download:
 
@@ -869,17 +910,21 @@ Download:
 - the CSV reading guide;
 - the full audit ZIP.
 
-One-poem results are temporary, so download anything you need before closing the application.
+Single-text results are temporary, so download anything you need before closing the application.
 
-## How to Read tab
+## Export & Help: Methodology and How to Read
 
-Use this tab as an in-application reminder of the recommended reading order, terminology, and scholarly limits.
+Use this section as an in-application reminder of the recommended reading
+order, terminology, and scholarly limits.
 
-# 9. Projects & Corpus Workspace
+# 9. Project / Corpus Workspace
 
 ## Create a project
 
-Open **Projects & Corpus**, expand **Create a research project**, and enter a title. Description and researcher fields are optional. Projects persist locally in `projects/versevad.sqlite3` unless an alternate database path is configured.
+Open **Project / Corpus**, expand **Create a research project**, and enter a title. Description and researcher fields are optional. Projects persist locally in `projects/versevad.sqlite3` unless an alternate database path is configured.
+
+After selecting a project, the status header shows active-work count,
+repository schema, researcher, last-modified date, and local-save context.
 
 ## Import a folder
 
@@ -903,26 +948,31 @@ Select one work and edit the available fields:
 - custom JSON metadata.
 
 Metadata filters affect presentation and grouping, not lexical scores.
+The work list can be searched across title, author, collection, and date, then
+filtered by author or collection. Its **Analysis status** column distinguishes
+Not run, Complete, and Complete with warnings. Column headers provide sorting.
 
 ## Run a corpus batch
 
 Under **Analyze & Compare**:
 
 1. Select the works.
-2. Select affective lexicons and/or **Additional analysis modules**.
-3. Choose phrase and sparse-result settings.
-4. For Frequency or AoA, optionally enable the non-default content-word-only
+2. Leave the corpus preset at **Custom**, or choose and explicitly apply
+   Essential, Literary, Sound and Form, or Complete.
+3. Select affective lexicons and/or **Additional analysis modules**.
+4. Choose phrase and sparse-result settings.
+5. For Frequency or AoA, optionally enable the non-default content-word-only
    scope under **Advanced batch methodology**.
-5. Choose the stopword policy.
-6. Choose **Unreviewed baseline** or an exact named review-scenario version.
-7. Click **Analyze selected works**.
+6. Choose the stopword policy.
+7. Choose **Unreviewed baseline** or an exact named review-scenario version.
+8. Click **Analyze Corpus**.
 
 VerseVAD analyzes every work separately. The new comparison is published only after the entire selected batch completes. Pending or failed batches never replace the latest complete comparison.
 
 Additional modules are off by default because pronunciation, meter, and rhyme
 can add substantial processing time to a large collection. Selecting meter or
 rhyme automatically includes the pronunciation dependency. The corpus path
-calls the same tested modules as One Poem and does not duplicate their
+calls the same tested modules as Single Poem and does not duplicate their
 calculations.
 
 ## Filter and compare

@@ -709,8 +709,41 @@ review required.
   comparison, including expanded all-resource Lexicon Explorer lookup.
 - [x] Stage 12: PoetryID dependent VAD-archetype module, lexical character,
   corpus distributions, and accessible visual reporting.
-- [ ] Stage 13: application-wide design runthrough.
+- [x] Stage 13: application-wide design and information-architecture
+  runthrough.
 - [ ] Stage 14: performance, speed, caching, and optimization pass.
+
+## Poetic Fingerprint expansion - Stage 13 design and interface
+
+- [x] Audit the existing workspace map, repeated patterns, UI/service
+  boundaries, styling architecture, accessibility, dark-mode feasibility,
+  proposed components and tokens, affected files, and migration risks before
+  implementation.
+- [x] Add one semantic Light/Dark/System design-token system and an ignored,
+  application-level appearance preference.
+- [x] Add a compact global shell with the four named workspaces, version,
+  active-workspace context, visible appearance control, settings summary, and
+  help/methodology access.
+- [x] Reorganize One Poem and Other Text into clear input, grouped module
+  selection, explicit presets, analysis action, overview, report-family
+  navigation, evidence/diagnostics, and export.
+- [x] Add a grouped overview that points to VAD/PoetryID, lexical character,
+  sound/form, structure, coverage, and cautions without replacing the detailed
+  evidence.
+- [x] Reframe Projects/Corpus with a project status header and consistent
+  workspace/result patterns while preserving schema-4 data and batch behavior.
+- [x] Apply the shared shell, tokens, status, empty-state, table, and help
+  patterns to Lexicon Explorer without changing its lookup services or fields.
+- [x] Standardize focus, contrast, reduced-motion, responsive behavior,
+  missing-value language, and chart/table containers.
+- [x] Add regression tests proving that appearance and layout state do not
+  change analytical requests, results, exports, source texts, or project data.
+- [x] Update methodology, architecture, user guidance, testing, changelog,
+  roadmap, and both Word guides.
+- [x] Run the full suite, synthetic demonstrations, diagnostics,
+  source/resource and lock checks, visual browser checks in all appearance
+  modes, documentation checks, and rendering where installed tools permit.
+- [x] Create the expansion Stage 13 source-control checkpoint.
 
 ## Poetic Fingerprint expansion - Stage 10 narrowed lexical style
 

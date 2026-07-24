@@ -27,7 +27,7 @@ from versevad.corpus import (
     corpus_vad_profiles,
     decode_corpus_files,
 )
-from versevad.db import ProjectRepository, default_database_path
+from versevad.db import SCHEMA_VERSION, ProjectRepository, default_database_path
 from versevad.lexical_semantic.aoa import AoAConfiguration
 from versevad.lexical_semantic.frequency import FrequencyConfiguration
 from versevad.models import PhrasePolicy, ReviewAction, ReviewScope, TextDocument
@@ -42,6 +42,12 @@ from versevad.poetry_id import (
     VadLevel,
 )
 from versevad.ui.stopwords import render_stopword_settings
+from versevad.ui.design import (
+    MODULE_PRESETS,
+    preset_widget_state,
+    render_empty_state,
+    render_workspace_header,
+)
 
 
 def _safe_filename(value: str) -> str:
@@ -215,6 +221,57 @@ def _render_texts_tab(repository: ProjectRepository, project_id: str) -> None:
         st.info("No works have been imported into this project yet.")
         return
     st.subheader(f"Works in This Project ({len(texts):,})")
+    filter_columns = st.columns(3)
+    search_text = filter_columns[0].text_input(
+        "Search works",
+        key=f"work_search_{project_id}",
+        placeholder="Title, author, collection, or date",
+    )
+    author_filter = filter_columns[1].selectbox(
+        "Author",
+        options=["All authors", *sorted({text.author for text in texts if text.author})],
+        key=f"work_author_filter_{project_id}",
+    )
+    collection_filter = filter_columns[2].selectbox(
+        "Collection",
+        options=[
+            "All collections",
+            *sorted({text.collection for text in texts if text.collection}),
+        ],
+        key=f"work_collection_filter_{project_id}",
+    )
+    query = search_text.strip().casefold()
+    filtered_texts = [
+        text
+        for text in texts
+        if (
+            not query
+            or query
+            in " ".join(
+                (
+                    text.title,
+                    text.author,
+                    text.collection,
+                    text.date_label,
+                )
+            ).casefold()
+        )
+        and (author_filter == "All authors" or text.author == author_filter)
+        and (
+            collection_filter == "All collections"
+            or text.collection == collection_filter
+        )
+    ]
+    completed_text_ids = {
+        row.text_id for row in repository.list_latest_metrics(project_id)
+    } | {
+        row.text_id
+        for row in repository.list_latest_module_results(project_id)
+    }
+    warning_text_ids = {
+        row.text_id
+        for row in repository.list_latest_module_warnings(project_id)
+    }
     summary = pd.DataFrame(
         [
             {
@@ -223,13 +280,29 @@ def _render_texts_tab(repository: ProjectRepository, project_id: str) -> None:
                 "Collection": text.collection,
                 "Date": text.date_label,
                 "Genre": text.genre,
+                "Analysis status": (
+                    "Complete with warnings"
+                    if text.text_id in warning_text_ids
+                    else (
+                        "Complete"
+                        if text.text_id in completed_text_ids
+                        else "Not run"
+                    )
+                ),
                 "Source path": text.relative_path,
                 "Version": text.text_version_id,
             }
-            for text in texts
+            for text in filtered_texts
         ]
     )
-    st.dataframe(summary, hide_index=True, width="stretch", height=300)
+    if summary.empty:
+        st.info("No works match the current search and filters.")
+    else:
+        st.dataframe(summary, hide_index=True, width="stretch", height=300)
+    st.caption(
+        f"Showing {len(filtered_texts):,} of {len(texts):,} works. "
+        "Select column headers to sort."
+    )
 
     st.subheader("Edit One Work's Metadata")
     selected_id = st.selectbox(
@@ -761,7 +834,7 @@ def _render_analysis_tab(
     if not texts:
         st.info("Import a folder of `.txt` works before running corpus analysis.")
         return
-    st.subheader("Run a Complete Corpus Batch")
+    st.subheader("Corpus Analysis Configuration")
     st.write(
         "VerseVAD analyzes one work at a time, preserving separate work-level results. "
         "The comparison dashboard updates only after every selected work finishes."
@@ -774,13 +847,6 @@ def _render_analysis_tab(
         key=f"analysis_texts_{project_id}",
     )
     lexicon_lookup = {spec.lexicon_id: spec for spec in LEXICON_SPECS}
-    lexicon_ids = st.multiselect(
-        "Lexicons",
-        options=list(lexicon_lookup),
-        default=list(lexicon_lookup),
-        format_func=lambda lexicon_id: lexicon_lookup[lexicon_id].display_name,
-        key=f"analysis_lexicons_{project_id}",
-    )
     module_labels = {
         "concreteness": "Concreteness",
         "frequency": "SUBTLEX-US frequency and rarity",
@@ -793,6 +859,60 @@ def _render_analysis_tab(
         ),
         "poetry_id": "PoetryID lexical-affective profiles",
     }
+    preset_choice, preset_action = st.columns([3, 1], vertical_alignment="bottom")
+    with preset_choice:
+        selected_preset = st.selectbox(
+            "Corpus module preset",
+            options=list(MODULE_PRESETS),
+            index=list(MODULE_PRESETS).index("Custom"),
+            key=f"corpus_preset_{project_id}",
+            help=(
+                "Presets update module selections only after Apply. Advanced "
+                "methodology settings remain unchanged."
+            ),
+        )
+    with preset_action:
+        apply_preset = st.button(
+            "Apply corpus preset",
+            width="stretch",
+            key=f"apply_corpus_preset_{project_id}",
+        )
+    st.caption(MODULE_PRESETS[selected_preset].description)
+    if apply_preset:
+        preset_state = preset_widget_state(
+            selected_preset,
+            available_lexicon_ids=tuple(lexicon_lookup),
+        )
+        if not preset_state:
+            st.info("Custom keeps the current manual selections unchanged.")
+            preset_state = None
+        module_key_lookup = {
+            "include_concreteness": "concreteness",
+            "include_frequency": "frequency",
+            "include_aoa": "aoa",
+            "include_pronunciation": "pronunciation",
+            "include_meter": "meter",
+            "include_phonology": "phonology",
+            "include_lexical_style": "lexical_style",
+            "include_poetry_id": "poetry_id",
+        }
+        if preset_state is not None:
+            st.session_state[f"analysis_lexicons_{project_id}"] = (
+                preset_state.get("selected_lexicons", [])
+            )
+            st.session_state[f"analysis_modules_{project_id}"] = [
+                module_name
+                for state_key, module_name in module_key_lookup.items()
+                if preset_state.get(state_key) is True
+            ]
+            st.rerun()
+    lexicon_ids = st.multiselect(
+        "Lexicons",
+        options=list(lexicon_lookup),
+        default=list(lexicon_lookup),
+        format_func=lambda lexicon_id: lexicon_lookup[lexicon_id].display_name,
+        key=f"analysis_lexicons_{project_id}",
+    )
     selected_modules = st.multiselect(
         "Additional analysis modules",
         options=list(module_labels),
@@ -1001,7 +1121,7 @@ def _render_analysis_tab(
         )
         stopword_settings = render_stopword_settings(f"corpus_{project_id}")
     run = st.button(
-        "Analyze selected works",
+        "Analyze Corpus",
         type="primary",
         disabled=(
             not text_ids
@@ -2112,15 +2232,13 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
             "Corpus results describe lexical evidence. They do not determine a work's emotion or a reader's response."
         )
 
-    st.markdown(
-        '<p class="verse-kicker">Private corpus research workspace</p>',
-        unsafe_allow_html=True,
-    )
-    st.title("VerseVAD Projects & Corpus")
-    st.write(
+    render_workspace_header(
+        "Project / Corpus",
         "Import a folder as separate works, add metadata, compare complete analysis "
         "batches across affective and optional lexical/prosodic modules, build "
-        "versioned review scenarios, and export a readable Excel workbook."
+        "versioned review scenarios, and export a readable Excel workbook.",
+        kicker="Private corpus research workspace",
+        status="Persistent",
     )
     project_flash = st.session_state.pop("corpus_project_flash", None)
     if project_flash:
@@ -2128,7 +2246,12 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
     projects = repository.list_projects()
     _create_project(repository, expanded=not projects)
     if not projects:
-        st.info("Create a project to begin. Nothing has been imported yet.")
+        render_empty_state(
+            "No research project yet",
+            "Projects keep texts, metadata, immutable analysis runs, review "
+            "scenarios, and exports together in the local database.",
+            "Use Create a research project above to begin.",
+        )
         return
     project_id = st.selectbox(
         "Active project",
@@ -2139,9 +2262,21 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
         key="active_corpus_project",
     )
     project = repository.get_project(project_id)
+    texts = repository.list_texts(project_id)
+    project_columns = st.columns(4)
+    project_columns[0].metric("Works", len(texts))
+    project_columns[1].metric("Schema", SCHEMA_VERSION)
+    project_columns[2].metric(
+        "Researcher",
+        project.researcher or "Not recorded",
+    )
+    project_columns[3].metric(
+        "Last modified",
+        project.updated_at[:10],
+    )
     st.caption(
-        f"{project.description or 'No project description.'} "
-        f"Researcher: {project.researcher or 'not recorded'}."
+        f"{project.title} · {project.description or 'No project description.'} "
+        "All saves are local and completed analysis runs remain immutable."
     )
     part_of_speech_rows = _corpus_part_of_speech_rows(
         repository,
