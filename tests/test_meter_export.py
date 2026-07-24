@@ -10,7 +10,6 @@ from versevad.exports.meter import (
     export_meter_bundle,
     export_meter_json,
     export_meter_lines_csv,
-    export_meter_schemes_csv,
 )
 from versevad.preprocessing import create_text_document
 from versevad.prosody.meter import MeterModule
@@ -24,10 +23,9 @@ def _rows(content: bytes) -> list[dict[str, str]]:
     )
 
 
-def _common_meter_text() -> str:
+def _fixed_meter_text() -> str:
     tetrameter = "the stone the stone the stone the stone"
-    trimeter = "the stone the stone the stone"
-    return "\n".join((tetrameter, trimeter, tetrameter, trimeter))
+    return "\n".join((tetrameter, tetrameter, tetrameter, tetrameter))
 
 
 def _result(tmp_path, preprocessor):
@@ -35,7 +33,7 @@ def _result(tmp_path, preprocessor):
         create_text_document(
             "meter-export",
             "Meter export",
-            _common_meter_text(),
+            _fixed_meter_text(),
         )
     )
     pronunciation = _module(tmp_path).analyze_detailed(
@@ -48,28 +46,20 @@ def _result(tmp_path, preprocessor):
     )
 
 
-def test_meter_exports_preserve_common_meter_and_alignment_audit(
+def test_meter_exports_preserve_fixed_candidates_and_alignment_audit(
     tmp_path,
     preprocessor,
 ) -> None:
     result = _result(tmp_path, preprocessor)
 
-    schemes = _rows(export_meter_schemes_csv(result))
     lines = _rows(export_meter_lines_csv(result))
     operations = _rows(export_meter_alignment_operations_csv(result))
 
-    assert schemes[0]["scheme_id"] == "common_meter"
-    assert schemes[0]["foot_count_cycle"] == "4-3-4-3"
-    assert float(schemes[0]["mean_fit"]) == 1.0
     assert len(lines) == 4
     assert {row["status"] for row in lines} == {"analyzed"}
-    assert [row["common_meter_expected_foot_count"] for row in lines] == [
-        "4",
-        "3",
-        "4",
-        "3",
-    ]
-    assert {float(row["common_meter_line_fit"]) for row in lines} == {1.0}
+    assert {row["closest_candidate"] for row in lines} == {"Iambic tetrameter"}
+    assert {float(row["fit_score"]) for row in lines} == {1.0}
+    assert "common_meter_line_fit" not in lines[0]
     assert operations
     assert {"observed_stress", "template_stress", "cost"} <= set(
         operations[0]
@@ -88,11 +78,13 @@ def test_meter_json_and_bundle_are_complete_and_deterministic(
     bundle = export_meter_bundle(result)
 
     assert first == second
-    assert payload["summary"]["closest_scheme_id"] == "common_meter"
+    assert payload["summary"]["closest_candidate_kind"] == (
+        "fixed pattern and foot count"
+    )
+    assert payload["summary"]["closest_candidate_label"] == "Iambic tetrameter"
     assert set(bundle) == {
         "meter_summary.csv",
         "meter_candidates.csv",
-        "meter_schemes.csv",
         "meter_lines.csv",
         "meter_alignment_operations.csv",
         "meter_result.json",

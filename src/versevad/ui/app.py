@@ -36,6 +36,7 @@ _application_was_reloaded = (
             "AoAConfiguration",
             "PronunciationConfiguration",
             "MeterConfiguration",
+            "PhonologicalConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -68,11 +69,14 @@ if _application_was_reloaded:
         "versevad.prosody.pronunciation",
         "versevad.prosody.meter",
         "versevad.prosody",
+        "versevad.phonology.rhyme",
+        "versevad.phonology",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
         "versevad.exports.aoa",
         "versevad.exports.pronunciation",
         "versevad.exports.meter",
+        "versevad.exports.phonology",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -132,6 +136,7 @@ from versevad.prosody.pronunciation import (
     parse_pronunciation_overrides,
 )
 from versevad.prosody.meter import MeterConfiguration
+from versevad.phonology import PhonologicalConfiguration
 from versevad.ui.stopwords import render_stopword_settings
 
 
@@ -456,8 +461,7 @@ if workspace_page == "One Poem":
             help=(
                 "Stage 6 compares retained lexical-stress evidence against "
                 "iambic, trochaic, anapestic, dactylic, and amphibrachic "
-                "templates from monometer through octameter, plus stanza-aware "
-                "common meter (iambic 4-3-4-3)."
+                "templates from monometer through octameter."
             ),
         )
         if pronunciation_available:
@@ -465,6 +469,25 @@ if workspace_page == "One Poem":
                 "Optional and off by default. Meter analysis automatically runs "
                 "the pronunciation foundation, retains dictionary alternatives, "
                 "and reports nearest candidates rather than definitive scansion."
+            )
+
+        include_phonology = st.checkbox(
+            "Rhyme & phonological patterns",
+            value=False,
+            disabled=not pronunciation_available,
+            key="include_phonology",
+            help=(
+                "Stage 7 derives end-rhyme groups and schemes, perfect, identical, "
+                "masculine, feminine, multisyllabic, graded slant, eye, and "
+                "internal-rhyme evidence plus alliteration, assonance, consonance, "
+                "refrains, and coverage."
+            ),
+        )
+        if pronunciation_available:
+            st.caption(
+                "Optional and off by default. Stage 7 automatically runs the "
+                "pronunciation foundation. Dictionary, spelling, and repeated-text "
+                "evidence remain separately labeled."
             )
 
         with st.expander("Advanced methodology settings"):
@@ -692,7 +715,9 @@ if workspace_page == "One Poem":
                 "Poem-specific pronunciation overrides",
                 value="",
                 key="pronunciation_overrides",
-                disabled=not (include_pronunciation or include_meter),
+                disabled=not (
+                    include_pronunciation or include_meter or include_phonology
+                ),
                 height=120,
                 placeholder=(
                     "permit = P ER0 M IH1 T | noun reading in this line\n"
@@ -714,7 +739,9 @@ if workspace_page == "One Poem":
                 value=0.8,
                 step=0.05,
                 key="pronunciation_coverage_warning",
-                disabled=not (include_pronunciation or include_meter),
+                disabled=not (
+                    include_pronunciation or include_meter or include_phonology
+                ),
             )
             pronunciation_minimum_complete_lines = pronunciation_columns[
                 1
@@ -725,7 +752,9 @@ if workspace_page == "One Poem":
                 value=2,
                 step=1,
                 key="pronunciation_minimum_complete_lines",
-                disabled=not (include_pronunciation or include_meter),
+                disabled=not (
+                    include_pronunciation or include_meter or include_phonology
+                ),
             )
             pronunciation_minimum_resolved_tokens = pronunciation_columns[
                 2
@@ -736,7 +765,9 @@ if workspace_page == "One Poem":
                 value=3,
                 step=1,
                 key="pronunciation_minimum_resolved_tokens",
-                disabled=not (include_pronunciation or include_meter),
+                disabled=not (
+                    include_pronunciation or include_meter or include_phonology
+                ),
             )
             st.caption(
                 "Exact observed forms only: no lemma, possessive-base, or "
@@ -784,8 +815,50 @@ if workspace_page == "One Poem":
             st.caption(
                 "The fixed grid contains 40 candidates: five recurring stress "
                 "patterns × one through eight feet. Spondees and pyrrhics are "
-                "reported as local substitutions. Common meter is a separate "
-                "stanza-aware iambic 4-3-4-3 comparison."
+                "reported as local substitutions."
+            )
+            st.markdown("**Rhyme and phonological-pattern settings**")
+            phonological_columns = st.columns(4)
+            phonological_slant_threshold = phonological_columns[0].number_input(
+                "Slant-rhyme threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.68,
+                step=0.01,
+                key="phonological_slant_threshold",
+                disabled=not include_phonology,
+            )
+            phonological_sound_repetitions = phonological_columns[1].number_input(
+                "Minimum repeated sounds",
+                min_value=2,
+                max_value=20,
+                value=2,
+                step=1,
+                key="phonological_sound_repetitions",
+                disabled=not include_phonology,
+            )
+            phonological_coverage_warning = phonological_columns[2].number_input(
+                "Ending-coverage caution threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.70,
+                step=0.05,
+                key="phonological_coverage_warning",
+                disabled=not include_phonology,
+            )
+            phonological_maximum_pairs = phonological_columns[3].number_input(
+                "Maximum ending-pair comparisons",
+                min_value=1,
+                max_value=100000,
+                value=10000,
+                step=100,
+                key="phonological_maximum_pairs",
+                disabled=not include_phonology,
+            )
+            st.caption(
+                "The slant score combines stressed vowel, final consonants, "
+                "rhyme-part edit similarity, stress alignment, and syllable "
+                "similarity. It is a configurable heuristic, not a probability."
             )
         st.markdown("**Stopword reporting**")
         reporting_columns = st.columns(2)
@@ -886,7 +959,7 @@ if workspace_page == "One Poem":
     except ValueError as error:
         pronunciation_configuration_error = str(error)
         pronunciation_configuration = PronunciationConfiguration()
-        if include_pronunciation or include_meter:
+        if include_pronunciation or include_meter or include_phonology:
             st.warning(pronunciation_configuration_error)
 
     meter_configuration_error = ""
@@ -903,6 +976,22 @@ if workspace_page == "One Poem":
         if include_meter:
             st.warning(meter_configuration_error)
 
+    phonological_configuration_error = ""
+    try:
+        phonological_configuration = PhonologicalConfiguration(
+            slant_rhyme_threshold=float(phonological_slant_threshold),
+            minimum_sound_repetitions=int(phonological_sound_repetitions),
+            low_ending_coverage_warning_threshold=float(
+                phonological_coverage_warning
+            ),
+            maximum_pair_evaluations=int(phonological_maximum_pairs),
+        )
+    except ValueError as error:
+        phonological_configuration_error = str(error)
+        phonological_configuration = PhonologicalConfiguration()
+        if include_phonology:
+            st.warning(phonological_configuration_error)
+
     if analyze_clicked:
         try:
             if concreteness_configuration_error:
@@ -915,6 +1004,8 @@ if workspace_page == "One Poem":
                 raise ValueError(pronunciation_configuration_error)
             if meter_configuration_error:
                 raise ValueError(meter_configuration_error)
+            if phonological_configuration_error:
+                raise ValueError(phonological_configuration_error)
             request = AnalysisRequest(
                 project_name=st.session_state["project_name"],
                 title=st.session_state["poem_title"],
@@ -936,6 +1027,8 @@ if workspace_page == "One Poem":
                 pronunciation_configuration=pronunciation_configuration,
                 include_meter=include_meter,
                 meter_configuration=meter_configuration,
+                include_phonology=include_phonology,
+                phonological_configuration=phonological_configuration,
             )
             with st.spinner("Analyzing locally and preserving the audit trail…"):
                 st.session_state["workspace"] = run_workspace_analysis(
@@ -968,6 +1061,7 @@ if workspace_page == "One Poem":
         or include_aoa != workspace.request.include_aoa
         or include_pronunciation != workspace.request.include_pronunciation
         or include_meter != workspace.request.include_meter
+        or include_phonology != workspace.request.include_phonology
         or (
             include_concreteness
             and concreteness_configuration
@@ -983,13 +1077,18 @@ if workspace_page == "One Poem":
             and aoa_configuration != workspace.request.aoa_configuration
         )
         or (
-            (include_pronunciation or include_meter)
+            (include_pronunciation or include_meter or include_phonology)
             and pronunciation_configuration
             != workspace.request.pronunciation_configuration
         )
         or (
             include_meter
             and meter_configuration != workspace.request.meter_configuration
+        )
+        or (
+            include_phonology
+            and phonological_configuration
+            != workspace.request.phonological_configuration
         )
     ):
         st.warning(
@@ -1014,6 +1113,7 @@ if workspace_page == "One Poem":
         aoa_tab,
         pronunciation_tab,
         meter_tab,
+        phonology_tab,
         vad_tab,
         emotion_tab,
         evidence_tab,
@@ -1028,6 +1128,7 @@ if workspace_page == "One Poem":
             "Age of Acquisition",
             "Pronunciation & Prosody",
             "Meter & Rhythm",
+            "Rhyme & Sound",
             "VAD Profile",
             "Emotion Profile",
             "Evidence",
@@ -1364,6 +1465,11 @@ if workspace_page == "One Poem":
             warnings.extend(
                 ("Meter & Rhythm", warning.message)
                 for warning in workspace.meter.module_result.warnings
+            )
+        if workspace.phonology is not None:
+            warnings.extend(
+                ("Rhyme & Sound", warning.message)
+                for warning in workspace.phonology.module_result.warnings
             )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
@@ -2683,7 +2789,7 @@ if workspace_page == "One Poem":
         if meter is None:
             st.info(
                 "Select Meter & rhythmic regularity, then analyze again to "
-                "compare fixed line templates and stanza-aware common meter."
+                "compare the 40 fixed pattern-by-foot-count templates."
             )
         else:
             st.subheader("Candidate Meter & Rhythmic Regularity")
@@ -2744,81 +2850,6 @@ if workspace_page == "One Poem":
                 f"Candidate margin: {_decimal(summary.candidate_margin)}."
             )
 
-            common = next(
-                (
-                    item
-                    for item in meter.scheme_summaries
-                    if item.scheme_id == "common_meter"
-                ),
-                None,
-            )
-            st.markdown("**Common meter (alternating iambic 4–3–4–3)**")
-            if common is None:
-                st.info("No common-meter scheme result is available.")
-            else:
-                common_columns = st.columns(5)
-                common_columns[0].metric(
-                    "Scheme fit",
-                    _percentage(common.mean_fit),
-                    help=(
-                        "Mean stanza-phased fit to iambic tetrameter, trimeter, "
-                        "tetrameter, trimeter."
-                    ),
-                )
-                common_columns[1].metric(
-                    "Matching lines",
-                    f"{common.matching_line_count}/{common.analyzed_line_count}",
-                )
-                common_columns[2].metric(
-                    "Analyzable coverage",
-                    _percentage(common.line_coverage),
-                )
-                common_columns[3].metric(
-                    "Complete quatrains",
-                    (
-                        f"{common.complete_stanza_count}/"
-                        f"{common.eligible_stanza_count}"
-                    ),
-                )
-                common_columns[4].metric(
-                    "Complete-stanza coverage",
-                    _percentage(common.complete_stanza_coverage),
-                )
-                st.caption(
-                    "The 4–3–4–3 cycle restarts at each preserved stanza. "
-                    "At least one complete four-line stanza is required before "
-                    "common meter can become the poem-level nearest scheme."
-                )
-
-            common_line_evidence: dict[str, tuple[int, object]] = {}
-            for stanza_number in sorted(
-                {item.stanza_number for item in meter.line_results}
-            ):
-                stanza_lines = sorted(
-                    (
-                        item
-                        for item in meter.line_results
-                        if item.stanza_number == stanza_number
-                        and item.status.value != "no_lexical_tokens"
-                    ),
-                    key=lambda item: item.line_number,
-                )
-                for position, line in enumerate(stanza_lines):
-                    expected_feet = (4, 3, 4, 3)[position % 4]
-                    expected_fit = next(
-                        (
-                            fit
-                            for fit in line.candidate_fits
-                            if fit.pattern.value == "iambic"
-                            and fit.foot_count == expected_feet
-                        ),
-                        None,
-                    )
-                    common_line_evidence[line.line_id] = (
-                        expected_feet,
-                        expected_fit,
-                    )
-
             st.markdown("**Physical-line candidate evidence**")
             st.dataframe(
                 pd.DataFrame(
@@ -2837,17 +2868,6 @@ if workspace_page == "One Poem":
                                 line.closest_candidate.fit_score
                                 if line.closest_candidate
                                 else None
-                            ),
-                            "Common-meter expected feet": (
-                                common_line_evidence.get(line.line_id, ("", None))[0]
-                            ),
-                            "Common-meter line fit": (
-                                (
-                                    common_line_evidence[line.line_id][1].fit_score
-                                    if common_line_evidence.get(line.line_id)
-                                    and common_line_evidence[line.line_id][1]
-                                    else None
-                                )
                             ),
                             "Selected lexical stress": (
                                 line.closest_candidate.selected_stress_sequence
@@ -2891,18 +2911,14 @@ if workspace_page == "One Poem":
                 ).style.format(
                     {
                         "Closest fit": lambda value: _percentage(value),
-                        "Common-meter line fit": (
-                            lambda value: _percentage(value)
-                        ),
                     }
                 ),
                 hide_index=True,
                 width="stretch",
             )
             st.caption(
-                "Each line's closest fixed template and its phase-specific "
-                "common-meter comparison are separate. Stress digits use "
-                "CMUdict notation: 0 unstressed, 1 primary, 2 secondary."
+                "Stress digits use CMUdict notation: 0 unstressed, 1 primary, "
+                "2 secondary."
             )
 
             with st.expander("All 40 fixed candidates"):
@@ -2967,10 +2983,251 @@ if workspace_page == "One Poem":
                     "**Primary foot patterns:** iambic 01; trochaic 10; "
                     "anapestic 001; dactylic 100; amphibrachic 010.  \n"
                     "**Foot counts:** monometer through octameter.  \n"
-                    "**Common meter:** iambic 4-3-4-3, reset by stanza.  \n"
                     "**Local deviations:** spondaic and pyrrhic substitutions, "
                     "initial inversion, feminine ending, catalexis, and extra "
                     "or omitted syllables."
+                )
+
+    with phonology_tab:
+        phonology = workspace.phonology
+        if phonology is None:
+            st.info(
+                "Select Rhyme & phonological patterns, then analyze again to "
+                "inspect end rhyme, internal rhyme, and recurring sound evidence."
+            )
+        else:
+            st.subheader("Rhyme & Recurring Phonological Patterns")
+            st.warning(
+                "These are dictionary- and spelling-based textual observations. "
+                "They do not establish a performed rhyme, dialect, reading, "
+                "sound effect, or authorial intention."
+            )
+            summary = phonology.summary
+            rhyme_metrics = st.columns(6)
+            rhyme_metrics[0].metric(
+                "Whole-poem scheme",
+                summary.whole_poem_rhyme_scheme or "No eligible endings",
+                help="Perfect/identical groups only; x = unrhymed, ? = unresolved.",
+            )
+            rhyme_metrics[1].metric(
+                "Ending coverage",
+                _percentage(summary.ending_coverage),
+                help=(
+                    f"{summary.analyzable_ending_count} of "
+                    f"{summary.eligible_line_count} eligible endings."
+                ),
+            )
+            rhyme_metrics[2].metric(
+                "Rhyme density",
+                _percentage(summary.rhyme_density),
+                help="Analyzable endings participating in an exact within-stanza pair.",
+            )
+            rhyme_metrics[3].metric(
+                "Perfect / identical",
+                (
+                    f"{summary.perfect_rhyme_pair_count} / "
+                    f"{summary.identical_rhyme_pair_count}"
+                ),
+            )
+            rhyme_metrics[4].metric(
+                "Slant / eye",
+                (
+                    f"{summary.slant_rhyme_pair_count} / "
+                    f"{summary.eye_rhyme_pair_count}"
+                ),
+                help="Graded phonetic slant and spelling-based eye rhyme remain separate.",
+            )
+            rhyme_metrics[5].metric(
+                "Internal pairs",
+                summary.internal_rhyme_pair_count,
+            )
+            st.caption(
+                f"Stanza schemes: {summary.stanza_scheme_sequence or 'none'}. "
+                f"Refrain lines: {summary.refrain_line_count}. "
+                "Masculine, feminine, and multisyllabic labels appear in the "
+                "pair evidence below."
+            )
+
+            st.markdown("**Stanza-level end-rhyme summary**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Stanza": item.stanza_number,
+                            "Eligible endings": item.eligible_line_count,
+                            "Analyzable endings": item.analyzable_ending_count,
+                            "Coverage": item.ending_coverage,
+                            "Scheme": item.rhyme_scheme,
+                            "Exact pairs": (
+                                item.perfect_or_identical_pair_count
+                            ),
+                            "Slant pairs": item.slant_pair_count,
+                            "Rhymed lines": item.rhymed_line_count,
+                            "Rhyme density": item.rhyme_density,
+                        }
+                        for item in phonology.stanza_summaries
+                    ]
+                ).style.format(
+                    {
+                        "Coverage": lambda value: _percentage(value),
+                        "Rhyme density": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+
+            st.markdown("**Physical-line ending and sound evidence**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Line": line.line_number,
+                            "Stanza": line.stanza_number,
+                            "Text": line.source_text,
+                            "Status": line.status.value.replace("_", " "),
+                            "Ending": line.ending_surface_form,
+                            "Candidate phones": " | ".join(
+                                line.ending_candidate_phones
+                            ),
+                            "Rhyme parts": " | ".join(line.ending_rhyme_parts),
+                            "Poem label": line.poem_scheme_label,
+                            "Stanza label": line.stanza_scheme_label,
+                            "Ending shape": line.ending_shape,
+                            "Refrain": line.is_refrain,
+                            "Initial repeats": " ".join(
+                                line.repeated_initial_consonants
+                            ),
+                            "Stressed-vowel repeats": " ".join(
+                                line.repeated_stressed_vowels
+                            ),
+                            "Consonant repeats": " ".join(
+                                line.repeated_consonants
+                            ),
+                            "Alliteration density": line.alliteration_density,
+                            "Assonance density": line.assonance_density,
+                            "Consonance density": line.consonance_density,
+                            "Why": line.reason,
+                        }
+                        for line in phonology.line_results
+                    ]
+                ).style.format(
+                    {
+                        "Alliteration density": lambda value: _percentage(value),
+                        "Assonance density": lambda value: _percentage(value),
+                        "Consonance density": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+                height=440,
+            )
+
+            st.markdown("**Within-stanza ending-pair evidence**")
+            if phonology.pair_results:
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Stanza": pair.stanza_number,
+                                "Lines": (
+                                    f"{pair.first_line_number}–"
+                                    f"{pair.second_line_number}"
+                                ),
+                                "Words": (
+                                    f"{pair.first_word} / {pair.second_word}"
+                                ),
+                                "Relationship": pair.relationship.replace("_", " "),
+                                "Types": ", ".join(pair.rhyme_types),
+                                "Conservative slant score": pair.similarity_score,
+                                "Maximum score": pair.maximum_similarity_score,
+                                "Stressed vowel": pair.stressed_vowel_similarity,
+                                "Final consonants": pair.final_consonant_similarity,
+                                "Rhyme-part edit": pair.phoneme_edit_similarity,
+                                "Stress alignment": pair.stress_alignment_similarity,
+                                "Syllable similarity": pair.syllable_count_similarity,
+                                "Eye rhyme": pair.is_eye_rhyme,
+                                "Orthographic rime": pair.orthographic_rime,
+                                "Evidence label": pair.confidence_label,
+                                "Note": pair.note,
+                            }
+                            for pair in phonology.pair_results
+                        ]
+                    ).style.format(
+                        {
+                            "Conservative slant score": lambda value: _decimal(value),
+                            "Maximum score": lambda value: _decimal(value),
+                            "Stressed vowel": lambda value: _decimal(value),
+                            "Final consonants": lambda value: _decimal(value),
+                            "Rhyme-part edit": lambda value: _decimal(value),
+                            "Stress alignment": lambda value: _decimal(value),
+                            "Syllable similarity": lambda value: _decimal(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                    height=440,
+                )
+            else:
+                st.info("No within-stanza ending pairs were available.")
+
+            sound_columns = st.columns(3)
+            sound_columns[0].metric(
+                "Alliteration density",
+                _percentage(summary.alliteration_density),
+                help="Repeated initial consonant phonemes within physical lines.",
+            )
+            sound_columns[1].metric(
+                "Assonance density",
+                _percentage(summary.assonance_density),
+                help="Repeated stressed-vowel phonemes within physical lines.",
+            )
+            sound_columns[2].metric(
+                "Consonance density",
+                _percentage(summary.consonance_density),
+                help="Repeated consonant phoneme occurrences within physical lines.",
+            )
+            if phonology.sound_families:
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Category": item.category.replace("_", " "),
+                                "Sound": item.sound,
+                                "Occurrences": item.occurrence_count,
+                                "Lines": item.line_count,
+                                "Category share": item.share_of_category_occurrences,
+                            }
+                            for item in phonology.sound_families
+                        ]
+                    ).style.format(
+                        {"Category share": lambda value: _percentage(value)}
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+            if phonology.module_result.warnings:
+                with st.expander(
+                    "Rhyme and sound warnings "
+                    f"({len(phonology.module_result.warnings)})"
+                ):
+                    for warning in phonology.module_result.warnings:
+                        if warning.severity.value == "information":
+                            st.info(warning.message)
+                        else:
+                            st.warning(warning.message)
+
+            with st.expander("Rhyme and sound calculation provenance"):
+                provenance = phonology.module_result.provenance
+                st.write(
+                    f"**Module:** {phonology.module_result.module_name} "
+                    f"{phonology.module_result.module_version}  \n"
+                    f"**Configuration:** `{provenance.configuration_id}`  \n"
+                    f"**Pronunciation configuration:** "
+                    f"`{phonology.pronunciation_configuration_id}`  \n"
+                    f"**Lookup policy:** {provenance.lookup_policy}  \n"
+                    f"**Inclusion policy:** {provenance.inclusion_policy}"
                 )
 
     with vad_tab:
@@ -3605,7 +3862,7 @@ if workspace_page == "One Poem":
                 "No affective lexicon was selected. Optional-module matching is "
                 "available in the Concreteness, Frequency & Rarity, or Age of "
                 "Acquisition tabs, or in the Pronunciation & Prosody and "
-                "Meter & Rhythm audits and downloads."
+                "Meter & Rhythm or Rhyme & Sound audits and downloads."
             )
 
     with download_tab:
@@ -3656,8 +3913,10 @@ if workspace_page == "One Poem":
             "When Pronunciation & Prosody is selected, it includes summary, "
             "line, observed-type, candidate/token-audit, and JSON files. When "
             "Meter & Rhythm is selected, it also includes the 40 fixed "
-            "candidates, stanza-aware common-meter scheme, line and alignment "
-            "audits, summary, and JSON files."
+            "candidates, line and alignment audits, summary, and JSON files. "
+            "When Rhyme & Sound is selected, it includes whole-poem and stanza "
+            "schemes, line and ending-pair evidence, internal rhyme, recurring "
+            "sound families, coverage, summary, and JSON files."
         )
 
     with help_tab:
@@ -3669,12 +3928,13 @@ if workspace_page == "One Poem":
             3. **Frequency:** Read median SUBTLEX-US Zipf with its named corpus and matched coverage.
             4. **Age of Acquisition:** Read source means in years, response evidence, configured bands, and the non-diagnostic warning.
             5. **Pronunciation & Prosody:** Read exact observed-form coverage, unresolved alternatives, complete-line syllables, and lexical stress; do not treat this as meter or performed scansion.
-            6. **Meter & Rhythm:** Read the nearest fixed template or stanza-aware scheme with fit, coverage, alternatives, and deviations; treat it as candidate evidence, not definitive scansion.
-            6. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
-            7. **Emotion associations:** Read category rates as overlapping lexical associations.
-            8. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
-            9. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
-            10. **Manifest:** Use this only when you need provenance or reproducibility details.
+            6. **Meter & Rhythm:** Read the nearest fixed template with fit, coverage, alternatives, and deviations; treat it as candidate evidence, not definitive scansion.
+            7. **Rhyme & Sound:** Read the exact-rhyme scheme with ending coverage, then inspect separately labeled slant, eye, internal-rhyme, refrain, and recurring-sound evidence.
+            8. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
+            9. **Emotion associations:** Read category rates as overlapping lexical associations.
+            10. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
+            11. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
+            12. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
         st.info(

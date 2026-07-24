@@ -214,21 +214,45 @@ made a public release.
   amphibrachic patterns with monometer through octameter, plus explicit local
   spondaic/pyrrhic substitutions, inversions, feminine/catalectic endings, and
   extra/omitted syllables.
-- Stanza-aware common-meter comparison as alternating iambic
-  tetrameter/trimeter `4-3-4-3`, with the cycle restarted at each stanza and
-  complete-quatrain coverage retained separately from fixed line templates.
 - Optional Meter & Rhythm one-poem workflow, automatic Stage 5 dependency,
   advanced method controls, dedicated reading tab, scholar-summary rows, CSV
   reading guidance, five audit CSV files, and complete JSON result.
 - Hand-calculated Stage 6 validation plus regular-pattern, deviation,
-  alternative-path, missingness, common-meter, application, UI, export, and
-  regression tests.
+  alternative-path, missingness, application, UI, export, and regression tests.
 - Stage 6 completion validation: 204 automated tests, every synthetic
   demonstration, all 11 diagnostics, read-only source checks, the pinned
   CMUdict contract, the 86-package offline lock check, and visual inspection
   of all 68 pages across both rebuilt Word guides.
+- Framework-independent Stage 7 rhyme and phonological-pattern engine consuming
+  retained Stage 5 evidence without predicting or silently selecting a
+  pronunciation.
+- Robust whole-poem and stanza exact-rhyme schemes; perfect, identical,
+  masculine, feminine, multisyllabic, graded slant, eye, and internal-rhyme
+  evidence; exact refrain grouping; and explicit unresolved ending coverage.
+- Configurable graded-slant components for stressed vowel, final consonants,
+  rhyme-part edit, stress alignment, and syllable similarity, retaining
+  conservative and maximum scores across pronunciation alternatives.
+- Phonemic alliteration, assonance, consonance, per-line densities, dominant
+  sound families, exact line/pair evidence, warnings, provenance, and capped
+  pair comparisons.
+- Optional Rhyme & Sound one-poem workflow with automatic Stage 5 dependency,
+  advanced settings, readable scholar summary, seven UTF-8 CSV/JSON audit
+  files, and beginner guidance.
+- Hand-calculated Stage 7 validation plus engine, application, UI, export,
+  ambiguity, missingness, determinism, and regression tests.
+- Stage 7 completion validation: 215 automated tests, every synthetic
+  demonstration, all 11 diagnostics, read-only lexicon/source checks, the
+  pinned CMUdict contract, the 86-package offline lock check, and rebuilt Word
+  guides passing structural/accessibility tests plus local Word opening and
+  pagination. Page-image inspection remains unavailable because LibreOffice is
+  absent and the local Word PDF exporter stalls.
 
 ### Changed
+
+- Removed the short-lived common-meter classifier and `meter_schemes.csv` at
+  the user's direction while preserving all 40 fixed meter candidates,
+  line-level stress alignment, deviations, coverage, and exports.
+- Project development version advanced to `0.13.0.dev0`.
 
 - The lexicon inspector now distinguishes duplicate source keys from
   case-insensitive lookup collisions.

@@ -26,7 +26,7 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion Stage 6 is also complete. Stage 0 added
+The Poetic Fingerprint expansion Stage 7 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
@@ -57,13 +57,18 @@ alternative, leaves materially different alternatives and absent forms
 missing, supports documented poem-specific ARPAbet overrides, withholds totals
 for incomplete lines, and adds line/type/token audit exports. Stage 6 adds
 transparent candidate-meter alignment against five recurring stress patterns
-at monometer through octameter, explicit deviations and retained pronunciation
-paths, and stanza-aware common meter as alternating iambic `4-3-4-3`. Fit and
-rule-based confidence are not probabilities or definitive scansion. Rhyme
-remains Stage 7. Concreteness, Frequency, Age of Acquisition, Pronunciation &
-Prosody, and Meter & Rhythm remain temporary One Poem modules and are not yet
-persisted or aggregated in Projects & Corpus. A formal centroid/region-based
-emotional-profile classifier remains explicitly deferred.
+at monometer through octameter, explicit deviations, and retained pronunciation
+paths. Fit and rule-based confidence are not probabilities or definitive
+scansion; the short-lived common-meter comparison was removed at the user's
+direction. Stage 7 adds robust exact end-rhyme schemes, perfect/identical and
+masculine/feminine/multisyllabic evidence, graded slant and eye-rhyme
+comparisons, internal rhyme, exact refrains, phonemic alliteration, assonance,
+consonance, coverage, and line/pair audit evidence. These are local
+dictionary-, spelling-, and text-based observations, not definitive performed
+rhyme or dialect. Concreteness, Frequency, Age of Acquisition, Pronunciation &
+Prosody, Meter & Rhythm, and Rhyme & Sound remain temporary One Poem modules
+and are not yet persisted or aggregated in Projects & Corpus. A formal
+centroid/region-based emotional-profile classifier remains explicitly deferred.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
@@ -97,6 +102,8 @@ See:
 - [Poetic Fingerprint Stage 5 validation](docs/poetic-fingerprint-stage5-validation.md)
 - [Poetic Fingerprint Stage 6 candidate meter](docs/poetic-fingerprint-stage6.md)
 - [Poetic Fingerprint Stage 6 validation](docs/poetic-fingerprint-stage6-validation.md)
+- [Poetic Fingerprint Stage 7 rhyme and phonological patterns](docs/poetic-fingerprint-stage7.md)
+- [Poetic Fingerprint Stage 7 validation](docs/poetic-fingerprint-stage7-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

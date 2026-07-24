@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation and candidate-meter evidence. Concreteness, SUBTLEX-US frequency, retrospective Age of Acquisition, pronunciation/lexical stress, and meter fit are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, or rhyme.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, candidate-meter, rhyme, and recurring-sound evidence. Concreteness, SUBTLEX-US frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, and rhyme/sound evidence are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
 
 [[PAGEBREAK]]
 
@@ -15,7 +15,7 @@
 1. The one-minute mental model
 2. A safe reading order
 3. Valence, arousal, and dominance
-4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, dictionary pronunciation, and candidate meter
+4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, dictionary pronunciation, candidate meter, rhyme, and recurring sounds
 5. Tokens, types, phrases, lemmas, and matches
 6. Part-of-speech profiles
 7. Coverage and unmatched vocabulary
@@ -55,7 +55,7 @@ For every analysis, read the results in this order:
 1. **Confirm the text and lexicons.** Make sure you analyzed the intended version and sources.
 2. **Read coverage.** Determine how much eligible vocabulary was represented.
 3. **Read warnings.** Note sparse evidence, lemma reliance, review exclusions, or other methodological cautions.
-4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, dictionary pronunciation/lexical stress, and candidate-meter fit are different kinds of evidence.
+4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, dictionary pronunciation/lexical stress, candidate-meter fit, and rhyme/recurring-sound evidence are different kinds of evidence.
 5. **Choose one analysis view.** Compare all matched observations with stopwords excluded; do not merge them.
 6. **Choose one weighting.** Token weighting answers a repetition-sensitive question; type weighting answers a vocabulary-sensitive question.
 7. **Inspect dispersion and contributors.** A mean alone can conceal mixed ratings or one repeated influential word.
@@ -294,7 +294,7 @@ Avoid: “The poem is iambic,” “this is the poet's pronunciation,” or “t
 performance stresses these syllables.” Stage 5 supplies North American
 dictionary evidence, not meter, rhyme, or definitive performed scansion.
 
-## Candidate Meter, Fit, and Common Meter
+## Candidate Meter and Fit
 
 The optional one-poem Stage 6 module consumes retained Stage 5 stress evidence
 without rewriting the pronunciation result. It compares five base patterns:
@@ -302,21 +302,12 @@ iambic `01`, trochaic `10`, anapestic `001`, dactylic `100`, and
 amphibrachic `010`. Each is checked at one through eight feet (monometer
 through octameter), producing 40 fixed line candidates.
 
-A **candidate meter** is the nearest configured stress template or
-stanza-aware scheme. It is not a definitive classification, correct scansion,
-or performed rhythm.
+A **candidate meter** is the nearest configured fixed stress template. It is
+not a definitive classification, correct scansion, or performed rhythm.
 
 Spondees `11` and pyrrhics `00` are local substitutions, not ordinary
 whole-line base candidates. The audit can also report initial inversion,
 feminine ending, catalexis, and extra or omitted syllables.
-
-**Common meter** is evaluated separately as alternating iambic
-tetrameter/trimeter:
-
-`common_meter_cycle = 4-3-4-3`
-
-The cycle restarts at each stanza. At least one complete four-line stanza is
-required before common meter can become the poem-level nearest scheme.
 
 For one line and template:
 
@@ -337,12 +328,43 @@ dictionary stress alternatives can be explored as candidate paths, but the
 metrically preferred path is not promoted to a dictionary or performance
 fact.
 
-Safe wording: “The nearest configured candidate was common meter (alternating
-iambic tetrameter/trimeter), with mean fit 0.91 across 8 analyzable lines and
-complete-stanza coverage 2/2.”
+Safe wording: “The nearest configured candidate was iambic pentameter, with
+mean fit 0.91 across 8 analyzable lines.”
 
-Avoid: “VerseVAD proved the poem is in common meter,” “fit 0.91 means a 91%
-probability,” or “this is the poet's intended scansion.”
+Avoid: “VerseVAD proved the poem is in iambic pentameter,” “fit 0.91 means a
+91% probability,” or “this is the poet's intended scansion.”
+
+## Rhyme and Recurring Phonological Patterns
+
+The optional one-poem Stage 7 module consumes retained Stage 5 phones and
+stress without rewriting the pronunciation result. CMUdict supplies the
+dictionary evidence; VerseVAD derives the classifications.
+
+Exact whole-poem and stanza schemes use robust perfect or identical rhyme
+parts. Letters identify exact groups, `x` identifies an analyzable ungrouped
+ending, and `?` identifies an unresolved ending. Slant and eye rhyme remain
+separate.
+
+`ending_coverage = analyzable eligible line endings / eligible line endings`
+
+`rhyme_density = analyzable line endings in an exact within-stanza pair / analyzable line endings`
+
+`slant_similarity = 0.35(stressed_vowel) + 0.25(final_consonants) + 0.25(rhyme_part_edit) + 0.10(stress_alignment) + 0.05(syllable_similarity)`
+
+The default slant threshold is `0.68`. The conservative minimum across retained
+pronunciation combinations controls the label; the maximum is also reported.
+This is a configurable heuristic, not a probability.
+
+Stage 7 also reports perfect, identical, masculine, feminine, multisyllabic,
+eye, and internal-rhyme evidence; exact repeated-line refrains; phonemic
+alliteration from repeated initial consonants; assonance from repeated stressed
+vowels; and consonance from repeated consonants.
+
+Safe wording: “The dictionary-based ending evidence produced an ABAB exact-
+rhyme scheme among four analyzable endings.”
+
+Avoid: “VerseVAD proved these words rhyme in every dialect,” “the slant score
+is a probability,” or “this sound pattern proves the poet's intention.”
 
 # 5. Tokens, Types, Phrases, Lemmas, and Matches
 
@@ -931,29 +953,28 @@ the second line resolves as 3 syllables and `01 | 1`. The override is not a
 probability or a change to CMUdict; it is an explicit, reversible analysis
 decision with a rationale.
 
-## Example J: Common Meter as an Alternating Scheme
+## Example J: Exact, Slant, and Eye-Rhyme Evidence
 
-Suppose an invented four-line stanza has exact binary stress sequences:
+Suppose an invented four-line stanza ends:
 
 ```text
-01010101
-010101
-01010101
-010101
+cat
+night
+hat
+bright
 ```
 
-The first and third lines are exact iambic tetrameter; the second and fourth
-are exact iambic trimeter. Each phase-specific line alignment has cost `0` and
-fit `1.0`.
+The retained dictionary rhyme parts for `cat/hat` agree, as do those for
+`night/bright`, so the exact scheme is `ABAB`. Both pairs are masculine
+perfect-rhyme evidence. If a later pair such as `sit/seat` reaches the
+configured slant threshold, it is labeled as graded slant evidence but does not
+create an exact scheme group. If `love/move` shares spelling evidence but not
+an exact pronunciation rhyme part, it is labeled as eye rhyme separately.
 
-If VerseVAD forced one foot count over the whole stanza, neither iambic
-tetrameter nor trimeter would describe every line. The stanza-aware common
-meter candidate instead follows `4-3-4-3`, matches all four lines, has mean
-fit `1.0`, and has complete-stanza coverage `1/1`.
-
-Interpretation: common meter is the nearest configured alternating scheme for
-this invented stress evidence. The result does not establish performed rhythm,
-dialect, or authorial intention.
+Interpretation: the local dictionary and spelling evidence supports an ABAB
+exact-rhyme scheme plus separately labeled graded or orthographic
+relationships. The result does not establish every dialect, performed reading,
+perceptual effect, or authorial intention.
 
 # 18. How to Report a Result
 
@@ -969,7 +990,9 @@ Include these elements for every numeric claim:
 - Frequency or AoA scope when relevant: all lexical tokens or contextual content words only;
 - pronunciation override configuration and complete-line denominator when relevant;
 - meter configuration, nearest-candidate kind, analyzable-line denominator,
-  fit threshold, and complete-stanza denominator when relevant;
+  and fit threshold when relevant;
+- rhyme/sound configuration, analyzable-ending denominator, scheme notation,
+  and slant threshold when relevant;
 - matched observations or relevant denominator;
 - coverage;
 - scenario name and exact scenario version if reviewed;
@@ -993,8 +1016,7 @@ Include these elements for every numeric claim:
 | AoA orientation band | Configurable early/middle/later VerseVAD display aid, not a source-validated category |
 | Arousal | Normative activation or energy associated with a lexical item |
 | Association | Binary source label linking an entry to an emotion or sentiment |
-| Candidate meter | Nearest configured stress template or stanza-aware scheme; not definitive meter or performed rhythm |
-| Common meter | Alternating iambic tetrameter/trimeter scheme with stanza cycle 4-3-4-3 |
+| Candidate meter | Nearest configured fixed stress template; not definitive meter or performed rhythm |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Concreteness rating | Source-supplied 1-5 normative rating from abstract/language-based toward concrete/experience-based |
 | Complete pronunciation line | Physical line whose every eligible lexical token has resolved syllable and lexical-stress evidence |
@@ -1006,6 +1028,9 @@ Include these elements for every numeric claim:
 | Eligible token | Lexical token allowed into the denominator under the declared recipe |
 | Exclude decision | Scenario decision that retains evidence but omits it from aggregation |
 | Flag decision | Scenario note that does not alter a score |
+| Graded slant evidence | Configured similarity across stressed vowel, final consonants, rhyme-part edit, stress alignment, and syllable count; not a probability |
+| Identical rhyme | Complete retained phonological endings agree, including repeated words or homophonic complete endings |
+| Internal rhyme | Exact dictionary rhyme parts recur between eligible words within one physical line |
 | Lemma | Model-proposed base form conditioned on part of speech |
 | Lexical stress digit | CMUdict `0` unstressed, `1` primary, or `2` secondary lexical stress; not a metrical beat |
 | Map decision | Scenario decision linking a form to a verified exact source entry |
@@ -1018,11 +1043,13 @@ Include these elements for every numeric claim:
 | Numeric-response proportion | For the AoA source, numeric responses divided by total responses; preserved separately from the source's `Dunno` label |
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens |
 | Phrase match | Multi-token span linked to one source entry |
+| Perfect rhyme | Robust line-ending rhyme parts agree while complete retained endings are not identical |
 | Population standard deviation | Spread of the complete selected value set around its mean |
 | Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
 | Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
 | Prosodic consensus | Multiple dictionary candidates whose phone strings differ but syllable count and full stress sequence agree |
 | Review scenario | Named, versioned set of scholar-authored decision revisions |
+| Rhyme scheme | Letter sequence formed only from robust perfect/identical groups; `x` is analyzable and ungrouped, `?` unresolved |
 | Rule-based meter confidence | Configured category from evidence count, coverage, fit, margin, and matching lines; not a calibrated probability |
 | Scholar pronunciation override | Poem-specific validated ARPAbet phones with a required note, kept distinct from dictionary candidates |
 | Sentiment | Broad positive or negative source association, reported separately from eight emotions |

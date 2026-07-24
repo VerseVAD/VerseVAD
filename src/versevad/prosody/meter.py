@@ -185,26 +185,6 @@ class MeterTemplate:
     label: str
 
 
-@dataclass(frozen=True)
-class MeterSchemeTemplate:
-    scheme_id: str
-    label: str
-    pattern: FootPattern
-    foot_count_cycle: tuple[int, ...]
-    structural_unit: str
-
-
-METER_SCHEMES: tuple[MeterSchemeTemplate, ...] = (
-    MeterSchemeTemplate(
-        scheme_id="common_meter",
-        label="Common meter (alternating iambic tetrameter/trimeter)",
-        pattern=FootPattern.IAMBIC,
-        foot_count_cycle=(4, 3, 4, 3),
-        structural_unit="four-line stanza",
-    ),
-)
-
-
 def candidate_templates(
     configuration: MeterConfiguration,
 ) -> tuple[MeterTemplate, ...]:
@@ -392,30 +372,8 @@ class MeterCandidateSummary:
     matching_line_proportion: float | None
 
 
-@dataclass(frozen=True)
-class MeterSchemeSummary:
-    rank: int
-    scheme_id: str
-    label: str
-    pattern: FootPattern
-    foot_count_cycle: tuple[int, ...]
-    structural_unit: str
-    eligible_line_count: int
-    analyzed_line_count: int
-    line_coverage: float | None
-    mean_fit: float | None
-    median_fit: float | None
-    fit_variability: float | None
-    matching_line_count: int
-    matching_line_proportion: float | None
-    eligible_stanza_count: int
-    complete_stanza_count: int
-    complete_stanza_coverage: float | None
-
-
 class MeterAssessment(StrEnum):
     RECURRING_CANDIDATE = "recurring_candidate"
-    RECURRING_SCHEME = "recurring_scheme"
     MIXED_LINE_LENGTHS = "mixed_line_lengths"
     MIXED_OR_IRREGULAR = "mixed_or_irregular"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
@@ -433,10 +391,6 @@ class MeterSummary:
     closest_foot_count: int | None
     closest_foot_count_name: str
     alternative_candidate_label: str
-    closest_scheme_id: str
-    common_meter_mean_fit: float | None
-    common_meter_matching_line_proportion: float | None
-    common_meter_complete_stanza_coverage: float | None
     dominant_pattern: FootPattern | None
     dominant_pattern_mean_fit: float | None
     dominant_foot_count: int | None
@@ -472,7 +426,6 @@ class MeterAnalysisResult:
     pronunciation_configuration_id: str
     line_results: tuple[MeterLineResult, ...]
     candidate_summaries: tuple[MeterCandidateSummary, ...]
-    scheme_summaries: tuple[MeterSchemeSummary, ...]
     summary: MeterSummary
 
     def __post_init__(self) -> None:
@@ -1090,117 +1043,6 @@ def _fit_for(
     )
 
 
-def _scheme_line_fits(
-    line_results: tuple[MeterLineResult, ...],
-    scheme: MeterSchemeTemplate,
-) -> tuple[CandidateMeterFit, ...]:
-    fits: list[CandidateMeterFit] = []
-    stanza_numbers = sorted(
-        {
-            item.stanza_number
-            for item in line_results
-            if item.status is not MeterLineStatus.NO_LEXICAL_TOKENS
-        }
-    )
-    for stanza_number in stanza_numbers:
-        stanza_lines = sorted(
-            (
-                item
-                for item in line_results
-                if item.stanza_number == stanza_number
-                and item.status is not MeterLineStatus.NO_LEXICAL_TOKENS
-            ),
-            key=lambda item: item.line_number,
-        )
-        for position, line in enumerate(stanza_lines):
-            if line.status is not MeterLineStatus.ANALYZED:
-                continue
-            foot_count = scheme.foot_count_cycle[
-                position % len(scheme.foot_count_cycle)
-            ]
-            fits.append(_fit_for(line, scheme.pattern, foot_count))
-    return tuple(fits)
-
-
-def _scheme_summaries(
-    line_results: tuple[MeterLineResult, ...],
-    configuration: MeterConfiguration,
-) -> tuple[MeterSchemeSummary, ...]:
-    summaries: list[MeterSchemeSummary] = []
-    for scheme in METER_SCHEMES:
-        eligible_lines = tuple(
-            item
-            for item in line_results
-            if item.status is not MeterLineStatus.NO_LEXICAL_TOKENS
-        )
-        fits = _scheme_line_fits(line_results, scheme)
-        values = [item.fit_score for item in fits]
-        matching = sum(
-            value >= configuration.line_match_threshold for value in values
-        )
-        stanza_numbers = sorted(
-            {item.stanza_number for item in eligible_lines}
-        )
-        complete_stanzas = 0
-        for stanza_number in stanza_numbers:
-            stanza_lines = [
-                item
-                for item in eligible_lines
-                if item.stanza_number == stanza_number
-            ]
-            if (
-                len(stanza_lines) == len(scheme.foot_count_cycle)
-                and all(
-                    item.status is MeterLineStatus.ANALYZED
-                    for item in stanza_lines
-                )
-            ):
-                complete_stanzas += 1
-        summaries.append(
-            MeterSchemeSummary(
-                rank=0,
-                scheme_id=scheme.scheme_id,
-                label=scheme.label,
-                pattern=scheme.pattern,
-                foot_count_cycle=scheme.foot_count_cycle,
-                structural_unit=scheme.structural_unit,
-                eligible_line_count=len(eligible_lines),
-                analyzed_line_count=len(values),
-                line_coverage=(
-                    len(values) / len(eligible_lines) if eligible_lines else None
-                ),
-                mean_fit=fmean(values) if values else None,
-                median_fit=median(values) if values else None,
-                fit_variability=(
-                    pstdev(values) if len(values) > 1 else None
-                ),
-                matching_line_count=matching,
-                matching_line_proportion=(
-                    matching / len(values) if values else None
-                ),
-                eligible_stanza_count=len(stanza_numbers),
-                complete_stanza_count=complete_stanzas,
-                complete_stanza_coverage=(
-                    complete_stanzas / len(stanza_numbers)
-                    if stanza_numbers
-                    else None
-                ),
-            )
-        )
-    ranked = sorted(
-        summaries,
-        key=lambda item: (
-            -(item.mean_fit or 0),
-            -(item.matching_line_proportion or 0),
-            item.scheme_id,
-        ),
-    )
-    return tuple(
-        MeterSchemeSummary(**{**asdict(item), "rank": rank})
-        for rank, item in enumerate(ranked, start=1)
-    )
-
-
 def _dominant_pattern(
     analyzed_lines: tuple[MeterLineResult, ...],
     configuration: MeterConfiguration,
@@ -1340,7 +1182,6 @@ def _confidence(
 def _summary(
     line_results: tuple[MeterLineResult, ...],
     candidate_summaries: tuple[MeterCandidateSummary, ...],
-    scheme_summaries: tuple[MeterSchemeSummary, ...],
     configuration: MeterConfiguration,
 ) -> MeterSummary:
     eligible_lines = tuple(
@@ -1352,92 +1193,34 @@ def _summary(
         item for item in line_results if item.status is MeterLineStatus.ANALYZED
     )
     coverage = len(analyzed) / len(eligible_lines) if eligible_lines else None
-    fixed_closest = candidate_summaries[0] if candidate_summaries else None
-    fixed_alternative = (
+    selected = candidate_summaries[0] if candidate_summaries else None
+    alternative = (
         candidate_summaries[1] if len(candidate_summaries) > 1 else None
     )
-    scheme_closest = next(
-        (
-            item
-            for item in scheme_summaries
-            if item.complete_stanza_count
-        ),
-        None,
+    selected_label = selected.label if selected else ""
+    selected_pattern = selected.pattern if selected else None
+    selected_foot_count = selected.foot_count if selected else None
+    selected_foot_name = selected.foot_count_name if selected else ""
+    selected_mean_fit = selected.mean_fit if selected else None
+    selected_median_fit = selected.median_fit if selected else None
+    selected_matching_count = selected.matching_line_count if selected else 0
+    selected_matching_proportion = (
+        selected.matching_line_proportion if selected else None
     )
-    scheme_selected = (
-        scheme_closest is not None
-        and fixed_closest is not None
-        and (scheme_closest.mean_fit or 0) > (fixed_closest.mean_fit or 0)
+    selected_fits = (
+        tuple(
+            _fit_for(
+                line,
+                selected.pattern,
+                selected.foot_count,
+            )
+            for line in analyzed
+        )
+        if selected is not None
+        else ()
     )
-    if scheme_selected:
-        assert scheme_closest is not None
-        selected_label = scheme_closest.label
-        selected_kind = "alternating meter scheme"
-        selected_pattern = scheme_closest.pattern
-        selected_foot_count = None
-        selected_foot_name = "alternating tetrameter/trimeter"
-        selected_scheme_id = scheme_closest.scheme_id
-        selected_mean_fit = scheme_closest.mean_fit
-        selected_median_fit = scheme_closest.median_fit
-        selected_matching_count = scheme_closest.matching_line_count
-        selected_matching_proportion = scheme_closest.matching_line_proportion
-        selected_fits = _scheme_line_fits(
-            line_results,
-            next(
-                item
-                for item in METER_SCHEMES
-                if item.scheme_id == scheme_closest.scheme_id
-            ),
-        )
-        comparison_score = fixed_closest.mean_fit or 0
-        alternative_label = fixed_closest.label
-    else:
-        selected_label = fixed_closest.label if fixed_closest else ""
-        selected_kind = "fixed pattern and foot count"
-        selected_pattern = fixed_closest.pattern if fixed_closest else None
-        selected_foot_count = (
-            fixed_closest.foot_count if fixed_closest else None
-        )
-        selected_foot_name = (
-            fixed_closest.foot_count_name if fixed_closest else ""
-        )
-        selected_scheme_id = ""
-        selected_mean_fit = fixed_closest.mean_fit if fixed_closest else None
-        selected_median_fit = (
-            fixed_closest.median_fit if fixed_closest else None
-        )
-        selected_matching_count = (
-            fixed_closest.matching_line_count if fixed_closest else 0
-        )
-        selected_matching_proportion = (
-            fixed_closest.matching_line_proportion if fixed_closest else None
-        )
-        selected_fits = (
-            tuple(
-                _fit_for(
-                    line,
-                    fixed_closest.pattern,
-                    fixed_closest.foot_count,
-                )
-                for line in analyzed
-            )
-            if fixed_closest is not None
-            else ()
-        )
-        alternatives: list[tuple[float, str]] = []
-        if fixed_alternative is not None:
-            alternatives.append(
-                (fixed_alternative.mean_fit or 0, fixed_alternative.label)
-            )
-        if scheme_closest is not None:
-            alternatives.append(
-                (scheme_closest.mean_fit or 0, scheme_closest.label)
-            )
-        comparison_score, alternative_label = (
-            max(alternatives, key=lambda item: (item[0], item[1]))
-            if alternatives
-            else (0, "")
-        )
+    comparison_score = alternative.mean_fit or 0 if alternative else 0
+    alternative_label = alternative.label if alternative else ""
     margin = (
         (selected_mean_fit or 0) - comparison_score
         if selected_mean_fit is not None and alternative_label
@@ -1460,8 +1243,6 @@ def _summary(
         or margin < configuration.ambiguity_margin_threshold
     ):
         assessment = MeterAssessment.MIXED_OR_IRREGULAR
-    elif scheme_selected:
-        assessment = MeterAssessment.RECURRING_SCHEME
     elif (
         dominant_feet is None
         or foot_share is None
@@ -1480,39 +1261,17 @@ def _summary(
         configuration=configuration,
     )
     values = [fit.fit_score for fit in selected_fits]
-    common_meter = next(
-        (
-            item
-            for item in scheme_summaries
-            if item.scheme_id == "common_meter"
-        ),
-        None,
-    )
     return MeterSummary(
         eligible_line_count=len(eligible_lines),
         analyzable_line_count=len(analyzed),
         unanalyzable_line_count=len(eligible_lines) - len(analyzed),
         line_coverage=coverage,
-        closest_candidate_kind=selected_kind,
+        closest_candidate_kind="fixed pattern and foot count",
         closest_candidate_label=selected_label,
         closest_pattern=selected_pattern,
         closest_foot_count=selected_foot_count,
         closest_foot_count_name=selected_foot_name,
         alternative_candidate_label=alternative_label,
-        closest_scheme_id=selected_scheme_id,
-        common_meter_mean_fit=(
-            common_meter.mean_fit if common_meter is not None else None
-        ),
-        common_meter_matching_line_proportion=(
-            common_meter.matching_line_proportion
-            if common_meter is not None
-            else None
-        ),
-        common_meter_complete_stanza_coverage=(
-            common_meter.complete_stanza_coverage
-            if common_meter is not None
-            else None
-        ),
         dominant_pattern=dominant_pattern,
         dominant_pattern_mean_fit=family_fit,
         dominant_foot_count=dominant_feet,
@@ -1566,24 +1325,20 @@ def summarize_meter_lines(
 ) -> tuple[
     MeterSummary,
     tuple[MeterCandidateSummary, ...],
-    tuple[MeterSchemeSummary, ...],
 ]:
-    """Summarize fixed candidates and stanza-aware schemes from line audits."""
+    """Summarize fixed pattern-and-foot-count candidates from line audits."""
 
     analyzed = tuple(
         item for item in line_results if item.status is MeterLineStatus.ANALYZED
     )
     candidate_summaries = _candidate_summaries(analyzed, configuration)
-    scheme_summaries = _scheme_summaries(line_results, configuration)
     return (
         _summary(
             line_results,
             candidate_summaries,
-            scheme_summaries,
             configuration,
         ),
         candidate_summaries,
-        scheme_summaries,
     )
 
 
@@ -1663,18 +1418,6 @@ def _warnings(
                 ),
             )
         )
-    elif summary.assessment is MeterAssessment.RECURRING_SCHEME:
-        warnings.append(
-            ModuleWarning(
-                code="recurring_meter_scheme",
-                message=(
-                    "A stanza-aware alternating scheme fit better than every "
-                    "single fixed line template. Treat it as the nearest "
-                    "configured scheme, not a definitive classification."
-                ),
-                severity=WarningSeverity.INFORMATION,
-            )
-        )
     elif summary.assessment is MeterAssessment.MIXED_LINE_LENGTHS:
         warnings.append(
             ModuleWarning(
@@ -1743,7 +1486,7 @@ def _metrics(
             metric_id="meter.closest_candidate",
             value=summary.closest_candidate_label or None,
             layer=ResultLayer.INTERPRETATION,
-            unit="candidate line template or stanza-aware scheme label",
+            unit="candidate pattern and foot-count label",
             denominator=f"{summary.analyzable_line_count} analyzable lines",
             note="Nearest configured candidate; not a definitive classification.",
         ),
@@ -1786,26 +1529,6 @@ def _metrics(
             unit="rule-based category",
             denominator=f"{summary.analyzable_line_count} analyzable lines",
             note="Not a calibrated probability.",
-        ),
-        ModuleMetric(
-            metric_id="meter.common_meter_mean_fit",
-            value=summary.common_meter_mean_fit,
-            layer=ResultLayer.COMPUTED_SUMMARY,
-            unit="normalized stanza-aware alignment similarity 0-1",
-            weighting="equal eligible physical lines, phased within each stanza",
-            denominator=f"{summary.analyzable_line_count} analyzable lines",
-            note=(
-                "Compares each stanza against iambic tetrameter/trimeter/"
-                "tetrameter/trimeter."
-            ),
-        ),
-        ModuleMetric(
-            metric_id="meter.common_meter_complete_stanza_coverage",
-            value=summary.common_meter_complete_stanza_coverage,
-            layer=ResultLayer.COMPUTED_SUMMARY,
-            unit="proportion",
-            weighting="equal stanzas",
-            note="Share of eligible stanzas that contain four analyzable lines.",
         ),
     ]
     for line in line_results:
@@ -1872,7 +1595,7 @@ class MeterModule:
         )
         estimator = MeterEstimator(configuration)
         line_results = tuple(estimator.evaluate_line(item) for item in line_inputs)
-        summary, candidate_summaries, scheme_summaries = summarize_meter_lines(
+        summary, candidate_summaries = summarize_meter_lines(
             line_results,
             configuration,
         )
@@ -1912,8 +1635,7 @@ class MeterModule:
                 "Physical lines require stress evidence for every eligible "
                 "lexical token. Five recurring patterns are compared at one "
                 "through eight feet; spondees and pyrrhics are local "
-                "substitution labels. Common meter is compared as a stanza-aware "
-                "iambic tetrameter/trimeter/tetrameter/trimeter scheme."
+                "substitution labels."
             ),
             resources=pronunciation.module_result.provenance.resources,
         )
@@ -1955,6 +1677,5 @@ class MeterModule:
             ),
             line_results=line_results,
             candidate_summaries=candidate_summaries,
-            scheme_summaries=scheme_summaries,
             summary=summary,
         )

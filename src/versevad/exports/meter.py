@@ -10,7 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterable
 
-from versevad.prosody.meter import CandidateMeterFit, MeterAnalysisResult
+from versevad.prosody.meter import MeterAnalysisResult
 
 
 def _csv_bytes(
@@ -63,7 +63,7 @@ def export_meter_summary_csv(result: MeterAnalysisResult) -> bytes:
                 summary.closest_candidate_kind,
                 "structural comparison kind",
                 f"{summary.analyzable_line_count} analyzable physical lines",
-                "A fixed line template or a stanza-aware alternating scheme.",
+                "One fixed recurring stress pattern and foot count.",
             ),
             (
                 "nearest_candidate",
@@ -110,36 +110,6 @@ def export_meter_summary_csv(result: MeterAnalysisResult) -> bytes:
                     f"{summary.eligible_line_count} eligible physical lines"
                 ),
                 "Unanalyzable lines receive no fabricated fit.",
-            ),
-            (
-                "common_meter",
-                "mean_fit",
-                summary.common_meter_mean_fit,
-                "normalized stanza-aware alignment similarity 0-1",
-                f"{summary.analyzable_line_count} analyzable physical lines",
-                (
-                    "Stanza-phase comparison against iambic "
-                    "tetrameter/trimeter/tetrameter/trimeter."
-                ),
-            ),
-            (
-                "common_meter",
-                "matching_line_proportion",
-                summary.common_meter_matching_line_proportion,
-                "proportion",
-                f"{summary.analyzable_line_count} analyzable physical lines",
-                "The 4-3-4-3 cycle restarts at each stanza.",
-            ),
-            (
-                "common_meter",
-                "complete_stanza_coverage",
-                summary.common_meter_complete_stanza_coverage,
-                "proportion",
-                "eligible stanzas",
-                (
-                    "Only a complete four-line stanza can support selection of "
-                    "common meter as the nearest poem-level scheme."
-                ),
             ),
             (
                 "deviations",
@@ -194,37 +164,6 @@ def export_meter_candidates_csv(result: MeterAnalysisResult) -> bytes:
     return _csv_bytes(fields, rows)
 
 
-def export_meter_schemes_csv(result: MeterAnalysisResult) -> bytes:
-    fields = [
-        "rank",
-        "scheme_id",
-        "label",
-        "pattern",
-        "foot_count_cycle",
-        "structural_unit",
-        "eligible_line_count",
-        "analyzed_line_count",
-        "line_coverage",
-        "mean_fit",
-        "median_fit",
-        "fit_variability",
-        "matching_line_count",
-        "matching_line_proportion",
-        "eligible_stanza_count",
-        "complete_stanza_count",
-        "complete_stanza_coverage",
-    ]
-    rows = []
-    for item in result.scheme_summaries:
-        row = asdict(item)
-        row["pattern"] = item.pattern.value
-        row["foot_count_cycle"] = "-".join(
-            str(value) for value in item.foot_count_cycle
-        )
-        rows.append(row)
-    return _csv_bytes(fields, rows)
-
-
 def export_meter_lines_csv(result: MeterAnalysisResult) -> bytes:
     fields = [
         "line_id",
@@ -237,10 +176,6 @@ def export_meter_lines_csv(result: MeterAnalysisResult) -> bytes:
         "pronunciation_coverage",
         "missing_forms",
         "pronunciation_variant_count",
-        "common_meter_position",
-        "common_meter_expected_foot_count",
-        "common_meter_expected_foot_count_name",
-        "common_meter_line_fit",
         "closest_candidate",
         "pattern",
         "foot_count",
@@ -264,42 +199,8 @@ def export_meter_lines_csv(result: MeterAnalysisResult) -> bytes:
         "reason",
     ]
     rows = []
-    common_meter_by_line: dict[
-        str,
-        tuple[int, int, CandidateMeterFit | None],
-    ] = {}
-    for stanza_number in sorted(
-        {item.stanza_number for item in result.line_results}
-    ):
-        stanza_lines = sorted(
-            (
-                item
-                for item in result.line_results
-                if item.stanza_number == stanza_number
-                and item.status.value != "no_lexical_tokens"
-            ),
-            key=lambda item: item.line_number,
-        )
-        for position, line in enumerate(stanza_lines):
-            expected_foot_count = (4, 3, 4, 3)[position % 4]
-            expected_fit = next(
-                (
-                    fit
-                    for fit in line.candidate_fits
-                    if fit.pattern.value == "iambic"
-                    and fit.foot_count == expected_foot_count
-                ),
-                None,
-            )
-            common_meter_by_line[line.line_id] = (
-                (position % 4) + 1,
-                expected_foot_count,
-                expected_fit,
-            )
     for line in result.line_results:
         fit = line.closest_candidate
-        scheme_evidence = common_meter_by_line.get(line.line_id)
-        common_fit = scheme_evidence[2] if scheme_evidence else None
         rows.append(
             {
                 "line_id": line.line_id,
@@ -312,24 +213,6 @@ def export_meter_lines_csv(result: MeterAnalysisResult) -> bytes:
                 "pronunciation_coverage": line.pronunciation_coverage,
                 "missing_forms": " | ".join(line.missing_forms),
                 "pronunciation_variant_count": line.pronunciation_variant_count,
-                "common_meter_position": (
-                    scheme_evidence[0] if scheme_evidence else ""
-                ),
-                "common_meter_expected_foot_count": (
-                    scheme_evidence[1] if scheme_evidence else ""
-                ),
-                "common_meter_expected_foot_count_name": (
-                    (
-                        "tetrameter"
-                        if scheme_evidence[1] == 4
-                        else "trimeter"
-                    )
-                    if scheme_evidence
-                    else ""
-                ),
-                "common_meter_line_fit": (
-                    common_fit.fit_score if common_fit else ""
-                ),
                 "closest_candidate": fit.label if fit else "",
                 "pattern": fit.pattern.value if fit else "",
                 "foot_count": fit.foot_count if fit else "",
@@ -419,7 +302,6 @@ def export_meter_bundle(result: MeterAnalysisResult) -> dict[str, bytes]:
     return {
         "meter_summary.csv": export_meter_summary_csv(result),
         "meter_candidates.csv": export_meter_candidates_csv(result),
-        "meter_schemes.csv": export_meter_schemes_csv(result),
         "meter_lines.csv": export_meter_lines_csv(result),
         "meter_alignment_operations.csv": (
             export_meter_alignment_operations_csv(result)

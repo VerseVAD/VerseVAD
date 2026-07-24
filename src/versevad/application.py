@@ -28,6 +28,7 @@ from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.frequency import export_frequency_bundle
 from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
+from versevad.exports.phonology import export_phonological_bundle
 from versevad.exports.poem_document_json import export_poem_document_json
 from versevad.exports.pronunciation import export_pronunciation_bundle
 from versevad.lexical_semantic.concreteness import (
@@ -64,6 +65,12 @@ from versevad.preprocessing import (
     SpacyEnglishPreprocessor,
     TextPreprocessor,
     create_text_document,
+)
+from versevad.phonology import (
+    PhonologicalAnalysisResult,
+    PhonologicalConfiguration,
+    PhonologicalModule,
+    PhonologicalModuleError,
 )
 from versevad.prosody.pronunciation import (
     PronunciationAnalysisResult,
@@ -187,6 +194,10 @@ class AnalysisRequest:
     )
     include_meter: bool = False
     meter_configuration: MeterConfiguration = MeterConfiguration()
+    include_phonology: bool = False
+    phonological_configuration: PhonologicalConfiguration = (
+        PhonologicalConfiguration()
+    )
 
 
 @dataclass(frozen=True)
@@ -201,6 +212,7 @@ class WorkspaceAnalysis:
     aoa: AoAAnalysisResult | None = None
     pronunciation: PronunciationAnalysisResult | None = None
     meter: MeterAnalysisResult | None = None
+    phonology: PhonologicalAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -563,6 +575,7 @@ def run_workspace_analysis(
     aoa_module: AoAModule | None = None,
     pronunciation_module: PronunciationModule | None = None,
     meter_module: MeterModule | None = None,
+    phonological_module: PhonologicalModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -575,6 +588,7 @@ def run_workspace_analysis(
         and not request.include_aoa
         and not request.include_pronunciation
         and not request.include_meter
+        and not request.include_phonology
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -678,7 +692,11 @@ def run_workspace_analysis(
         except AoAModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
     pronunciation = None
-    if request.include_pronunciation or request.include_meter:
+    if (
+        request.include_pronunciation
+        or request.include_meter
+        or request.include_phonology
+    ):
         module = pronunciation_module or PronunciationModule(resource_root)
         try:
             pronunciation = module.analyze_detailed(
@@ -702,6 +720,22 @@ def run_workspace_analysis(
             )
         except MeterModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
+    phonology = None
+    if request.include_phonology:
+        if pronunciation is None:  # pragma: no cover - guarded by dependency
+            raise WorkspaceAnalysisError(
+                "Rhyme and phonological analysis requires the pronunciation "
+                "foundation."
+            )
+        module = phonological_module or PhonologicalModule()
+        try:
+            phonology = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                pronunciation,
+                request.phonological_configuration,
+            )
+        except PhonologicalModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
         request=request,
         document=document,
@@ -713,6 +747,7 @@ def run_workspace_analysis(
         aoa=aoa,
         pronunciation=pronunciation,
         meter=meter,
+        phonology=phonology,
     )
 
 
@@ -1307,6 +1342,12 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
             "Age-of-acquisition results aggregate retrospective normative lexical "
             "ratings in years. They are not grade level, difficulty, intelligence, "
             "familiarity, or diagnostic evidence of cognitive impairment or decline."
+        )
+    if workspace.phonology is not None:
+        notes.append(
+            "Rhyme and recurring-sound results are derived from local dictionary "
+            "pronunciations and spelling. They describe textual evidence, not a "
+            "particular reading, dialect, performance, or definitive rhyme judgment."
         )
     if workspace.request.scenario_version_id:
         notes.append(
@@ -1956,32 +1997,115 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 f"{summary.analyzable_line_count} analyzable physical lines",
                 summary.confidence_explanation,
             ),
-            (
-                "Common-meter scheme fit",
-                summary.common_meter_mean_fit,
-                "normalized stanza-aware alignment similarity 0-1",
-                f"{summary.analyzable_line_count} analyzable physical lines",
-                (
-                    "Compares each stanza against alternating iambic "
-                    "tetrameter/trimeter (4-3-4-3)."
-                ),
-            ),
-            (
-                "Common-meter complete-stanza coverage",
-                summary.common_meter_complete_stanza_coverage,
-                "proportion",
-                "eligible stanzas",
-                (
-                    "Only complete four-line stanzas can support selecting "
-                    "common meter as the nearest scheme."
-                ),
-            ),
         ):
             rows.append(
                 {
                     "section": "Candidate meter and rhythmic regularity",
                     "lexicon": "Stage 5 pronunciation evidence",
                     "analysis_view": meter.configuration.scenario_id,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
+    if workspace.phonology is not None:
+        phonology = workspace.phonology
+        summary = phonology.summary
+        for metric, value, unit, denominator, note in (
+            (
+                "Whole-poem end-rhyme scheme",
+                summary.whole_poem_rhyme_scheme,
+                "exact-rhyme labels; x unrhymed; ? unresolved",
+                f"{summary.eligible_line_count} eligible physical lines",
+                (
+                    "Only robust perfect or identical dictionary rhyme parts "
+                    "create scheme groups; slant and eye evidence remain separate."
+                ),
+            ),
+            (
+                "Analyzable ending coverage",
+                summary.ending_coverage,
+                "proportion",
+                (
+                    f"{summary.analyzable_ending_count} of "
+                    f"{summary.eligible_line_count} eligible line endings"
+                ),
+                "Unresolved endings receive no rhyme label or neutral value.",
+            ),
+            (
+                "End-rhyme density",
+                summary.rhyme_density,
+                "proportion",
+                f"{summary.analyzable_ending_count} analyzable line endings",
+                "Share of analyzable lines participating in a within-stanza exact rhyme pair.",
+            ),
+            (
+                "Perfect rhyme pairs",
+                summary.perfect_rhyme_pair_count,
+                "within-stanza ending pairs",
+                "",
+                "Masculine, feminine, and multisyllabic evidence is retained on pair rows.",
+            ),
+            (
+                "Identical rhyme pairs",
+                summary.identical_rhyme_pair_count,
+                "within-stanza ending pairs",
+                "",
+                "Repeated words and complete homophonic endings remain explicitly labeled.",
+            ),
+            (
+                "Graded slant-rhyme pairs",
+                summary.slant_rhyme_pair_count,
+                "within-stanza ending pairs",
+                "",
+                (
+                    "Configured phoneme-and-stress similarity heuristic; "
+                    "not a probability or performance judgment."
+                ),
+            ),
+            (
+                "Eye-rhyme pairs",
+                summary.eye_rhyme_pair_count,
+                "within-stanza orthographic pairs",
+                "",
+                "Spelling resemblance is reported separately from phonetic rhyme.",
+            ),
+            (
+                "Internal-rhyme pairs",
+                summary.internal_rhyme_pair_count,
+                "within-line token pairs",
+                "",
+                "Uses exact dictionary rhyme parts within each physical line.",
+            ),
+            (
+                "Alliteration density",
+                summary.alliteration_density,
+                "proportion of supported lexical tokens",
+                "phonologically supported lexical tokens",
+                "Repeated initial consonant phonemes within physical lines.",
+            ),
+            (
+                "Assonance density",
+                summary.assonance_density,
+                "proportion of supported lexical tokens",
+                "phonologically supported lexical tokens",
+                "Repeated stressed-vowel phonemes within physical lines.",
+            ),
+            (
+                "Consonance density",
+                summary.consonance_density,
+                "proportion of consonant occurrences",
+                "resolved consonant phoneme occurrences",
+                "Repeated consonant phonemes within physical lines.",
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Rhyme and phonological patterns",
+                    "lexicon": "Pinned official CMU Pronouncing Dictionary",
+                    "analysis_view": phonology.configuration.scenario_id,
                     "metric": metric,
                     "value": value if value is not None else "",
                     "unit_or_scale": unit,
@@ -2159,8 +2283,8 @@ def csv_reading_guide() -> bytes:
         },
         {
             "file": "meter_summary.csv",
-            "what_it_answers": "What fixed line template or stanza-aware scheme is nearest under the configured alignment method?",
-            "start_with": "candidate kind and label, mean fit, matching-line proportion, confidence, coverage, and common-meter fields.",
+            "what_it_answers": "What fixed line template is nearest under the configured alignment method?",
+            "start_with": "candidate label, pattern, foot count, mean fit, matching-line proportion, confidence, and coverage.",
             "important_caution": "Fit and confidence are configured descriptive evidence, not probabilities or definitive scansion.",
         },
         {
@@ -2168,12 +2292,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "How do all 40 fixed pattern-by-foot-count templates compare across analyzable lines?",
             "start_with": "rank, pattern, foot_count_name, mean_fit, variability, and matching_line_proportion.",
             "important_caution": "Spondees and pyrrhics are local substitution labels, not additional whole-line base templates.",
-        },
-        {
-            "file": "meter_schemes.csv",
-            "what_it_answers": "How well do stanza-aware alternating schemes fit?",
-            "start_with": "scheme_id, foot_count_cycle, mean_fit, matching lines, and complete-stanza coverage.",
-            "important_caution": "Common meter is evaluated as iambic 4-3-4-3 with the cycle restarted at each stanza.",
         },
         {
             "file": "meter_lines.csv",
@@ -2189,9 +2307,51 @@ def csv_reading_guide() -> bytes:
         },
         {
             "file": "meter_result.json",
-            "what_it_answers": "Can software reproduce the complete meter comparison, line audit, scheme comparison, and method?",
-            "start_with": "module_result, configuration, line_results, candidate_summaries, scheme_summaries, and summary.",
+            "what_it_answers": "Can software reproduce the complete fixed-template meter comparison, line audit, and method?",
+            "start_with": "module_result, configuration, line_results, candidate_summaries, and summary.",
             "important_caution": "Pronunciation alternatives are explored as candidate paths without rewriting the Stage 5 pronunciation audit.",
+        },
+        {
+            "file": "rhyme_summary.csv",
+            "what_it_answers": "What are the principal end-rhyme, coverage, internal-rhyme, refrain, and recurring-sound results?",
+            "start_with": "whole-poem scheme, rhyme density, ending coverage, pair counts, and sound densities.",
+            "important_caution": "Schemes use robust perfect/identical dictionary rhyme parts; slant and eye evidence remain separate.",
+        },
+        {
+            "file": "rhyme_stanzas.csv",
+            "what_it_answers": "How do rhyme scheme, coverage, and density vary by stanza?",
+            "start_with": "stanza number, eligible and analyzable endings, scheme, pair counts, and rhyme density.",
+            "important_caution": "Unresolved endings are marked ? rather than assigned a rhyme or neutral score.",
+        },
+        {
+            "file": "rhyme_lines.csv",
+            "what_it_answers": "What end-word, pronunciation, rhyme-group, refrain, and recurring-sound evidence applies to each physical line?",
+            "start_with": "status, ending word, candidate phones, rhyme parts, scheme label, sound sequences, and densities.",
+            "important_caution": "Materially different pronunciation alternatives remain ambiguous unless a scholar override resolves them.",
+        },
+        {
+            "file": "rhyme_pairs.csv",
+            "what_it_answers": "Which within-stanza ending pairs show perfect, identical, graded slant, or eye-rhyme evidence?",
+            "start_with": "relationship, rhyme types, similarity components, eye-rhyme flag, confidence label, and note.",
+            "important_caution": "The graded slant score is a configured heuristic, not a probability or definitive performance judgment.",
+        },
+        {
+            "file": "rhyme_internal.csv",
+            "what_it_answers": "Which exact dictionary rhyme parts recur within a physical line?",
+            "start_with": "line, paired words, rhyme part, and relationship.",
+            "important_caution": "These are phonological word-pair observations, not claims about intentional sound patterning.",
+        },
+        {
+            "file": "phonological_sounds.csv",
+            "what_it_answers": "Which initial consonants, stressed vowels, and consonants recur most strongly?",
+            "start_with": "category, phoneme, occurrence count, line count, and within-category share.",
+            "important_caution": "Counts derive from retained dictionary pronunciations rather than a recorded reading.",
+        },
+        {
+            "file": "rhyme_result.json",
+            "what_it_answers": "Can software reproduce the complete Stage 7 configuration, evidence, provenance, coverage, and warnings?",
+            "start_with": "module_result, configuration, summary, stanza_summaries, line_results, pair_results, and sound_families.",
+            "important_caution": "CMUdict support is evidence for possible textual sound patterns, not a dialect-neutral performance transcription.",
         },
         {
             "file": "phase2_coverage.csv",
@@ -2290,6 +2450,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.meter
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.phonology is not None:
+                for filename, content in export_phonological_bundle(
+                    workspace.phonology
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -2323,11 +2488,17 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "coverage, scholar overrides, and resource provenance. They do "
                 "not classify meter, rhyme, or performed scansion.\n"
                 "When present, the meter files compare five recurring stress "
-                "patterns at one through eight feet plus stanza-aware common "
-                "meter (iambic 4-3-4-3), retaining line fits, alternative "
+                "patterns at one through eight feet, retaining line fits, alternative "
                 "pronunciation paths, alignment costs, substitutions, "
                 "inversions, extra or omitted syllables, and coverage. These "
                 "are nearest configured candidates, not definitive scansion.\n"
+                "When present, the rhyme and phonological files report robust "
+                "perfect/identical end-rhyme schemes, masculine/feminine and "
+                "multisyllabic evidence, graded slant and eye-rhyme comparisons, "
+                "internal rhyme, refrains, alliteration, assonance, consonance, "
+                "coverage, line-level evidence, and configuration. They derive "
+                "from dictionary pronunciations and spelling, not a performed "
+                "reading or definitive rhyme judgment.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

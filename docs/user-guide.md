@@ -455,8 +455,11 @@ files plus:
   summary, physical lines, observed types, complete token/candidate audit, and
   structured result.
 - six `meter_*` CSV/JSON files when candidate meter is enabled: readable
-  summary, all 40 fixed candidates, stanza-aware schemes, physical lines,
-  operation-level alignment audit, and structured result.
+  summary, all 40 fixed candidates, physical lines, operation-level alignment
+  audit, and structured result.
+- seven Stage 7 CSV/JSON files when rhyme and phonological patterns are enabled:
+  summary, stanzas, lines, ending pairs, internal rhyme, sound families, and
+  structured result.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. Both JSON files are local machine-readable records.
@@ -519,33 +522,49 @@ is off by default. It automatically runs the local pronunciation foundation,
 so no affective lexicon is required.
 
 The module compares iambic, trochaic, anapestic, dactylic, and amphibrachic
-base patterns at monometer through octameter. It also checks **Common meter
-(alternating iambic tetrameter/trimeter)** as a stanza-aware `4-3-4-3` scheme,
-restarting the cycle at each stanza. Spondees and pyrrhics are local
+base patterns at monometer through octameter. Spondees and pyrrhics are local
 substitution labels, not ordinary whole-line base candidates.
 
 Open **Meter & Rhythm** to read:
 
-1. nearest candidate and whether it is a fixed line template or alternating
-   scheme;
+1. nearest fixed pattern-by-foot-count candidate;
 2. mean fit, matching lines, analyzable-line coverage, nearest alternative,
    candidate margin, and rule-based confidence;
-3. common-meter fit and complete-quatrain coverage;
-4. each physical line's nearest fixed template and phase-specific
-   common-meter fit;
-5. retained stress path, alignments, substitutions, inversions, endings, and
+3. each physical line's nearest fixed template;
+4. retained stress path, alignments, substitutions, inversions, endings, and
    extra/omitted syllables; and
-6. all 40 fixed candidates, warnings, and provenance.
+5. all 40 fixed candidates, warnings, and provenance.
 
 Fit is a configured 0–1 alignment similarity, not a probability. Confidence is
 a rule-based reading aid, not a calibrated probability. A word without usable
 pronunciation evidence makes its line unscored; it does not receive a low,
 zero, or neutral fit.
 
-Use language such as “the nearest configured candidate was common meter under
-the selected alignment configuration.” Do not write “VerseVAD proved the poem
-is in common meter” or treat a metrically preferred dictionary alternative as
-the poet's performed pronunciation.
+Use language such as “the nearest configured candidate was iambic pentameter
+under the selected alignment configuration.” Do not write “VerseVAD proved
+the poem is in iambic pentameter” or treat a metrically preferred dictionary
+alternative as the poet's performed pronunciation.
+
+## Rhyme & Sound
+
+In **One Poem**, select **Rhyme & phonological patterns** and analyze. Stage 5
+runs automatically, so no affective lexicon is required.
+
+Open **Rhyme & Sound** to read the exact whole-poem and stanza schemes beside
+ending coverage. Letters identify robust perfect/identical groups, `x` an
+analyzable ungrouped ending, and `?` an unresolved ending. Then inspect the
+separately labeled perfect, identical, masculine, feminine, multisyllabic,
+graded slant, eye, internal-rhyme, refrain, alliteration, assonance, and
+consonance evidence.
+
+The slant score is a configured phone-and-stress similarity heuristic, not a
+probability. Slant and eye rhyme never silently create exact scheme groups.
+Materially different or absent dictionary endings remain unresolved unless a
+documented Stage 5 scholar override applies.
+
+Use language such as “the dictionary-based ending evidence produced an ABAB
+exact-rhyme scheme among four analyzable endings.” Do not write that VerseVAD
+proved how the poem must be pronounced, performed, heard, or intended.
 
 ## Diagnostics and troubleshooting
 

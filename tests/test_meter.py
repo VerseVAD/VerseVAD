@@ -279,7 +279,7 @@ def test_empty_and_mixed_lines_have_explicit_nonclassification_states() -> None:
             _line("1110001", line_number=4),
         )
     )
-    summary, _, _ = summarize_meter_lines(
+    summary, _ = summarize_meter_lines(
         mixed_lines,
         MeterConfiguration(),
     )
@@ -290,31 +290,3 @@ def test_empty_and_mixed_lines_have_explicit_nonclassification_states() -> None:
         "mixed_line_lengths",
         "mixed_or_irregular",
     }
-
-
-def test_common_meter_is_evaluated_as_iambic_4_3_4_3_scheme() -> None:
-    configuration = MeterConfiguration()
-    estimator = MeterEstimator(configuration)
-    inputs = (
-        _line("01" * 4, line_number=1, stanza_number=1),
-        _line("01" * 3, line_number=2, stanza_number=1),
-        _line("01" * 4, line_number=3, stanza_number=1),
-        _line("01" * 3, line_number=4, stanza_number=1),
-        _line("01" * 4, line_number=5, stanza_number=2),
-        _line("01" * 3, line_number=6, stanza_number=2),
-        _line("01" * 4, line_number=7, stanza_number=2),
-        _line("01" * 3, line_number=8, stanza_number=2),
-    )
-    lines = tuple(estimator.evaluate_line(item) for item in inputs)
-
-    summary, _, schemes = summarize_meter_lines(lines, configuration)
-
-    assert schemes[0].scheme_id == "common_meter"
-    assert schemes[0].foot_count_cycle == (4, 3, 4, 3)
-    assert schemes[0].mean_fit == pytest.approx(1.0)
-    assert schemes[0].matching_line_count == 8
-    assert schemes[0].complete_stanza_count == 2
-    assert summary.closest_candidate_kind == "alternating meter scheme"
-    assert summary.closest_candidate_label == (
-        "Common meter (alternating iambic tetrameter/trimeter)"
-    )

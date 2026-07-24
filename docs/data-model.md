@@ -387,7 +387,7 @@ The current in-memory Stage 6 meter path is:
 MeterAnalysisResult -> ModuleResult
  -> MeterLineResult(s) -> CandidateMeterFit(s)
  -> AlignmentOperation(s) -> Stage 5 StressVariant evidence
- -> MeterCandidateSummary(s) + MeterSchemeSummary(s) -> MeterSummary
+ -> MeterCandidateSummary(s) -> MeterSummary
 ```
 
 `CandidateMeterFit` keeps pattern and foot count as separate fields while also
@@ -397,15 +397,34 @@ operation audit, and deviation counts.
 
 `MeterLineResult` has explicit analyzed, no-lexical-token,
 missing-pronunciation, and too-many-variants states. An unanalyzable line has
-no candidate fit. `MeterSchemeSummary` preserves the scheme ID, stress-pattern
-family, foot-count cycle, structural unit, line coverage, fit, matching lines,
-eligible stanzas, complete stanzas, and complete-stanza coverage. Common meter
-is stored as iambic `(4, 3, 4, 3)`, not collapsed into one foot count.
+no candidate fit.
 
 `MeterConfiguration` records every cost and threshold, the minimum/maximum
 foot counts, stress-path limit, retained alternatives, scenario ID, and a
 stable hash-derived configuration ID. `ModuleProvenance` links the result to
 the exact Stage 5 resource hashes and pronunciation configuration.
+
+The current in-memory Stage 7 path is:
+
+```text
+PhonologicalAnalysisResult -> ModuleResult
+ -> PhonologicalLineResult(s) -> RhymePairResult(s)
+ -> RhymeStanzaSummary(s) + SoundFamilySummary(s) -> PhonologicalSummary
+ -> Stage 5 PronunciationTokenResult evidence
+```
+
+`PhonologicalLineResult` retains the exact physical line, end word, candidate
+phones and rhyme parts, resolution state, stanza/poem scheme labels, refrain
+identity, internal-rhyme pairs, phoneme sequences, repetitions, densities, and
+reason. `RhymePairResult` keeps exact/slant/eye relationship fields, rhyme
+types, five similarity components, conservative and maximum scores, evidence
+label, and note. Unresolved endings never carry a fabricated scheme group or
+neutral similarity.
+
+`PhonologicalConfiguration` records the slant threshold and weights, vowel-
+family score, repetition and eye-rime thresholds, coverage warning, pair cap,
+scenario ID, and stable configuration ID. Provenance links the result to the
+exact Stage 5 source hashes and pronunciation configuration.
 
 ## Transaction and backup rules
 

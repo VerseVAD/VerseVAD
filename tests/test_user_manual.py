@@ -37,6 +37,8 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
         assert "{{VERSION}}" not in text
         assert "{{DATE}}" not in text
         assert "```" not in text
+        assert "Common meter" not in text
+        assert "meter_schemes.csv" not in text
         assert "permit = P ER0 M IH1 T | noun reading in this line" in text
         for required in (
             "Dual VAD reporting and stopwords",
@@ -70,10 +72,14 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Pronunciation & Prosody",
             "pronunciation_token_audit.csv",
             "Candidate meter and rhythmic regularity",
-            "Common meter (alternating iambic",
             "Meter & Rhythm tab",
             "meter_alignment_operations.csv",
             "meter_line_fit = max(0, 1 - selected_alignment_cost",
+            "Rhyme and phonological patterns",
+            "Rhyme & Sound tab",
+            "rhyme_pairs.csv",
+            "slant_similarity = 0.35(stressed_vowel)",
+            "dictionary-based ending evidence produced an ABAB",
         ):
             assert required in text
 
@@ -157,6 +163,7 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
         assert "{{VERSION}}" not in text
         assert "{{DATE}}" not in text
         assert "```" not in text
+        assert "Common meter" not in text
         for required in (
             "Valence, Arousal, and Dominance",
             "Stopwords and the Two VAD Views",
@@ -189,9 +196,11 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Numeric-response proportion",
             "Dictionary Pronunciation, Syllables, and Lexical Stress",
             "poem-specific ARPAbet override",
-            "Candidate Meter, Fit, and Common Meter",
-            "common_meter_cycle = 4-3-4-3",
-            "Example J: Common Meter as an Alternating Scheme",
+            "Candidate Meter and Fit",
+            "Rhyme and Recurring Phonological Patterns",
+            "slant_similarity = 0.35(stressed_vowel)",
+            "Example J: Exact, Slant, and Eye-Rhyme Evidence",
+            "dictionary-based ending evidence produced an ABAB",
             "Meter fit",
         ):
             assert required in text

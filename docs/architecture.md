@@ -260,10 +260,10 @@ Stage 5 results are currently in-memory One Poem results and exports. A future
 schema-4 module-result design can persist the same module envelope,
 configuration ID, three resource hashes, token candidates, override evidence,
 and line summaries without changing the adapter or calculation API. Stage 6
-candidate-meter and Stage 7 rhyme modules will consume explicit alternatives
-rather than retrofitting a silently chosen pronunciation.
+candidate-meter and Stage 7 rhyme modules consume explicit alternatives rather
+than retrofitting a silently chosen pronunciation.
 
-### Candidate meter and stanza-aware schemes
+### Candidate meter
 
 Stage 6 is a framework-independent `MeterModule` under
 `versevad.prosody.meter`. It receives the shared `ModuleInput` plus a completed
@@ -279,8 +279,6 @@ The engine separates:
 - `MeterLineResult`: coverage status, retained candidate fits, selected stress
   path, alignment operations, and deviations for one physical line;
 - `MeterCandidateSummary`: equal-line aggregate for one fixed template;
-- `MeterSchemeTemplate` and `MeterSchemeSummary`: stanza-aware recurring
-  line-length schemes, currently common meter `4-3-4-3`; and
 - `MeterSummary`: nearest candidate kind, alternative, fit, confidence,
   coverage, regularity, variability, and deviation totals.
 
@@ -291,7 +289,26 @@ result objects rather than recomputing a hidden classification.
 
 Stage 6 remains an in-memory One Poem result. Persistence and corpus
 aggregation require an explicit later schema design for dependency provenance,
-line fits, candidate grids, scheme phase, and immutable completed runs.
+line fits, candidate grids, and immutable completed runs.
+
+### Rhyme and recurring phonological patterns
+
+Stage 7 is a framework-independent `PhonologicalModule` under
+`versevad.phonology`. It receives the same `ModuleInput` and completed
+`PronunciationAnalysisResult` as Stage 6. Its typed result separates
+configuration, summary, stanza summaries, physical-line ending/sound evidence,
+within-stanza ending-pair evidence, internal-rhyme records, and aggregate sound
+families.
+
+Application services activate Stage 5 automatically when Stage 7 is selected.
+Exact rhyme groups require one robust rhyme part across every retained
+pronunciation alternative. Graded slant and eye-rhyme evidence remain outside
+the scheme groups. The UI and seven export files read the typed result without
+recomputing classifications.
+
+Stage 7 is also an in-memory One Poem result. Later persistence must retain its
+Stage 5 dependency configuration, exact source hashes, method configuration,
+line/pair audit, coverage, and immutable result identity.
 
 ### Interface scale
 

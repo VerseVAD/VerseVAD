@@ -292,8 +292,8 @@ CMUdict contract, the 86-package offline lock check, and `git diff --check`.
 Both rebuilt Word guides passed structural tests and complete visual
 inspection: 37 User Manual pages and 26 Values and Terminology Guide pages.
 
-Poetic Fingerprint expansion Stage 6 adds pure meter-alignment, common-meter,
-application, UI, export, and synthetic-validation tests. The direct synthetic
+Poetic Fingerprint expansion Stage 6 adds pure meter-alignment, application,
+UI, export, and synthetic-validation tests. The direct synthetic
 command is:
 
 ```powershell
@@ -301,11 +301,12 @@ command is:
 ```
 
 It checks the 40 fixed templates, exact iambic pentameter, feminine ending,
-initial inversion, catalectic ending, exact stanza-aware iambic `4-3-4-3`
-common meter, and missing-pronunciation refusal. The full suite additionally
+initial inversion, catalectic ending, exact trochaic tetrameter, and
+missing-pronunciation refusal. The full suite additionally
 covers every base pattern, spondaic/pyrrhic local substitutions, secondary
 stress, function-word promotion, stress-path limits, deterministic ranking,
-meter-only workspace activation, UI, all six exports, and regression behavior.
+meter-only workspace activation, UI, all five exports plus JSON, and regression
+behavior.
 
 The Stage 6 completion suite passed `204 passed` on 2026-07-24. Phase 2,
 Concreteness, SUBTLEX-US Frequency, Kuperman AoA, pronunciation, and
@@ -314,3 +315,27 @@ the five-lexicon read-only source inspection, the installed CMUdict contract,
 the 86-package offline lock check, and `git diff --check`. Both rebuilt Word
 guides passed structural tests and complete visual inspection: 40 User Manual
 pages and 28 Values and Terminology Guide pages.
+
+Poetic Fingerprint expansion Stage 7 adds exact-scheme, rhyme-type, graded-
+slant, eye, internal-rhyme, refrain, recurring-sound, coverage, application,
+UI, export, and synthetic-validation tests. The direct synthetic command is:
+
+```powershell
+.\.venv\Scripts\python.exe -m versevad.phonology_validation
+```
+
+It checks ABAB with two exact pairs, masculine/feminine/multisyllabic labels,
+graded slant and eye evidence outside exact schemes, internal rhyme,
+alliteration, assonance, consonance, unresolved ending coverage, deterministic
+output, and unchanged synthetic source files. See
+[`poetic-fingerprint-stage7-validation.md`](poetic-fingerprint-stage7-validation.md)
+for exact beginner steps and limitations.
+
+The Stage 7 completion suite passed `215 passed` on 2026-07-24. Every
+synthetic demonstration, all 11 diagnostics, the five-source read-only
+inspection, the installed three-file CMUdict contract, the 86-package offline
+lock check, and `git diff --check` passed. Both rebuilt Word guides passed
+structural, required-content, table-geometry, numbering, and accessibility
+checks and opened/paginated in Microsoft Word at 42 and 28 pages. Page-image
+visual inspection could not be completed because LibreOffice is absent and
+the local Word PDF exporter stalled before creating a PDF.

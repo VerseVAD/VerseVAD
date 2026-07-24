@@ -541,14 +541,38 @@ to a declared per-line limit. The candidate-specific selected path is
 auditable but is not promoted to a dictionary or performance fact. A line with
 missing pronunciation evidence or excessive combinations remains unscored.
 
-In addition to the 40 fixed templates, Stage 6 compares common meter as a
-stanza-aware iambic `4-3-4-3` scheme: tetrameter, trimeter, tetrameter,
-trimeter. The cycle restarts at each preserved stanza. At least one complete
-quatrain is required before the scheme can become the poem-level nearest
-candidate.
-
 Poem-level reporting retains candidate kind, pattern, foot count, nearest
 alternative, mean/median fit, line coverage, matching-line proportion,
 variation, deviations, and rule-based confidence. The output language is
 “nearest configured candidate” or “candidate meter,” never definitive meter,
 correct scansion, performed rhythm, or authorial intention.
+
+## Stage 7 rhyme and phonological patterns
+
+Stage 7 consumes retained Stage 5 phones and stress without changing any
+pronunciation decision. A line-ending rhyme part begins at the last
+primary-stressed vowel, or the last secondary-stressed/marked vowel when
+necessary, and continues to the word end. Exact scheme groups require one
+agreed rhyme part across all retained alternatives. `x` marks an analyzable
+ungrouped ending and `?` an unresolved ending; no missing ending receives a
+neutral value.
+
+Perfect, identical, masculine, feminine, multisyllabic, graded slant, eye, and
+internal-rhyme evidence remain separate fields. Slant similarity is:
+
+`0.35(stressed vowel) + 0.25(final consonants) + 0.25(rhyme-part edit) + 0.10(stress alignment) + 0.05(syllable similarity)`
+
+The default classification threshold is `0.68`. The conservative minimum
+across retained pronunciation combinations controls the label; the maximum is
+also retained. This is a configurable heuristic rather than a probability.
+Slant and spelling-based eye rhyme do not create exact scheme groups.
+
+Phonemic alliteration uses repeated initial consonants, assonance repeated
+stressed vowels, and consonance repeated consonants within physical lines.
+Exact repeated physical lines supply refrain evidence independently of
+CMUdict. Coverage is analyzable eligible line endings divided by eligible line
+endings.
+
+Results describe local dictionary-, spelling-, and text-based evidence, not a
+definitive rhyme, performed reading, dialect, perceptual sound effect, or
+authorial intention.

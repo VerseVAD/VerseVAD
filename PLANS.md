@@ -594,10 +594,9 @@ review required.
   family, alternative candidate, line-level fit, whole-poem fit, rule-based
   categorical confidence, matching-line proportion, deviation counts,
   recurring-pattern regularity, and fit variability.
-- [x] Compare common meter as a stanza-aware alternating iambic
-  tetrameter/trimeter `4-3-4-3` scheme, restart its phase at every stanza, and
-  retain scheme fit, line coverage, matching lines, and complete-stanza
-  coverage.
+- [x] Remove the short-lived common-meter comparison at the user's direction
+  before Stage 7; retain all 40 fixed pattern-by-foot-count candidates and
+  their line evidence.
 - [x] Add an independent framework-free Stage 6 module, stable metrics,
   configuration identity, dependency provenance, warnings, and complete line
   and candidate audit records.
@@ -640,9 +639,65 @@ review required.
   overlapping, or broken content.
 - [x] Create the expansion Stage 6 source-control checkpoint.
 
+## Poetic Fingerprint expansion - Stage 7 rhyme and phonological patterns
+
+- [x] Add a framework-independent Stage 7 module that consumes the exact Stage
+  5 pronunciation result without changing or silently resolving it.
+- [x] Extract the last lexical word and robust rhyme part for each physical
+  line, preserving stanza boundaries, missingness, and materially different
+  dictionary alternatives.
+- [x] Build whole-poem and stanza end-rhyme schemes from robust perfect or
+  identical rhyme groups, using `x` for analyzable ungrouped endings and `?`
+  for unresolved endings.
+- [x] Retain perfect, identical, masculine, feminine, multisyllabic, graded
+  slant, eye, internal-rhyme, and exact refrain evidence as distinct fields.
+- [x] Add a configurable graded-slant heuristic with stressed-vowel, final-
+  consonant, rhyme-part-edit, stress-alignment, and syllable-count components;
+  retain conservative minimum and maximum alternative-pronunciation scores.
+- [x] Add phonemic alliteration, assonance, consonance, per-line densities,
+  aggregate densities, dominant sound families, and exact supporting phone
+  sequences.
+- [x] Keep absent, ambiguous, and source-vowelless endings unresolved, record
+  line-ending coverage, warn under sparse coverage, and cap pair comparisons.
+- [x] Add optional One Poem controls, automatic Stage 5 dependency handling, a
+  dedicated Rhyme & Sound tab, warnings, methodology, and provenance.
+- [x] Add readable scholar-summary rows and seven UTF-8 CSV/JSON audit exports.
+- [x] Add synthetic engine, application, UI, export, validation, missingness,
+  ambiguity, empty-input, configuration, and determinism tests.
+- [x] Add the hand-calculated Stage 7 validation command and exact beginner-
+  friendly interface steps.
+- [x] Update methodology, architecture, data model, user guidance, testing,
+  changelog, roadmap, and both Word guides.
+- [x] Run the complete suite, every synthetic demonstration, diagnostics,
+  source checks, lock-file check, Word structural/accessibility tests, and
+  local Word opening/pagination checks; record the unavailable PNG-render
+  exception because LibreOffice is absent and Word PDF export stalls.
+- [x] Create the expansion Stage 7 source-control checkpoint.
+
+### Expansion Stage 7 exit criteria
+
+- [x] CMUdict is identified as pronunciation evidence; VerseVAD-derived rhyme
+  and recurring-sound classifications are not attributed to the dictionary.
+- [x] Every result is framed as dictionary/spelling/textual evidence rather
+  than a definitive performed rhyme, dialect, intention, or sound effect.
+- [x] Slant similarity is documented as a configurable heuristic rather than a
+  probability, and slant/eye evidence never silently creates exact schemes.
+- [x] Materially different pronunciation alternatives, absent forms, and
+  source-vowelless rows remain unresolved unless an explicit Stage 5 scholar
+  override applies.
+- [x] Unresolved endings reduce coverage and receive no neutral value or
+  fabricated rhyme label.
+- [x] Existing fixed candidate meter, pronunciation, affective, concreteness,
+  frequency, AoA, review, database, export, and resource behavior remains
+  unchanged.
+- [x] All automated/local software and Word structural checks pass. Both guides
+  open and paginate in Word; the absence of LibreOffice and stalled Word PDF
+  export prevent the otherwise required page-image inspection, as recorded in
+  the validation report.
+- [x] Create the expansion Stage 7 source-control checkpoint.
+
 ## Later Poetic Fingerprint stages from the expansion brief
 
-- [ ] Stage 7: rhyme and phonological analysis.
 - [ ] Stage 8: visible poetic structure.
 - [ ] Stage 9: syntax and lineation.
 - [ ] Stage 10: lexical style.

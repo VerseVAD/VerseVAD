@@ -33,28 +33,6 @@ contains 40 fixed templates.
 Spondaic `11` and pyrrhic `00` feet are reported as local substitutions in a
 binary-foot alignment. They are not added as ordinary whole-line base meters.
 
-## Common meter
-
-Stage 6 separately checks:
-
-> Common meter (alternating iambic tetrameter/trimeter)
-
-The stanza-aware cycle is `4-3-4-3`: iambic tetrameter, iambic trimeter,
-iambic tetrameter, iambic trimeter. The cycle restarts at each preserved
-stanza. The result includes:
-
-- mean and median scheme fit;
-- matching-line count and proportion;
-- analyzable line coverage;
-- eligible and complete stanza counts; and
-- complete-stanza coverage.
-
-At least one complete four-line stanza is required before common meter can
-become the poem-level nearest scheme. Incomplete stanzas remain visible as
-partial evidence. The scheme framework is deliberately separate from the
-fixed-template grid so later work can add other recurring line-length schemes
-without treating every poem as if all lines should have one foot count.
-
 ## Alignment method
 
 For each physical line, deterministic dynamic-programming sequence alignment
@@ -95,7 +73,6 @@ neutral or partial fit.
 Stage 6 aggregates equal-weight physical-line fits for:
 
 - all 40 fixed templates;
-- the stanza-aware common-meter scheme;
 - the dominant stress-pattern family;
 - line-level nearest fixed templates;
 - matching-line proportion;
@@ -104,10 +81,9 @@ Stage 6 aggregates equal-weight physical-line fits for:
   catalectic, spondaic, and pyrrhic counts; and
 - a rule-based candidate-confidence category.
 
-The nearest poem-level result may be a fixed pattern/foot-count candidate or
-an alternating scheme. Candidate kind, pattern, and foot count remain separate
-fields. A fixed candidate is not forced when the line lengths systematically
-alternate.
+The nearest poem-level result is a fixed pattern/foot-count candidate.
+Candidate kind, pattern, and foot count remain separate fields. The removed
+common-meter experiment is not part of the current result.
 
 The rule-based confidence label uses analyzable-line count, coverage, mean fit,
 margin over the nearest alternative, and matching-line proportion. It is not a
@@ -123,8 +99,7 @@ resources pass local validation.
 The dedicated **Meter & Rhythm** tab shows:
 
 - nearest candidate, kind, alternative, margin, fit, coverage, and confidence;
-- an explicit common-meter panel;
-- physical-line fixed-template and common-meter evidence;
+- physical-line fixed-template evidence;
 - all 40 fixed candidates;
 - deviations, warnings, and method provenance.
 
@@ -139,15 +114,13 @@ full audit ZIP adds:
 
 - `meter_summary.csv`;
 - `meter_candidates.csv`;
-- `meter_schemes.csv`;
 - `meter_lines.csv`;
 - `meter_alignment_operations.csv`; and
 - `meter_result.json`.
 
-`meter_lines.csv` preserves the common-meter stanza position, expected foot
-count, and phase-specific line fit alongside the nearest fixed line candidate.
-The operation audit preserves each observed/template stress comparison, cost,
-word, model POS tag, and ending flag.
+`meter_lines.csv` preserves the nearest fixed line candidate and selected
+stress path. The operation audit preserves each observed/template stress
+comparison, cost, word, model POS tag, and ending flag.
 
 ## Current limitations
 
@@ -161,8 +134,8 @@ word, model POS tag, and ending flag.
 - The module does not yet model resolution, caesura, foot boundaries beyond
   the selected base template, rhetorical phrasing, or occurrence-specific
   pronunciation overrides.
-- Only common meter is currently implemented as a stanza-aware alternating
-  scheme. Short meter and long meter are natural future additions.
 - Stage 6 is currently available in the One Poem in-memory workflow and
   exports, not Projects & Corpus aggregation.
-- Rhyme and recurring phonological pattern analysis remains Stage 7.
+- The short-lived common-meter comparison was removed at the user's direction;
+  the 40 fixed candidates remain unchanged.
+- Rhyme and recurring phonological pattern analysis is implemented in Stage 7.

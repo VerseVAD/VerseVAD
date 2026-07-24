@@ -364,13 +364,10 @@ def test_workspace_can_run_meter_and_automatically_include_pronunciation(
     preprocessor,
 ) -> None:
     tetrameter = "the stone the stone the stone the stone"
-    trimeter = "the stone the stone the stone"
     request = AnalysisRequest(
         project_name="Meter-only workspace",
         title="Stage 6",
-        original_text="\n".join(
-            (tetrameter, trimeter, tetrameter, trimeter)
-        ),
+        original_text="\n".join((tetrameter,) * 4),
         lexicon_ids=(),
         include_meter=True,
     )
@@ -385,12 +382,57 @@ def test_workspace_can_run_meter_and_automatically_include_pronunciation(
     assert workspace.results == ()
     assert workspace.pronunciation is not None
     assert workspace.meter is not None
-    assert workspace.meter.summary.closest_scheme_id == "common_meter"
+    assert workspace.meter.summary.closest_candidate_label == "Iambic tetrameter"
+    assert workspace.meter.summary.closest_candidate_kind == (
+        "fixed pattern and foot count"
+    )
     with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
         names = set(bundle.namelist())
         assert "meter_summary.csv" in names
         assert "meter_candidates.csv" in names
-        assert "meter_schemes.csv" in names
+        assert "meter_schemes.csv" not in names
         assert "meter_lines.csv" in names
         assert "meter_alignment_operations.csv" in names
         assert "meter_result.json" in names
+
+
+def test_workspace_can_run_phonology_and_automatically_include_pronunciation(
+    tmp_path,
+    preprocessor,
+) -> None:
+    request = AnalysisRequest(
+        project_name="Rhyme-only workspace",
+        title="Stage 7",
+        original_text="bright cat\nsilver night\nsoftly hat\nstone bright",
+        lexicon_ids=(),
+        include_phonology=True,
+    )
+
+    workspace = run_workspace_analysis(
+        request,
+        preprocessor=preprocessor,
+        resource_root=tmp_path,
+        pronunciation_module=synthetic_pronunciation_module(tmp_path),
+    )
+
+    assert workspace.results == ()
+    assert workspace.pronunciation is not None
+    assert workspace.phonology is not None
+    assert workspace.phonology.summary.whole_poem_rhyme_scheme == "ABAB"
+    summary_rows = _csv_rows(scholar_summary_csv(workspace))
+    assert any(
+        row["section"] == "Rhyme and phonological patterns"
+        and row["metric"] == "Whole-poem end-rhyme scheme"
+        for row in summary_rows
+    )
+    with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
+        names = set(bundle.namelist())
+        assert {
+            "rhyme_summary.csv",
+            "rhyme_stanzas.csv",
+            "rhyme_lines.csv",
+            "rhyme_pairs.csv",
+            "rhyme_internal.csv",
+            "phonological_sounds.csv",
+            "rhyme_result.json",
+        } <= names

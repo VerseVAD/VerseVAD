@@ -37,10 +37,19 @@ from versevad.exports.meter import (
     export_meter_candidates_csv,
     export_meter_json,
     export_meter_lines_csv,
-    export_meter_schemes_csv,
     export_meter_summary_csv,
 )
 from versevad.exports.phase2_csv import export_phase2_csv
+from versevad.exports.phonology import (
+    export_internal_rhymes_csv,
+    export_phonological_bundle,
+    export_phonological_json,
+    export_phonological_sounds_csv,
+    export_phonological_summary_csv,
+    export_rhyme_lines_csv,
+    export_rhyme_pairs_csv,
+    export_rhyme_stanzas_csv,
+)
 from versevad.exports.poem_document_json import export_poem_document_json
 from versevad.exports.pronunciation import (
     export_pronunciation_bundle,
@@ -82,9 +91,16 @@ __all__ = [
     "export_meter_candidates_csv",
     "export_meter_json",
     "export_meter_lines_csv",
-    "export_meter_schemes_csv",
     "export_meter_summary_csv",
     "export_phase2_csv",
+    "export_internal_rhymes_csv",
+    "export_phonological_bundle",
+    "export_phonological_json",
+    "export_phonological_sounds_csv",
+    "export_phonological_summary_csv",
+    "export_rhyme_lines_csv",
+    "export_rhyme_pairs_csv",
+    "export_rhyme_stanzas_csv",
     "export_poem_document_json",
     "export_pronunciation_bundle",
     "export_pronunciation_json",

@@ -61,9 +61,12 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
   ambiguity evidence, poem-specific scholar overrides, and token/type/line
   audits; and
 - optional candidate-meter alignment against five recurring stress patterns
-  from monometer through octameter, stanza-aware common meter as iambic
-  `4-3-4-3`, line/scheme fit, deviations, alternatives, coverage, and a
-  complete alignment audit.
+  from monometer through octameter, line fit, deviations, alternatives,
+  coverage, and a complete alignment audit; and
+- optional exact end-rhyme schemes, perfect/identical and
+  masculine/feminine/multisyllabic evidence, graded slant and eye rhyme,
+  internal rhyme, refrains, phonemic alliteration, assonance, consonance,
+  line-ending coverage, and complete line/pair audit evidence.
 
 ## What VerseVAD does not do
 
@@ -543,15 +546,6 @@ pentameter, hexameter, heptameter, and octameter: 40 fixed line templates.
 Spondees `11` and pyrrhics `00` are reported as local substitutions rather
 than ordinary whole-line base candidates.
 
-Stage 6 also checks **Common meter (alternating iambic
-tetrameter/trimeter)** as a stanza-aware cycle:
-
-`4-3-4-3 = tetrameter, trimeter, tetrameter, trimeter`
-
-The cycle restarts at each preserved stanza. At least one complete four-line
-stanza is required before common meter can become the poem-level nearest
-scheme. Partial stanzas remain visible as incomplete scheme evidence.
-
 The line alignment can report substitutions, initial inversion, feminine
 ending, catalexis, and extra or omitted syllables. Multiple retained CMUdict
 stress alternatives are explored up to the configured line limit, but the
@@ -560,21 +554,51 @@ fact. A line with missing pronunciation evidence remains unscored.
 
 Read:
 
-- nearest candidate and whether it is a fixed template or alternating scheme;
+- nearest fixed pattern-by-foot-count candidate;
 - mean fit, matching-line proportion, line coverage, nearest alternative, and
   candidate margin;
 - rule-based confidence and its explanation;
-- common-meter fit and complete-stanza coverage;
-- physical-line stress paths, alignments, deviations, and expected
-  common-meter foot counts; and
+- physical-line stress paths, alignments, and deviations; and
 - all 40 fixed candidates, warnings, configuration, and provenance.
 
 Fit is a configured alignment similarity from 0 to 1, not a probability.
 Confidence is a rule-based category, not a calibrated probability. Safe
-wording is: “The nearest configured candidate was common meter under the
+wording is: “The nearest configured candidate was iambic pentameter under the
 selected alignment configuration.” Do not write: “VerseVAD proved the poem is
-in common meter,” “this is the correct scansion,” or “the poet performed the
-line this way.”
+in iambic pentameter,” “this is the correct scansion,” or “the poet performed
+the line this way.”
+
+## Rhyme and phonological patterns
+
+When enabled, **Rhyme & Sound** automatically uses the retained Stage 5
+pronunciation evidence. No affective lexicon is required. CMUdict supplies
+phones and lexical stress; VerseVAD derives the rhyme and recurring-sound
+classifications.
+
+The whole-poem and stanza schemes use only robust perfect or identical rhyme
+parts. Letters identify exact groups, `x` identifies an analyzable ungrouped
+ending, and `?` identifies an unresolved ending. Slant and eye rhyme remain
+separate and never create exact scheme groups.
+
+Read:
+
+- ending coverage, whole-poem scheme, and stanza schemes;
+- perfect, identical, masculine, feminine, and multisyllabic pair evidence;
+- the conservative graded slant score and its five components;
+- spelling-based eye rhyme, exact internal rhyme, and repeated-line refrains;
+- phonemic alliteration, assonance, consonance, densities, and dominant sound
+  families; and
+- line and pair evidence, warnings, configuration, and provenance.
+
+The default slant score weights stressed vowel `0.35`, final consonants `0.25`,
+rhyme-part edit similarity `0.25`, stress alignment `0.10`, and syllable
+similarity `0.05`, with a default threshold of `0.68`. It is a configurable
+heuristic, not a probability. Materially different dictionary alternatives
+remain unresolved unless a documented Stage 5 scholar override applies.
+
+Safe wording is: “The dictionary-based ending evidence produced an ABAB exact-
+rhyme scheme among four analyzable endings.” Do not claim that VerseVAD proved
+how the poem must be pronounced, performed, heard, or intended.
 
 ## Eight emotion associations
 
@@ -717,19 +741,30 @@ candidate meter or rhyme.
 ## Meter & Rhythm tab
 
 This tab appears when **Meter & rhythmic regularity** is enabled. It reports
-the nearest fixed template or alternating scheme, fit, matching lines,
-coverage, alternative, candidate margin, rule-based confidence, rhythmic
-variation, a separate common-meter panel, physical-line evidence, all 40 fixed
-candidates, warnings, and configuration provenance.
+the nearest fixed template, fit, matching lines, coverage, alternative,
+candidate margin, rule-based confidence, rhythmic variation, physical-line
+evidence, all 40 fixed candidates, warnings, and configuration provenance.
 
-For common meter, confirm the expected foot counts restart as `4, 3, 4, 3` in
-each stanza and read complete-stanza coverage. A stanza fragment can supply
-partial line evidence but cannot by itself select common meter as the nearest
-poem-level scheme.
+Do not mistake a metrically preferred stress path for a change to the Stage 5
+pronunciation result.
 
-The closest fixed template for one line and the phase-specific common-meter
-line fit are separate columns. Do not mistake a metrically preferred stress
-path for a change to the Stage 5 pronunciation result.
+## Rhyme & Sound tab
+
+This tab appears when **Rhyme & phonological patterns** is enabled. It reports
+the whole-poem and stanza exact-rhyme schemes with ending coverage, then
+separately shows perfect, identical, masculine, feminine, multisyllabic,
+graded slant, eye, internal-rhyme, refrain, alliteration, assonance, and
+consonance evidence.
+
+Read the physical-line table before interpreting a scheme. It preserves the
+end word, candidate phones and rhyme parts, resolution status, scheme labels,
+repeated sounds, densities, and reason. The within-stanza pair table preserves
+the rhyme types, five slant components, conservative and maximum scores,
+eye-rhyme evidence, and caution label.
+
+An unresolved line ending appears as `?` and reduces coverage. It receives no
+neutral value or fabricated rhyme label. Add a Stage 5 override only when you
+can document the intended pronunciation.
 
 ## Evidence tab
 
@@ -969,14 +1004,20 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `pronunciation_types.csv` | Observed forms, token occurrences, statuses, candidate phones, and resolved prosodic fields |
 | `pronunciation_token_audit.csv` | Every token's eligibility, exact candidates, source lines, resolved fields or missing values, categorical resolution label, override note, and reason |
 | `pronunciation_result.json` | Complete structured Stage 5 result, source contracts, configuration, candidates, warnings, and provenance |
-| `meter_summary.csv` | Nearest candidate kind and label, fit, coverage, confidence, deviations, and common-meter summary |
+| `meter_summary.csv` | Nearest fixed candidate kind and label, fit, coverage, confidence, and deviations |
 | `meter_candidates.csv` | All 40 fixed pattern-by-foot-count candidates with rank, fit, variation, and matching lines |
-| `meter_schemes.csv` | Stanza-aware scheme cycle, fit, line coverage, matching lines, and complete-stanza coverage |
-| `meter_lines.csv` | Every physical line's status, nearest fixed template, selected stress path, common-meter position/expected feet/fit, alignment, and deviations |
+| `meter_lines.csv` | Every physical line's status, nearest fixed template, selected stress path, alignment, and deviations |
 | `meter_alignment_operations.csv` | Every selected syllable-to-template operation, cost, word, model POS, and ending flag |
-| `meter_result.json` | Complete structured Stage 6 configuration, line audit, fixed candidates, schemes, metrics, warnings, and provenance |
+| `meter_result.json` | Complete structured Stage 6 configuration, line audit, fixed candidates, metrics, warnings, and provenance |
+| `rhyme_summary.csv` | Whole-poem scheme, ending coverage, rhyme density, pair counts, refrain/internal-rhyme counts, and recurring-sound densities |
+| `rhyme_stanzas.csv` | Stanza schemes, ending coverage, exact/slant pair counts, rhymed lines, and density |
+| `rhyme_lines.csv` | Every physical line's end word, status, pronunciation/rhyme parts, scheme labels, refrain, internal-rhyme and recurring-sound evidence |
+| `rhyme_pairs.csv` | Within-stanza ending pairs with relationship, rhyme types, graded similarity components, eye-rhyme evidence, and cautions |
+| `rhyme_internal.csv` | Exact dictionary rhyme parts recurring between eligible words within one physical line |
+| `phonological_sounds.csv` | Recurring initial consonants, stressed vowels, and consonants with occurrence and line counts |
+| `rhyme_result.json` | Complete structured Stage 7 configuration, summary, stanza/line/pair evidence, sound families, coverage, warnings, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, and `meter_result.json` contains every Stage 6 line, fixed-candidate, scheme, and method record. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, AoA, Pronunciation, and Meter exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every Stage 6 line, fixed candidate, and method record, and `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, AoA, Pronunciation, Meter, and Rhyme & Sound exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -1199,11 +1240,24 @@ function-word-flexibility costs are recorded configuration choices.
 
 `meter_matching_line_proportion = lines at or above the configured fit threshold / analyzable physical lines`
 
-`common_meter_complete_stanza_coverage = complete analyzable four-line stanzas / eligible stanzas`
+Missing pronunciation produces a missing line fit, not zero. Fit is a
+similarity and confidence is rule-based; neither is a probability.
 
-The common-meter line template follows iambic foot counts `4-3-4-3`, restarted
-at each stanza. Missing pronunciation produces a missing line fit, not zero.
-Fit is a similarity and confidence is rule-based; neither is a probability.
+## Rhyme, slant, and recurring-sound formulas
+
+`ending_coverage = analyzable eligible line endings / eligible line endings`
+
+`rhyme_density = analyzable line endings in an exact within-stanza pair / analyzable line endings`
+
+`slant_similarity = 0.35(stressed_vowel) + 0.25(final_consonants) + 0.25(rhyme_part_edit) + 0.10(stress_alignment) + 0.05(syllable_similarity)`
+
+For multiple retained pronunciations, the minimum combination score controls
+the conservative relationship and the maximum is also retained. The default
+slant threshold is `0.68`. This configured similarity is not a probability.
+
+Alliteration and assonance densities divide supported words participating in a
+repeated within-line sound by supported words. Consonance density divides
+repeated consonant occurrences by resolved consonant occurrences.
 
 ## Worked synthetic example
 
@@ -1227,8 +1281,7 @@ The divergence is substantial because the long work dominates the token-weighted
 | Arousal | Normative activation associated with a lexical item |
 | Association | Binary lexicon membership for an emotion or sentiment category |
 | Approved user mapping | Scenario-pinned link from a form to a verified exact source entry, applied only after ordinary matching fails |
-| Candidate meter | Nearest configured stress template or stanza-aware scheme; not definitive meter or performed rhythm |
-| Common meter | Stanza-aware alternating iambic tetrameter/trimeter scheme with foot-count cycle 4-3-4-3 |
+| Candidate meter | Nearest configured fixed stress template; not definitive meter or performed rhythm |
 | Concreteness rating | Source-supplied 1-5 normative rating for how abstract/language-based or concrete/experience-based a lexical item was judged |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
@@ -1240,9 +1293,14 @@ The divergence is substantial because the long work dominates the token-weighted
 | Exact match | Direct match from normalized surface form to a source entry |
 | Exclude decision | Scenario decision that retains the candidate in the audit but omits it from that scenario's aggregates |
 | Flag decision | Scenario decision that records concern without changing matching or scores |
+| Graded slant evidence | Configured similarity across stressed vowel, final consonants, rhyme-part edit, stress alignment, and syllable count; not a probability |
+| Identical rhyme | Complete retained phonological endings agree, including repeated words or homophonic complete endings |
+| Internal rhyme | Exact dictionary rhyme parts recur between eligible words within one physical line |
 | Lemma | Model-proposed base form conditioned on part of speech |
 | Lemma-derived match | Match obtained from the lemma only after exact candidates fail |
 | Lexicon entry | A word or phrase and its source-supplied value or association |
+| Perfect rhyme | Robust line-ending rhyme parts agree while complete retained endings are not identical |
+| Rhyme scheme | Letter sequence formed only from robust perfect/identical groups; `x` is analyzable and ungrouped, `?` unresolved |
 | Match observation | One included matched token occurrence or accepted phrase span |
 | Normalized form | Separate processing form used for lookup; it does not replace the original text |
 | Normalized VAD | Documented linear transformation to the common 0-1 display range |
@@ -1350,14 +1408,20 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   support a different scansion.
 - Meter costs, thresholds, fit, and confidence are transparent heuristics, not
   a probability model or validation against every poetic tradition.
-- Common meter is the only stanza-aware alternating scheme currently
-  implemented; rhyme remains Stage 7.
 - Meter & Rhythm is currently an optional one-poem in-memory module; it is not
+  yet persisted or aggregated in corpus projects.
+- Stage 7 starts from North American dictionary phones and spelling; dialect,
+  historical pronunciation, performance, and poetic elision can change rhyme
+  and recurring-sound evidence.
+- Slant, eye, internal-rhyme, alliteration, assonance, and consonance methods
+  are transparent descriptive heuristics, not probabilities or claims about
+  authorial intention or perceptual effect.
+- Rhyme & Sound is currently an optional one-poem in-memory module; it is not
   yet persisted or aggregated in corpus projects.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed and scheme candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes. A Stage 7 result retains the linked pronunciation configuration, exact resource hashes, rhyme/sound thresholds and weights, line-ending coverage, stanza/line/pair evidence, sound families, warnings, and immutable result/configuration identities.
 
 The companion definitions guide is maintained from:
 
