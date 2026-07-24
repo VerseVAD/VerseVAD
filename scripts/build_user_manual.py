@@ -238,6 +238,15 @@ def _add_callout(document: Document, text: str) -> None:
     _set_spacing(spacer, after=2, line=1.0)
 
 
+def _add_code_block(document: Document, lines: list[str]) -> None:
+    paragraph = document.add_paragraph(style="Formula")
+    for index, line in enumerate(lines):
+        if index:
+            paragraph.add_run().add_break()
+        run = paragraph.add_run(line)
+        _set_run_font(run, name="Consolas", size=9.5, color=DARK_BLUE)
+
+
 INLINE_PATTERN = re.compile(r"(\*\*.+?\*\*|`.+?`|\*[^*]+?\*)")
 
 
@@ -580,6 +589,20 @@ def build_document_from_source(
             flush_paragraph()
             document.add_page_break()
             cover_mode = False
+            in_numbered_list = False
+            index += 1
+            continue
+
+        if stripped.startswith("```"):
+            flush_paragraph()
+            code_lines: list[str] = []
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith("```"):
+                code_lines.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                raise ValueError(f"Unclosed fenced code block in {source}")
+            _add_code_block(document, code_lines)
             in_numbered_list = False
             index += 1
             continue

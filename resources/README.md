@@ -16,6 +16,11 @@ resources/
   kuperman_2013_erratum_ESM1_official.xlsx
   kuperman_stadthagen_gonzalez_brysbaert_2012_aoa_PAPER.pdf
   pronunciation/
+    cmudict.dict
+    cmudict.phones
+    cmudict.symbols
+    CMUDICT_LICENSE.txt
+    CMUDICT_README.txt
 ```
 
 The two concreteness filenames are exact. Keep both directly inside
@@ -80,3 +85,26 @@ contains rated polyfunctional spellings such as `the`, `and`, `he`, `of`, and
 `to`. VerseVAD therefore keeps the optional contextual
 `NOUN`/`VERB`/`ADJ`/`ADV` scope available and off by default; source selection
 and a particular poem occurrence's model POS are not treated as equivalent.
+
+The optional Stage 5 pronunciation/prosody-foundation module uses the exact
+files under `resources/pronunciation/`, pinned from the official
+`cmusphinx/cmudict` repository at commit
+`74790861f652b15e4ac49015a90074ad62a27690`. Keep every filename unchanged.
+Expected SHA-256 values are:
+
+- `cmudict.dict`:
+  `81917843c7f44ce2b094ac63873c2c7a4cf802040792c455ba3ca406891c3d22`;
+- `cmudict.phones`:
+  `ffb588a5e55684723582c7256e1d2f9fadb130011392d9e59237c76e34c2cfd6`;
+- `cmudict.symbols`:
+  `408ccaae803641c6d7b626b6299949320c2dbca96b2220fd3fb17887b023b027`;
+- `CMUDICT_LICENSE.txt`:
+  `bd4ce8e44170a5f9f481310ca85c51de3c4f851a65e679b40e603b143bd3542a`;
+  and
+- `CMUDICT_README.txt`:
+  `00c34e7564f1f6a68de02e12c123d801471da92bc3091f7d89b605f238bf8554`.
+
+The exact local CMUdict files are authoritative at analysis time. The pinned
+`pronouncing` and `cmudict` Python packages provide utilities and dependency
+provenance; VerseVAD does not silently substitute the package-bundled
+dictionary. Absent or materially ambiguous observed forms remain missing.

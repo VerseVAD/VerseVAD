@@ -451,6 +451,9 @@ files plus:
 - eight `aoa_*` CSV/JSON files when the optional module is enabled: summary,
   distribution, structure, POS, terms, relationships, token audit, and
   complete result.
+- five `pronunciation_*` CSV/JSON files when the optional module is enabled:
+  summary, physical lines, observed types, complete token/candidate audit, and
+  structured result.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. Both JSON files are local machine-readable records.
@@ -461,6 +464,50 @@ provenance without copying the 74,286-row workbook. AoA exports retain
 poem-specific source-row and response evidence without copying the 31,124-row
 workbook. The full ZIP is the reproducibility record; the friendly summary is
 the reading aid.
+
+## Pronunciation & Prosody foundation
+
+In **One Poem**, select **Pronunciation & prosody foundation (CMUdict)** and
+analyze. No affective lexicon is required for a pronunciation-only run.
+
+The dedicated tab reports exact observed-form dictionary coverage, syllables
+per resolved word, complete-line syllable totals, lexical-stress sequences,
+stress density, ambiguous alternatives, out-of-dictionary forms, warnings,
+and provenance. `0`, `1`, and `2` mean unstressed, primary lexical stress, and
+secondary lexical stress. They are dictionary lexical stresses, not a meter
+classification.
+
+VerseVAD retains every CMUdict alternative. A word resolves automatically only
+when there is one candidate or all candidates agree on syllable count and the
+full stress sequence. Otherwise it remains visibly ambiguous. Missing and
+ambiguous values are not set to zero.
+
+To document a context-sensitive, dialectal, historical, performed, or
+poetically elided reading, open **Advanced methodology settings** and enter:
+
+```text
+word = UPPERCASE ARPAbet phones | brief scholarly note
+```
+
+For example:
+
+```text
+permit = P ER0 M IH1 T | noun reading in this line
+```
+
+The note is required. Symbols and stress are validated against the pinned local
+CMUdict inventory. The override applies to the exact observed word type in the
+current analysis, remains separate from dictionary candidates, and can be
+reversed by removing it and analyzing again.
+
+A line total and stress sequence appear only when every eligible word on that
+physical line resolves. This prevents partial coverage from making a line look
+shorter than it is.
+
+Always retain the visible warning: CMUdict primarily represents North American
+dictionary pronunciation. Dialect, historical pronunciation, context,
+performance, and poetic elision may differ. Stage 5 does not classify meter,
+rhyme, or definitive performed scansion.
 
 ## Diagnostics and troubleshooting
 

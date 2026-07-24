@@ -1,0 +1,43 @@
+"""Prosody-oriented modules that consume the shared poem document."""
+
+from versevad.prosody.pronunciation import (
+    CMUDICT_COMMIT,
+    CMUDICT_DICTIONARY_SHA256,
+    CMUDICT_DICTIONARY_SPEC,
+    CMUDICT_PHONES_SHA256,
+    CMUDICT_PHONES_SPEC,
+    CMUDICT_SYMBOLS_SHA256,
+    CMUDICT_SYMBOLS_SPEC,
+    PronunciationAnalysisResult,
+    PronunciationConfiguration,
+    PronunciationLineSummary,
+    PronunciationModule,
+    PronunciationModuleError,
+    PronunciationOverride,
+    PronunciationStatus,
+    PronunciationSummary,
+    PronunciationTokenResult,
+    PronunciationTypeSummary,
+    parse_pronunciation_overrides,
+)
+
+__all__ = [
+    "CMUDICT_COMMIT",
+    "CMUDICT_DICTIONARY_SHA256",
+    "CMUDICT_DICTIONARY_SPEC",
+    "CMUDICT_PHONES_SHA256",
+    "CMUDICT_PHONES_SPEC",
+    "CMUDICT_SYMBOLS_SHA256",
+    "CMUDICT_SYMBOLS_SPEC",
+    "PronunciationAnalysisResult",
+    "PronunciationConfiguration",
+    "PronunciationLineSummary",
+    "PronunciationModule",
+    "PronunciationModuleError",
+    "PronunciationOverride",
+    "PronunciationStatus",
+    "PronunciationSummary",
+    "PronunciationTokenResult",
+    "PronunciationTypeSummary",
+    "parse_pronunciation_overrides",
+]

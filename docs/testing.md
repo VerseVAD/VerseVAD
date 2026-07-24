@@ -136,8 +136,8 @@ multiword assignments, require at least three pairs, and remain descriptive.
 
 The Stage 4 completion suite passed `172 passed` on 2026-07-23. The synthetic
 demonstration and installed-source contract passed. Diagnostics, source and
-lock checks, rebuilt-guide structural validation, and the pending Word visual
-render limitation are recorded in
+lock checks, and rebuilt-guide structural validation passed then. The deferred
+Word visual review was completed during Stage 5 on 2026-07-24 and is recorded in
 [`poetic-fingerprint-stage4-validation.md`](poetic-fingerprint-stage4-validation.md).
 
 ## Validation performed
@@ -266,3 +266,28 @@ views, definitions, stopword sensitivity, cumulative totals, midpoint-centered
 contributors, the excluded-match evidence filter, a fresh `kiss` Lexicon
 Explorer lookup, and exact-case project deletion with a visible success
 confirmation. The temporary database was removed afterward.
+
+Poetic Fingerprint expansion Stage 5 adds adapter, engine, validation, export,
+application, and Streamlit coverage for exact pinned CMUdict files; unique,
+prosodically agreeing, materially ambiguous, vowelless, unmatched, and
+scholar-override states; Unicode apostrophes; proper names; possessive
+non-substitution; repeated words; empty input; incomplete lines; deterministic
+results; and invalid-source refusal. CSV and JSON checks confirm that every
+candidate remains visible and unresolved values remain blank. The
+hand-calculated command is:
+
+```powershell
+.\.venv\Scripts\python.exe -m versevad.pronunciation_validation
+```
+
+See
+[`poetic-fingerprint-stage5-validation.md`](poetic-fingerprint-stage5-validation.md)
+for exact expected values, installed-source checks, beginner interface steps,
+and limitations.
+
+The Stage 5 completion suite passed `185 passed` on 2026-07-24. Phase 1,
+Phase 2, Concreteness, SUBTLEX-US Frequency, Kuperman AoA, and pronunciation
+synthetic validations all passed, as did all 11 diagnostics, the installed
+CMUdict contract, the 86-package offline lock check, and `git diff --check`.
+Both rebuilt Word guides passed structural tests and complete visual
+inspection: 37 User Manual pages and 26 Values and Terminology Guide pages.

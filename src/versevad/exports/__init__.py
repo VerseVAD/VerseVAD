@@ -33,6 +33,14 @@ from versevad.exports.frequency import (
 )
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.poem_document_json import export_poem_document_json
+from versevad.exports.pronunciation import (
+    export_pronunciation_bundle,
+    export_pronunciation_json,
+    export_pronunciation_lines_csv,
+    export_pronunciation_summary_csv,
+    export_pronunciation_token_audit_csv,
+    export_pronunciation_types_csv,
+)
 
 __all__ = [
     "export_analysis_csv",
@@ -62,4 +70,10 @@ __all__ = [
     "export_frequency_token_audit_csv",
     "export_phase2_csv",
     "export_poem_document_json",
+    "export_pronunciation_bundle",
+    "export_pronunciation_json",
+    "export_pronunciation_lines_csv",
+    "export_pronunciation_summary_csv",
+    "export_pronunciation_token_audit_csv",
+    "export_pronunciation_types_csv",
 ]

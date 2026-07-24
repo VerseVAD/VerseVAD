@@ -286,3 +286,31 @@ merge or substitute them. See
 [`poetic-fingerprint-stage4.md`](poetic-fingerprint-stage4.md) for the exact
 contract, calculations, source-response fields, matching policy, and
 limitations.
+
+## Optional local CMU Pronouncing Dictionary resource
+
+Poetic Fingerprint Stage 5 uses official `cmusphinx/cmudict` files pinned at
+repository commit `74790861f652b15e4ac49015a90074ad62a27690`. This resource
+is a pronunciation dictionary, not an affective or lexical-semantic rating
+lexicon, and it is never pooled with VAD, emotion, concreteness, frequency, or
+AoA values.
+
+The authoritative analysis-time files are:
+
+- `resources/pronunciation/cmudict.dict`, SHA-256
+  `81917843c7f44ce2b094ac63873c2c7a4cf802040792c455ba3ca406891c3d22`;
+- `resources/pronunciation/cmudict.phones`, SHA-256
+  `ffb588a5e55684723582c7256e1d2f9fadb130011392d9e59237c76e34c2cfd6`;
+  and
+- `resources/pronunciation/cmudict.symbols`, SHA-256
+  `408ccaae803641c6d7b626b6299949320c2dbca96b2220fd3fb17887b023b027`.
+
+The pinned dictionary has 135,166 source rows and 126,052 normalized
+spellings. Every alternative pronunciation remains auditable. CMUdict
+primarily represents North American English and acknowledges possible errors,
+omissions, and inconsistencies. Its license permits unrestricted research and
+commercial use with requested acknowledgment of Carnegie Mellon University.
+
+See [`poetic-fingerprint-stage5.md`](poetic-fingerprint-stage5.md) for the
+exact contract, resolution policy, overrides, calculations, exports, and
+limitations.

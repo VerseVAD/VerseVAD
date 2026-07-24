@@ -28,6 +28,7 @@ from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.frequency import export_frequency_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.poem_document_json import export_poem_document_json
+from versevad.exports.pronunciation import export_pronunciation_bundle
 from versevad.lexical_semantic.concreteness import (
     ConcretenessAnalysisResult,
     ConcretenessConfiguration,
@@ -62,6 +63,12 @@ from versevad.preprocessing import (
     SpacyEnglishPreprocessor,
     TextPreprocessor,
     create_text_document,
+)
+from versevad.prosody.pronunciation import (
+    PronunciationAnalysisResult,
+    PronunciationConfiguration,
+    PronunciationModule,
+    PronunciationModuleError,
 )
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
 
@@ -167,6 +174,10 @@ class AnalysisRequest:
     frequency_configuration: FrequencyConfiguration = FrequencyConfiguration()
     include_aoa: bool = False
     aoa_configuration: AoAConfiguration = AoAConfiguration()
+    include_pronunciation: bool = False
+    pronunciation_configuration: PronunciationConfiguration = (
+        PronunciationConfiguration()
+    )
 
 
 @dataclass(frozen=True)
@@ -179,6 +190,7 @@ class WorkspaceAnalysis:
     concreteness: ConcretenessAnalysisResult | None = None
     frequency: FrequencyAnalysisResult | None = None
     aoa: AoAAnalysisResult | None = None
+    pronunciation: PronunciationAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -539,6 +551,7 @@ def run_workspace_analysis(
     concreteness_module: ConcretenessModule | None = None,
     frequency_module: FrequencyModule | None = None,
     aoa_module: AoAModule | None = None,
+    pronunciation_module: PronunciationModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -549,6 +562,7 @@ def run_workspace_analysis(
         and not request.include_concreteness
         and not request.include_frequency
         and not request.include_aoa
+        and not request.include_pronunciation
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -651,15 +665,26 @@ def run_workspace_analysis(
             )
         except AoAModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
+    pronunciation = None
+    if request.include_pronunciation:
+        module = pronunciation_module or PronunciationModule(resource_root)
+        try:
+            pronunciation = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                request.pronunciation_configuration,
+            )
+        except PronunciationModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
-        request,
-        document,
-        results,
-        comparison,
-        poem_document,
-        concreteness,
-        frequency,
-        aoa,
+        request=request,
+        document=document,
+        results=results,
+        comparison=comparison,
+        poem_document=poem_document,
+        concreteness=concreteness,
+        frequency=frequency,
+        aoa=aoa,
+        pronunciation=pronunciation,
     )
 
 
@@ -1797,6 +1822,73 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     "plain_language_note": relationship.note,
                 }
             )
+    if workspace.pronunciation is not None:
+        pronunciation = workspace.pronunciation
+        summary = pronunciation.summary
+        for metric, value, unit, denominator, note in (
+            (
+                "Mean syllables per resolved word",
+                summary.syllables_per_resolved_word.mean,
+                "dictionary syllables per resolved lexical token",
+                f"{summary.resolved_token_count} resolved tokens",
+                (
+                    "Dictionary-based North American pronunciation evidence; "
+                    "materially different alternatives remain unresolved."
+                ),
+            ),
+            (
+                "Median syllables per complete line",
+                summary.syllables_per_complete_line.median,
+                "dictionary syllables per complete physical line",
+                f"{summary.complete_line_count} complete lines",
+                "Incomplete lines remain missing rather than undercounted.",
+            ),
+            (
+                "Lexical stress density",
+                summary.stress_density,
+                "proportion of resolved syllables",
+                f"{summary.total_resolved_syllables} resolved syllables",
+                (
+                    "Primary and secondary dictionary stress combined; not "
+                    "meter or performed rhythm."
+                ),
+            ),
+            (
+                "Resolved pronunciation coverage",
+                summary.token_coverage,
+                "proportion",
+                (
+                    f"{summary.resolved_token_count} of "
+                    f"{summary.eligible_token_count} eligible lexical tokens"
+                ),
+                "Unmatched and materially ambiguous observations remain missing.",
+            ),
+            (
+                "Complete-line coverage",
+                summary.complete_line_coverage,
+                "proportion",
+                (
+                    f"{summary.complete_line_count} of "
+                    f"{summary.eligible_line_count} eligible physical lines"
+                ),
+                (
+                    "A line is complete only when every eligible lexical token "
+                    "has resolved syllable and stress evidence."
+                ),
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Pronunciation and prosody foundation",
+                    "lexicon": "Pinned official CMU Pronouncing Dictionary",
+                    "analysis_view": "Exact observed-form dictionary evidence",
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
     return _csv_bytes(fields, rows)
 
 
@@ -1936,6 +2028,36 @@ def csv_reading_guide() -> bytes:
             "important_caution": "The official Kuperman source is kept separate from derivative and test-based AoA workbooks.",
         },
         {
+            "file": "pronunciation_summary.csv",
+            "what_it_answers": "What dictionary-based syllable, lexical-stress, and coverage summaries are available?",
+            "start_with": "resolved-token coverage, complete-line coverage, syllables per word and line, and stress density.",
+            "important_caution": "CMUdict reflects North American dictionary pronunciations; the results are not meter, rhyme, or performed scansion.",
+        },
+        {
+            "file": "pronunciation_lines.csv",
+            "what_it_answers": "Which physical lines have complete dictionary syllable and lexical-stress evidence?",
+            "start_with": "source_text, resolution_coverage, is_complete, syllable_count, and lexical_stress_sequence.",
+            "important_caution": "Incomplete lines keep totals and sequences missing rather than deceptively low.",
+        },
+        {
+            "file": "pronunciation_types.csv",
+            "what_it_answers": "Which observed word forms resolve, remain ambiguous, or require correction?",
+            "start_with": "lookup_form, statuses, dictionary_candidate_count, candidate_phones, and resolved fields.",
+            "important_caution": "Observed forms are not silently replaced by lemmas or possessive bases.",
+        },
+        {
+            "file": "pronunciation_token_audit.csv",
+            "what_it_answers": "What pronunciation candidates and decisions apply to every token occurrence?",
+            "start_with": "surface_form, status, candidate phones/stresses/syllables, resolved fields, and reason.",
+            "important_caution": "Confidence labels are categorical source-resolution descriptions, not calibrated probabilities.",
+        },
+        {
+            "file": "pronunciation_result.json",
+            "what_it_answers": "Can software reproduce the complete pronunciation/prosody-foundation result and method?",
+            "start_with": "module_result, configuration, resource validation, summaries, and token audit.",
+            "important_caution": "Scholar overrides are poem-specific and remain distinct from dictionary candidates.",
+        },
+        {
             "file": "phase2_coverage.csv",
             "what_it_answers": "How much vocabulary matched each source?",
             "start_with": "lexical_token_coverage and matched_token_count.",
@@ -2022,6 +2144,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.aoa
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.pronunciation is not None:
+                for filename, content in export_pronunciation_bundle(
+                    workspace.pronunciation
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -2049,6 +2176,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "descriptive type-level relationships, token matching, resource "
                 "provenance, and configuration. These results are not "
                 "diagnostic of cognitive impairment.\n"
+                "When present, the pronunciation files report exact observed-form "
+                "CMUdict candidates, resolved dictionary syllables and lexical "
+                "stress, complete-line summaries, ambiguity, out-of-dictionary "
+                "coverage, scholar overrides, and resource provenance. They do "
+                "not classify meter, rhyme, or performed scansion.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

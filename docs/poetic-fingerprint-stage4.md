@@ -1,8 +1,8 @@
 # Poetic Fingerprint Expansion: Stage 4 Age of Acquisition
 
-Status: implementation, engine validation, and source validation complete on
-2026-07-23; final Word visual QA remains pending because the installed Word
-PDF converter stalled
+Status: complete. Implementation, engine validation, and source validation
+completed on 2026-07-23; the deferred Word visual QA was completed during
+Stage 5 on 2026-07-24.
 
 ## Purpose
 

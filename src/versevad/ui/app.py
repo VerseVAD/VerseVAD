@@ -34,6 +34,7 @@ _application_was_reloaded = (
             "RESOURCE_ROOT",
             "FrequencyConfiguration",
             "AoAConfiguration",
+            "PronunciationConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -57,14 +58,18 @@ if _application_was_reloaded:
         "versevad.adapters.concreteness",
         "versevad.adapters.subtlex_us",
         "versevad.adapters.kuperman_aoa",
+        "versevad.adapters.cmudict",
         "versevad.adapters",
         "versevad.analysis.phase2",
         "versevad.lexical_semantic.concreteness",
         "versevad.lexical_semantic.frequency",
         "versevad.lexical_semantic.aoa",
+        "versevad.prosody.pronunciation",
+        "versevad.prosody",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
         "versevad.exports.aoa",
+        "versevad.exports.pronunciation",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -118,6 +123,11 @@ from versevad.lexical_semantic.frequency import (
 )
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
+from versevad.prosody.pronunciation import (
+    PronunciationConfiguration,
+    PronunciationModule,
+    parse_pronunciation_overrides,
+)
 from versevad.ui.stopwords import render_stopword_settings
 
 
@@ -406,6 +416,34 @@ if workspace_page == "One Poem":
         else:
             st.info(aoa_status.message)
 
+        pronunciation_statuses = PronunciationModule(
+            RESOURCE_ROOT
+        ).validate_resources()
+        pronunciation_available = all(
+            status.available for status in pronunciation_statuses
+        )
+        include_pronunciation = st.checkbox(
+            "Pronunciation & prosody foundation (CMUdict)",
+            value=False,
+            disabled=not pronunciation_available,
+            key="include_pronunciation",
+            help=(
+                "Optional exact observed-form dictionary pronunciations, "
+                "syllable counts, and lexical stress. This Stage 5 module does "
+                "not classify meter, rhyme, or performed scansion."
+            ),
+        )
+        if pronunciation_available:
+            st.caption(
+                "Available locally. VerseVAD reads the pinned official CMUdict "
+                "files in place, records all three SHA-256 checksums, and retains "
+                "every pronunciation alternative."
+            )
+        else:
+            for status in pronunciation_statuses:
+                if not status.available:
+                    st.info(status.message)
+
         with st.expander("Advanced methodology settings"):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -626,6 +664,62 @@ if workspace_page == "One Poem":
                 "are retrospective normative lexical evidence and are not "
                 "diagnostic of cognitive impairment or decline."
             )
+            st.markdown("**Pronunciation & prosody-foundation settings**")
+            pronunciation_overrides_text = st.text_area(
+                "Poem-specific pronunciation overrides",
+                value="",
+                key="pronunciation_overrides",
+                disabled=not include_pronunciation,
+                height=120,
+                placeholder=(
+                    "permit = P ER0 M IH1 T | noun reading in this line\n"
+                    "fire = F AY1 ER0 | two-syllable reading"
+                ),
+                help=(
+                    "One observed word form per line: word = uppercase ARPAbet "
+                    "phones | brief scholarly note. Overrides apply only to this "
+                    "analysis and remain distinct from dictionary candidates."
+                ),
+            )
+            pronunciation_columns = st.columns(3)
+            pronunciation_warning_threshold = pronunciation_columns[
+                0
+            ].number_input(
+                "Pronunciation coverage caution threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.8,
+                step=0.05,
+                key="pronunciation_coverage_warning",
+                disabled=not include_pronunciation,
+            )
+            pronunciation_minimum_complete_lines = pronunciation_columns[
+                1
+            ].number_input(
+                "Minimum complete lines",
+                min_value=1,
+                max_value=100,
+                value=2,
+                step=1,
+                key="pronunciation_minimum_complete_lines",
+                disabled=not include_pronunciation,
+            )
+            pronunciation_minimum_resolved_tokens = pronunciation_columns[
+                2
+            ].number_input(
+                "Minimum resolved tokens",
+                min_value=1,
+                max_value=1000,
+                value=3,
+                step=1,
+                key="pronunciation_minimum_resolved_tokens",
+                disabled=not include_pronunciation,
+            )
+            st.caption(
+                "Exact observed forms only: no lemma, possessive-base, or "
+                "grapheme-to-phoneme fallback. Multiple dictionary candidates "
+                "resolve only when syllable count and lexical stress agree."
+            )
         st.markdown("**Stopword reporting**")
         reporting_columns = st.columns(2)
         show_all_matched = reporting_columns[0].checkbox(
@@ -706,6 +800,28 @@ if workspace_page == "One Poem":
         if include_aoa:
             st.warning(aoa_configuration_error)
 
+    pronunciation_configuration_error = ""
+    try:
+        pronunciation_configuration = PronunciationConfiguration(
+            overrides=parse_pronunciation_overrides(
+                pronunciation_overrides_text
+            ),
+            low_coverage_warning_threshold=float(
+                pronunciation_warning_threshold
+            ),
+            minimum_complete_lines=int(
+                pronunciation_minimum_complete_lines
+            ),
+            minimum_resolved_tokens=int(
+                pronunciation_minimum_resolved_tokens
+            ),
+        )
+    except ValueError as error:
+        pronunciation_configuration_error = str(error)
+        pronunciation_configuration = PronunciationConfiguration()
+        if include_pronunciation:
+            st.warning(pronunciation_configuration_error)
+
     if analyze_clicked:
         try:
             if concreteness_configuration_error:
@@ -714,6 +830,8 @@ if workspace_page == "One Poem":
                 raise ValueError(frequency_configuration_error)
             if aoa_configuration_error:
                 raise ValueError(aoa_configuration_error)
+            if pronunciation_configuration_error:
+                raise ValueError(pronunciation_configuration_error)
             request = AnalysisRequest(
                 project_name=st.session_state["project_name"],
                 title=st.session_state["poem_title"],
@@ -731,6 +849,8 @@ if workspace_page == "One Poem":
                 frequency_configuration=frequency_configuration,
                 include_aoa=include_aoa,
                 aoa_configuration=aoa_configuration,
+                include_pronunciation=include_pronunciation,
+                pronunciation_configuration=pronunciation_configuration,
             )
             with st.spinner("Analyzing locally and preserving the audit trail…"):
                 st.session_state["workspace"] = run_workspace_analysis(
@@ -761,6 +881,7 @@ if workspace_page == "One Poem":
         or include_concreteness != workspace.request.include_concreteness
         or include_frequency != workspace.request.include_frequency
         or include_aoa != workspace.request.include_aoa
+        or include_pronunciation != workspace.request.include_pronunciation
         or (
             include_concreteness
             and concreteness_configuration
@@ -774,6 +895,11 @@ if workspace_page == "One Poem":
         or (
             include_aoa
             and aoa_configuration != workspace.request.aoa_configuration
+        )
+        or (
+            include_pronunciation
+            and pronunciation_configuration
+            != workspace.request.pronunciation_configuration
         )
     ):
         st.warning(
@@ -796,6 +922,7 @@ if workspace_page == "One Poem":
         concreteness_tab,
         frequency_tab,
         aoa_tab,
+        pronunciation_tab,
         vad_tab,
         emotion_tab,
         evidence_tab,
@@ -808,6 +935,7 @@ if workspace_page == "One Poem":
             "Concreteness Profile",
             "Frequency & Rarity",
             "Age of Acquisition",
+            "Pronunciation & Prosody",
             "VAD Profile",
             "Emotion Profile",
             "Evidence",
@@ -974,6 +1102,57 @@ if workspace_page == "One Poem":
                 hide_index=True,
                 width="stretch",
             )
+        if workspace.pronunciation is not None:
+            pronunciation_summary = workspace.pronunciation.summary
+            st.markdown("**Pronunciation and prosody-foundation coverage**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Resource": "Pinned official CMUdict",
+                            "Resolved tokens": (
+                                pronunciation_summary.resolved_token_count
+                            ),
+                            "Eligible tokens": (
+                                pronunciation_summary.eligible_token_count
+                            ),
+                            "Resolved-token coverage": (
+                                pronunciation_summary.token_coverage
+                            ),
+                            "Resolved unique words": (
+                                pronunciation_summary.resolved_unique_type_count
+                            ),
+                            "Eligible unique words": (
+                                pronunciation_summary.eligible_unique_type_count
+                            ),
+                            "Unique-word coverage": (
+                                pronunciation_summary.unique_type_coverage
+                            ),
+                            "Complete lines": (
+                                pronunciation_summary.complete_line_count
+                            ),
+                            "Eligible lines": (
+                                pronunciation_summary.eligible_line_count
+                            ),
+                            "Complete-line coverage": (
+                                pronunciation_summary.complete_line_coverage
+                            ),
+                        }
+                    ]
+                ).style.format(
+                    {
+                        "Resolved-token coverage": lambda value: _percentage(
+                            value
+                        ),
+                        "Unique-word coverage": lambda value: _percentage(value),
+                        "Complete-line coverage": lambda value: _percentage(
+                            value
+                        ),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
         if show_stopword_excluded:
             filtered_coverage = [
                 {
@@ -1080,6 +1259,14 @@ if workspace_page == "One Poem":
                     warning.message,
                 )
                 for warning in workspace.aoa.module_result.warnings
+            )
+        if workspace.pronunciation is not None:
+            warnings.extend(
+                (
+                    "Pronunciation & Prosody",
+                    warning.message,
+                )
+                for warning in workspace.pronunciation.module_result.warnings
             )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
@@ -2169,6 +2356,231 @@ if workspace_page == "One Poem":
                 st.write(f"**Citation:** {resource.citation}")
                 st.caption(resource.license_notice)
 
+    with pronunciation_tab:
+        pronunciation = workspace.pronunciation
+        if pronunciation is None:
+            st.info(
+                "Select Pronunciation & prosody foundation, then analyze again "
+                "to see dictionary syllable and lexical-stress evidence."
+            )
+        else:
+            st.subheader("Dictionary Pronunciation, Syllables & Lexical Stress")
+            st.warning(
+                "CMUdict supplies North American dictionary pronunciations. "
+                "Dialect, historical pronunciation, poetic elision, and "
+                "performance may differ. These results do not classify meter, "
+                "rhyme, or performed scansion."
+            )
+            summary = pronunciation.summary
+            metric_columns = st.columns(5)
+            metric_columns[0].metric(
+                "Resolved coverage",
+                _percentage(summary.token_coverage),
+                help=(
+                    f"{summary.resolved_token_count} of "
+                    f"{summary.eligible_token_count} eligible lexical tokens"
+                ),
+            )
+            metric_columns[1].metric(
+                "Mean syllables / word",
+                _decimal(summary.syllables_per_resolved_word.mean),
+                help=(
+                    f"Based on {summary.resolved_token_count} resolved token "
+                    "occurrences."
+                ),
+            )
+            metric_columns[2].metric(
+                "Median syllables / line",
+                _decimal(summary.syllables_per_complete_line.median),
+                help=(
+                    f"Based on {summary.complete_line_count} complete physical "
+                    "lines; incomplete lines remain missing."
+                ),
+            )
+            metric_columns[3].metric(
+                "Lexical stress density",
+                _percentage(summary.stress_density),
+                help=(
+                    "Primary and secondary lexical stress among resolved "
+                    "dictionary syllables; not metrical stress."
+                ),
+            )
+            metric_columns[4].metric(
+                "Complete lines",
+                (
+                    f"{summary.complete_line_count}/"
+                    f"{summary.eligible_line_count}"
+                ),
+                help=(
+                    "Every eligible word must resolve before VerseVAD reports a "
+                    "line total or stress sequence."
+                ),
+            )
+            st.caption(
+                f"Exact observed-form lookup. {summary.ambiguous_token_count:,} "
+                "token occurrence(s) have materially different dictionary "
+                f"alternatives; {summary.unmatched_token_count:,} are outside "
+                "the pinned dictionary; neither receives a fabricated value."
+            )
+
+            if pronunciation.module_result.warnings:
+                with st.expander(
+                    "Pronunciation warnings and methodology notes "
+                    f"({len(pronunciation.module_result.warnings)})"
+                ):
+                    for warning in pronunciation.module_result.warnings:
+                        if warning.severity.value == "information":
+                            st.info(warning.message)
+                        else:
+                            st.warning(warning.message)
+
+            st.markdown("**Physical-line syllable and lexical-stress evidence**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Line": line.line_number,
+                            "Stanza": line.stanza_number,
+                            "Text": line.source_text,
+                            "Eligible tokens": line.eligible_token_count,
+                            "Resolved tokens": line.resolved_token_count,
+                            "Coverage": line.resolution_coverage,
+                            "Complete": line.is_complete,
+                            "Syllables": line.syllable_count,
+                            "Lexical stress by word": (
+                                line.lexical_stress_sequence
+                            ),
+                            "Stress density": line.stress_density,
+                        }
+                        for line in pronunciation.line_summaries
+                    ]
+                ).style.format(
+                    {
+                        "Coverage": lambda value: _percentage(value),
+                        "Stress density": lambda value: _percentage(value),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            st.caption(
+                "Stress digits follow CMUdict/ARPAbet: 0 = unstressed, "
+                "1 = primary lexical stress, 2 = secondary lexical stress. "
+                "A vertical bar separates words."
+            )
+
+            unresolved = [
+                item
+                for item in pronunciation.token_audit
+                if item.eligible and not item.resolved
+            ]
+            st.markdown("**Words needing attention**")
+            if unresolved:
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Surface": item.surface_form,
+                                "Line": item.line_number,
+                                "Status": item.status.value.replace("_", " "),
+                                "Candidate phones": " | ".join(
+                                    item.dictionary_candidate_phones
+                                ),
+                                "Candidate stresses": " | ".join(
+                                    item.dictionary_candidate_stresses
+                                ),
+                                "Candidate syllables": " | ".join(
+                                    str(value)
+                                    for value in (
+                                        item.dictionary_candidate_syllable_counts
+                                    )
+                                ),
+                                "Why": item.reason,
+                            }
+                            for item in unresolved
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.info(
+                    "To resolve a context-sensitive, archaic, dialectal, or "
+                    "poetically elided form, add a poem-specific override in "
+                    "Advanced methodology settings using: "
+                    "`word = ARPAbet phones | scholarly note`, then analyze again."
+                )
+            else:
+                st.success(
+                    "Every eligible observed word form has resolved dictionary "
+                    "syllable and lexical-stress evidence."
+                )
+
+            with st.expander(
+                f"Pronunciation token audit ({len(pronunciation.token_audit):,} rows)"
+            ):
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Surface": item.surface_form,
+                                "Normalized surface": item.normalized_form,
+                                "POS": item.part_of_speech,
+                                "Line": item.line_number,
+                                "Eligible": item.eligible,
+                                "Resolved": item.resolved,
+                                "Status": item.status.value,
+                                "Candidates": item.dictionary_candidate_count,
+                                "Candidate phones": " | ".join(
+                                    item.dictionary_candidate_phones
+                                ),
+                                "Candidate stress": " | ".join(
+                                    item.dictionary_candidate_stresses
+                                ),
+                                "Candidate syllables": " | ".join(
+                                    str(value)
+                                    for value in (
+                                        item.dictionary_candidate_syllable_counts
+                                    )
+                                ),
+                                "Resolved phones": item.resolved_phones,
+                                "Resolved stress": (
+                                    item.resolved_stress_pattern
+                                ),
+                                "Resolved syllables": (
+                                    item.resolved_syllable_count
+                                ),
+                                "Resolution label": item.confidence_label,
+                                "Override note": item.override_note,
+                                "Why": item.reason,
+                            }
+                            for item in pronunciation.token_audit
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                    height=440,
+                )
+
+            with st.expander("Pronunciation resource and calculation provenance"):
+                provenance = pronunciation.module_result.provenance
+                for resource in provenance.resources:
+                    st.write(
+                        f"**{resource.display_name}:** {resource.version}  \n"
+                        f"SHA-256: `{resource.source_sha256}`  \n"
+                        f"Adapter: {resource.adapter_version}"
+                    )
+                st.write(
+                    f"**Official repository commit:** "
+                    f"`{pronunciation.resource_statuses[0].version}`  \n"
+                    f"**Pronouncing package:** "
+                    f"{pronunciation.pronouncing_package_version}  \n"
+                    f"**cmudict package:** "
+                    f"{pronunciation.cmudict_package_version}  \n"
+                    f"**Configuration:** `{provenance.configuration_id}`  \n"
+                    f"**Lookup policy:** {provenance.lookup_policy}  \n"
+                    f"**Inclusion policy:** {provenance.inclusion_policy}"
+                )
+
     with vad_tab:
         visible_vad_views = set()
         if show_all_matched:
@@ -2800,7 +3212,8 @@ if workspace_page == "One Poem":
             st.info(
                 "No affective lexicon was selected. Optional-module matching is "
                 "available in the Concreteness, Frequency & Rarity, or Age of "
-                "Acquisition token audits and downloads."
+                "Acquisition tabs, or in the Pronunciation & Prosody audit and "
+                "downloads."
             )
 
     with download_tab:
@@ -2847,7 +3260,9 @@ if workspace_page == "One Poem":
             "frequency is selected, it includes its summary, distribution, "
             "structural, POS, term, token-audit, and JSON files. When Age of "
             "Acquisition is selected, it includes summary, distribution, "
-            "structural, POS, term, relationship, token-audit, and JSON files."
+            "structural, POS, term, relationship, token-audit, and JSON files. "
+            "When Pronunciation & Prosody is selected, it includes summary, "
+            "line, observed-type, candidate/token-audit, and JSON files."
         )
 
     with help_tab:
@@ -2858,11 +3273,12 @@ if workspace_page == "One Poem":
             2. **Concreteness:** Read the source 1-5 distribution with both coverage denominators and configured bands.
             3. **Frequency:** Read median SUBTLEX-US Zipf with its named corpus and matched coverage.
             4. **Age of Acquisition:** Read source means in years, response evidence, configured bands, and the non-diagnostic warning.
-            5. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
-            6. **Emotion associations:** Read category rates as overlapping lexical associations.
-            7. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
-            8. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
-            9. **Manifest:** Use this only when you need provenance or reproducibility details.
+            5. **Pronunciation & Prosody:** Read exact observed-form coverage, unresolved alternatives, complete-line syllables, and lexical stress; do not treat this as meter or performed scansion.
+            6. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
+            7. **Emotion associations:** Read category rates as overlapping lexical associations.
+            8. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.
+            9. **Evidence:** Inspect the terms, lemmas, phrases, and suppressions producing a pattern.
+            10. **Manifest:** Use this only when you need provenance or reproducibility details.
             """
         )
         st.info(
@@ -2886,6 +3302,10 @@ if workspace_page == "One Poem":
             ("Normative lexical AoA", "A matched retrospective source mean, in years, for when respondents believed they learned a word; it is not grade level or difficulty."),
             ("AoA source SD", "Variation among source respondents for one word, kept distinct from variation among the poem's matched normative means."),
             ("Content words only", "An optional frequency or AoA scope limited to model-tagged NOUN, VERB, ADJ, and ADV; it is off by default."),
+            ("Dictionary pronunciation coverage", "The share of eligible lexical token occurrences whose exact observed form has one CMUdict pronunciation, prosodically agreeing alternatives, or an explicit poem-specific scholar override."),
+            ("Lexical stress digits", "CMUdict/ARPAbet marks 0 for unstressed, 1 for primary lexical stress, and 2 for secondary lexical stress; this is not a metrical scansion."),
+            ("Complete pronunciation line", "A physical line in which every eligible lexical token has resolved syllable and lexical-stress evidence; incomplete line totals remain missing."),
+            ("Scholar pronunciation override", "A poem-specific, reversible ARPAbet pronunciation plus a required note, kept distinct from every dictionary candidate."),
             ("Association", "A binary category link; it is not an intensity or contextual interpretation."),
             ("Intensity", "A source rating for a supplied word-category pair; missing pairs stay missing."),
             ("Suppressed component", "A visible unigram candidate not counted because a preferred phrase was selected."),

@@ -489,3 +489,34 @@ capitalization and ratings. The Warriner file contains ten such pairs. The
 adapter retains every source entry. Exact source capitalization may resolve the
 pair; otherwise the occurrence is left unmatched for review. VerseVAD does not
 average the candidates or select the first row.
+
+## Stage 5 pronunciation, syllable, and lexical stress
+
+Stage 5 uses exact observed-form entries from official CMUdict files pinned at
+one upstream commit. Case and apostrophe style are normalized for lookup, but
+the observed surface, normalized form, lemma, and every dictionary candidate
+remain separate. No lemma, possessive-base, spelling repair, or pronunciation
+prediction is substituted.
+
+One dictionary candidate resolves directly. Multiple candidates resolve only
+when every candidate agrees on both syllable count and the complete lexical-
+stress digit sequence; phone-string alternatives remain visible. A difference
+in syllables or stress is materially consequential and remains ambiguous until
+a poem-specific scholar override supplies validated ARPAbet phones and a
+required rationale. Confidence labels describe this categorical resolution
+status and are not probabilities.
+
+Unmatched, ambiguous, and source-vowelless observations have missing
+pronunciation, syllable, and stress values. A physical line receives a total
+and stress sequence only when every eligible lexical token resolves. This
+prevents partial coverage from creating deceptively short lines.
+
+Stress digits are CMUdict lexical evidence: `0` unstressed, `1` primary, and
+`2` secondary. Stress density divides primary plus secondary stressed
+syllables by all resolved syllables. It is not a measure of metrical fit or
+performed emphasis.
+
+CMUdict primarily represents North American English. Dialect, historical
+pronunciation, performance, context, and poetic elision can differ. Stage 5
+therefore reports dictionary-based pronunciation, syllable, and lexical-stress
+evidence, not the poem's definitive sound or meter.

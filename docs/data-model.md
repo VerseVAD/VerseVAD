@@ -352,6 +352,35 @@ PartOfSpeechView -> TokenOccurrence(s) -> TextVersion
  -> preserved original text -> pinned preprocessing model/version
 ```
 
+The current in-memory Stage 5 pronunciation path is:
+
+```text
+PronunciationAnalysisResult -> ModuleResult
+ -> PronunciationTokenResult(s) -> TokenOccurrence(s) -> TextVersion
+ -> preserved observed form -> CMUDictEntry -> CMUPronunciation candidate(s)
+ -> exact dictionary/phone/symbol source hashes
+```
+
+`PronunciationTokenResult` separates eligibility, observed lookup form,
+dictionary candidates, source line numbers, resolution status, resolved phones,
+resolved stress, resolved syllables, categorical confidence label, override
+note, and reason. An unresolved row cannot carry resolved syllable or stress
+values.
+
+`PronunciationLineSummary` records physical line/stanza identity, exact line
+text, eligible/resolved/ambiguous/unmatched counts, coverage, completeness,
+syllable total, word-grouped and compact lexical-stress sequences, stress
+counts, and density. Incomplete lines keep totals and sequences missing.
+
+`PronunciationConfiguration` contains thresholds, scenario identity, and
+poem-specific `PronunciationOverride` records. Each override stores an exact
+observed type, validated ARPAbet phones, and a required scholarly note. The
+configuration hash changes when any override changes.
+
+These records are not yet persisted in database schema 3. Their structured
+JSON export is the complete current record; a later schema migration must
+preserve the same distinctions and immutability.
+
 ## Transaction and backup rules
 
 - Database migrations run inside transactions where SQLite permits it.

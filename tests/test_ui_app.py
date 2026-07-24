@@ -163,6 +163,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
             "Concreteness Profile",
             "Frequency & Rarity",
             "Age of Acquisition",
+            "Pronunciation & Prosody",
             "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -232,6 +233,7 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
         "Concreteness Profile",
         "Frequency & Rarity",
         "Age of Acquisition",
+        "Pronunciation & Prosody",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -291,6 +293,7 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
         "Concreteness Profile",
         "Frequency & Rarity",
         "Age of Acquisition",
+        "Pronunciation & Prosody",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -363,6 +366,61 @@ def test_interface_runs_optional_aoa_profile_and_contextual_scope_if_present() -
     )
     assert any(
         "not diagnostic of cognitive impairment" in warning.value
+        for warning in app.warning
+    )
+
+
+def test_interface_runs_optional_pronunciation_and_override_workflow() -> None:
+    resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
+    if not all(
+        (resource_root / filename).is_file()
+        for filename in ("cmudict.dict", "cmudict.phones", "cmudict.symbols")
+    ):
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("Pronunciation interface validation")
+    app.text_area[0].input("The permit rings.\nStone.")
+    app.multiselect[0].set_value([])
+    pronunciation = next(
+        field
+        for field in app.checkbox
+        if field.label == "Pronunciation & prosody foundation (CMUdict)"
+    )
+    assert not pronunciation.disabled
+    pronunciation.set_value(True)
+    app.run(timeout=90)
+    overrides = next(
+        field
+        for field in app.text_area
+        if field.label == "Poem-specific pronunciation overrides"
+    )
+    overrides.input(
+        "the = DH AH0 | unstressed article in this reading\n"
+        "permit = P ER0 M IH1 T | noun reading"
+    )
+    app.run(timeout=90)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert any("Analysis complete" in message.value for message in app.success)
+    assert any(
+        heading.value == "Dictionary Pronunciation, Syllables & Lexical Stress"
+        for heading in app.subheader
+    )
+    coverage = next(
+        metric for metric in app.metric if metric.label == "Resolved coverage"
+    )
+    assert coverage.value == "100.0%"
+    assert any(
+        "CMUdict supplies North American dictionary pronunciations"
+        in warning.value
         for warning in app.warning
     )
 

@@ -172,13 +172,15 @@ alignment, and real bullet/decimal numbering. The resulting files are 70,669
 bytes for the User Manual and 61,498 bytes for the Values and Terminology
 Guide.
 
-Final visual inspection of the Word guides remains the one incomplete
-completion check. Microsoft Word opened each rebuilt guide read-only, but both
-`ExportAsFixedFormat` and PDF `SaveAs2` stalled before producing a file.
-Only the hidden Word processes started for this QA attempt were closed, and
-all temporary render files were removed. No guide or source resource was
-modified by the failed render. Open both guides in Word and visually inspect
-every page before changing the two `[~]` render items in `PLANS.md` to `[x]`.
+The deferred visual inspection was completed on 2026-07-24 during the Stage 5
+completion pass. The then-current rebuilt guides were exported read-only
+through installed Microsoft Word, rasterized at two-times scale, and inspected
+page by page: all 37 User Manual pages and all 26 Values and Terminology Guide
+pages. No clipped, overlapping, truncated, or broken content remained. The
+review caught one literal Markdown fence around a new pronunciation example;
+the shared guide builder was corrected to support fenced code blocks, both
+guides were rebuilt and re-rendered, and every affected and remaining page was
+rechecked. The two Stage 4 `[~]` carryovers in `PLANS.md` are now closed.
 
 ## Privacy, installation, and current corpus boundary
 

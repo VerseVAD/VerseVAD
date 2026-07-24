@@ -40,6 +40,7 @@ from versevad.preprocessing import (
     SpacyEnglishPreprocessor,
     create_text_document,
 )
+from tests.test_pronunciation import _module as synthetic_pronunciation_module
 
 
 @pytest.fixture
@@ -322,3 +323,37 @@ def test_detailed_download_starts_with_friendly_files_and_retains_audit(
         start_here = bundle.read("START_HERE.txt").decode("utf-8")
         assert "lexical evidence" in start_here
         assert "poem_document.json" in start_here
+
+
+def test_workspace_can_run_pronunciation_without_an_affective_lexicon(
+    tmp_path,
+    preprocessor,
+) -> None:
+    request = AnalysisRequest(
+        project_name="Pronunciation-only workspace",
+        title="Stage 5",
+        original_text="stone rings\nstone quorvax",
+        lexicon_ids=(),
+        include_pronunciation=True,
+    )
+    workspace = run_workspace_analysis(
+        request,
+        preprocessor=preprocessor,
+        resource_root=tmp_path,
+        pronunciation_module=synthetic_pronunciation_module(tmp_path),
+    )
+
+    assert workspace.results == ()
+    assert workspace.pronunciation is not None
+    assert workspace.pronunciation.summary.resolved_token_count == 3
+    summary_rows = _csv_rows(scholar_summary_csv(workspace))
+    assert any(
+        row["section"] == "Pronunciation and prosody foundation"
+        for row in summary_rows
+    )
+    with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
+        names = set(bundle.namelist())
+        assert "pronunciation_summary.csv" in names
+        assert "pronunciation_lines.csv" in names
+        assert "pronunciation_token_audit.csv" in names
+        assert "pronunciation_result.json" in names

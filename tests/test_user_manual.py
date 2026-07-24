@@ -36,6 +36,8 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
         text = "".join(element.text or "" for element in document.iter(f"{W}t"))
         assert "{{VERSION}}" not in text
         assert "{{DATE}}" not in text
+        assert "```" not in text
+        assert "permit = P ER0 M IH1 T | noun reading in this line" in text
         for required in (
             "Dual VAD reporting and stopwords",
             "Projects & Corpus Workspace",
@@ -64,6 +66,9 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "aoa_token_audit.csv",
             "31,124 unique nonblank word rows",
             "not diagnostic of cognitive impairment or decline",
+            "Dictionary pronunciation, syllables, and lexical stress",
+            "Pronunciation & Prosody",
+            "pronunciation_token_audit.csv",
         ):
             assert required in text
 
@@ -146,6 +151,7 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
         text = "".join(element.text or "" for element in document.iter(f"{W}t"))
         assert "{{VERSION}}" not in text
         assert "{{DATE}}" not in text
+        assert "```" not in text
         for required in (
             "Valence, Arousal, and Dominance",
             "Stopwords and the Two VAD Views",
@@ -176,5 +182,7 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "AoA orientation band",
             "mean retrospective normative lexical AoA of 7.2 years",
             "Numeric-response proportion",
+            "Dictionary Pronunciation, Syllables, and Lexical Stress",
+            "poem-specific ARPAbet override",
         ):
             assert required in text

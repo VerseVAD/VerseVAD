@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence**: normative ratings and associations attached to matched words and phrases. Its optional concreteness, corpus-relative frequency, and retrospective Age of Acquisition modules remain separate lexical constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, or replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence** and optional dictionary-based pronunciation evidence. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, and pronunciation/lexical-stress results remain separate constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, classify meter or rhyme in Stage 5, or replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, and **Age of Acquisition** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, and **Pronunciation & Prosody** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -55,7 +55,11 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
 - optional Kuperman retrospective Age of Acquisition statistics, coverage,
   source-response evidence, configurable orientation bands, structural
   summaries, descriptive cross-module relationships, term rankings, and token
-  audit.
+  audit; and
+- optional exact observed-form CMUdict pronunciation candidates, resolved
+  syllables, complete-line totals, lexical-stress sequences, coverage,
+  ambiguity evidence, poem-specific scholar overrides, and token/type/line
+  audits.
 
 ## What VerseVAD does not do
 
@@ -67,7 +71,7 @@ Ordinary use runs locally on this computer at `http://127.0.0.1:8501`. VerseVAD 
 
 The supplied lexicons remain under `source_lexicons/` and must not be renamed, edited, merged, or redistributed. VerseVAD reads them in place, records SHA-256 checksums, and stores derived project data separately.
 
-Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper, Stage 3 SUBTLEX-US workbook, and Stage 4 Kuperman Age of Acquisition workbook and paper must retain their exact paths and checksums. VerseVAD reads the workbooks in place and does not copy any complete research source into an export.
+Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper, Stage 3 SUBTLEX-US workbook, Stage 4 Kuperman Age of Acquisition workbook and paper, and Stage 5 pinned CMUdict files must retain their exact paths and checksums. VerseVAD reads analysis sources in place and does not copy any complete research source into an export.
 
 # 2. Installation, startup, and shutdown
 
@@ -104,13 +108,13 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 2. Enter a title or working label.
 3. Paste a short poem, or upload a UTF-8 `.txt` file.
 4. Keep the selected lexicons and default methodology for the first run.
-5. Optionally enable **Normative lexical concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, and/or **Age of Acquisition profile (Kuperman et al. ratings)** under **Choose Evidence**.
+5. Optionally enable **Normative lexical concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, **Age of Acquisition profile (Kuperman et al. ratings)**, and/or **Pronunciation & prosody foundation (CMUdict)** under **Choose Evidence**.
 6. Keep both affective reporting views enabled.
 7. Click **Analyze this text**.
 8. In **Overview**, inspect coverage and warnings.
 9. In **VAD Profile**, compare all matched observations with stopwords excluded.
 10. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
-11. If enabled, inspect the separate **Concreteness Profile**, **Frequency & Rarity**, and **Age of Acquisition** tabs.
+11. If enabled, inspect the separate **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, and **Pronunciation & Prosody** tabs.
 12. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
 13. In **Downloads**, save the readable summary or full audit bundle.
 
@@ -195,6 +199,26 @@ Source sampling and the contextual grammatical role of a poem occurrence are
 therefore separate. The optional contextual `NOUN`/`VERB`/`ADJ`/`ADV` scope
 remains available and off by default.
 
+## Optional CMU Pronouncing Dictionary resource
+
+The Stage 5 one-poem module reads official CMUdict files pinned at repository
+commit `74790861f652b15e4ac49015a90074ad62a27690`:
+
+- `resources/pronunciation/cmudict.dict`;
+- `resources/pronunciation/cmudict.phones`; and
+- `resources/pronunciation/cmudict.symbols`.
+
+The files contain North American dictionary pronunciations encoded in
+ARPAbet. The adapter validates exact checksums, source counts, alternative
+suffixes, phone/symbol inventories, vowel stress, duplicate variants, and
+malformed rows without editing them. Every pronunciation alternative remains
+auditable.
+
+CMUdict acknowledges possible errors, omissions, and inconsistencies.
+Dialect, historical pronunciation, context, poetic elision, and performance
+may differ. The module is a pronunciation/syllable/lexical-stress foundation;
+it does not classify meter, rhyme, or definitive performed scansion.
+
 # 5. How text becomes auditable matches
 
 ## Preserved original and processing representation
@@ -241,6 +265,14 @@ apostrophe or possessive fallbacks. A source row whose mean is `NA` remains
 visible as `source_entry_without_numeric_rating` but does not enter numeric
 summaries. Model-tagged proper nouns are excluded by default. Unmatched,
 ineligible, and source-unrated tokens retain missing ages rather than zero.
+
+The optional pronunciation module uses the exact normalized observed form
+only. It does not use the model lemma, strip possessive endings, repair
+spelling, or predict a pronunciation. One CMUdict candidate resolves directly.
+Several candidates resolve only when all agree on syllable count and the full
+lexical-stress sequence; otherwise the token remains ambiguous. Unmatched,
+ambiguous, and source-vowelless tokens retain missing pronunciation,
+syllable, and stress fields.
 
 ## Phrase-policy choices
 
@@ -446,6 +478,48 @@ difficulty, familiarity, comprehension, intelligence, literary value, or
 reader response. Age-of-acquisition results are not diagnostic of cognitive
 impairment or decline.
 
+## Dictionary pronunciation, syllables, and lexical stress
+
+When enabled, **Pronunciation & Prosody** reports exact observed-form CMUdict
+candidates, resolved-token and observed-type coverage, syllables per resolved
+word, complete-line syllable totals, word-grouped lexical-stress sequences,
+primary/secondary stress counts, stress density, and the complete candidate
+audit.
+
+CMUdict stress digits mean:
+
+| Digit | Meaning |
+|---|---|
+| `0` | Unstressed syllable |
+| `1` | Primary lexical stress |
+| `2` | Secondary lexical stress |
+
+One dictionary candidate resolves directly. Multiple candidates resolve only
+when every candidate agrees on both syllable count and the complete stress
+sequence. Phone alternatives remain visible. A difference in syllables or
+stress remains ambiguous; no candidate is silently selected.
+
+A physical line receives a syllable total and stress sequence only when every
+eligible lexical token resolves. An incomplete line remains missing rather
+than displaying a deceptively low partial total.
+
+Advanced settings accept poem-specific scholar overrides:
+
+```text
+permit = P ER0 M IH1 T | noun reading in this line
+```
+
+Phones must use uppercase symbols from the pinned local CMUdict inventory and
+include stressed or unstressed vowels. A note is required. The override is
+part of the configuration identity, applies only to the exact observed type in
+the current analysis, remains distinct from every dictionary candidate, and is
+reversible.
+
+The displayed confidence label is a categorical description of source
+resolution, not a probability. Report these results as dictionary-based North
+American pronunciation, syllable, and lexical-stress evidence. Do not call
+them definitive performed pronunciation, meter, rhyme, or scansion.
+
 ## Eight emotion associations
 
 NRC Emotion values are binary, multi-label associations. VerseVAD reports the eight emotions—anger, anticipation, disgust, fear, joy, sadness, surprise, and trust—in their own section. An entry can be associated with several categories, so percentages do not need to total 100 percent. Read the labeled denominator.
@@ -474,9 +548,9 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, and Kuperman Age of Acquisition modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, and retrospective lexical AoA answer different questions and remain separate. Any optional module can run by itself when its exact local workbook is available.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, and CMUdict pronunciation/prosody-foundation modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, and dictionary pronunciation/lexical stress answer different questions and remain separate. Any optional module can run by itself when its exact local source is available.
 
-Concreteness, Frequency, and AoA are currently temporary **One Poem** modules.
+Concreteness, Frequency, AoA, and Pronunciation & Prosody are currently temporary **One Poem** modules.
 They are not yet batched, persisted, aggregated, or exported by **Projects &
 Corpus**.
 
@@ -499,7 +573,11 @@ Under **Advanced methodology settings**, choose:
 - whether AoA excludes model-tagged proper nouns;
 - whether AoA permits lemma fallback;
 - the AoA low-coverage caution threshold; and
-- whether AoA uses the non-default contextual **Content words only** scope.
+- whether AoA uses the non-default contextual **Content words only** scope;
+- poem-specific `word = ARPAbet phones | note` pronunciation overrides;
+- the pronunciation resolved-token coverage caution threshold;
+- minimum complete pronunciation lines; and
+- minimum resolved pronunciation tokens for sparse-result warnings.
 
 Under **Stopword settings**, inspect or change the secondary-view policy. The all-matched result is always preserved even when only one view is displayed.
 
@@ -559,6 +637,22 @@ form, lemma, documented fallback, source-unrated, unmatched, and ineligible
 decisions stay distinct. It always displays the required non-diagnostic
 caution. The source workbook is read-only; a missing, changed, malformed, or
 unsupported source prevents activation.
+
+## Pronunciation & Prosody tab
+
+This tab appears when the optional CMUdict module is enabled. It shows
+resolved-token coverage, syllables per resolved word, median syllables per
+complete line, lexical stress density, complete-line coverage, physical-line
+totals and stress sequences, words needing attention, every candidate
+pronunciation, scholar overrides, warnings, and three-file source provenance.
+
+Use **Words needing attention** to find out-of-dictionary and materially
+ambiguous forms. Add an override only when you can document the intended
+reading. Removing an override and analyzing again reverses it.
+
+The North American dictionary warning remains visible. `0`, `1`, and `2` are
+lexical-stress digits, not metrical beats. The Stage 5 tab does not report
+candidate meter or rhyme.
 
 ## Evidence tab
 
@@ -793,8 +887,13 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `aoa_relationships.csv` | Optional descriptive unique-surface-type relationships with enabled Frequency and Concreteness results |
 | `aoa_token_audit.csv` | Every token's eligibility, POS, matching method, source row, age or missing value, source-response evidence, and reason |
 | `aoa_result.json` | Complete structured AoA result, configuration, warnings, relationships, and provenance |
+| `pronunciation_summary.csv` | Syllable/stress summaries, token/type/line coverage, ambiguity, configuration, and required scope warning |
+| `pronunciation_lines.csv` | Every physical line's exact text, coverage, completeness, syllable total or missing value, and lexical-stress sequence |
+| `pronunciation_types.csv` | Observed forms, token occurrences, statuses, candidate phones, and resolved prosodic fields |
+| `pronunciation_token_audit.csv` | Every token's eligibility, exact candidates, source lines, resolved fields or missing values, categorical resolution label, override note, and reason |
+| `pronunciation_result.json` | Complete structured Stage 5 result, source contracts, configuration, candidates, warnings, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, and `aoa_result.json` contains the optional Kuperman result. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, and AoA exports retain source-row provenance but do not copy any complete research workbook. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, and `pronunciation_result.json` contains every Stage 5 candidate and decision. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, AoA, and Pronunciation exports retain source-row provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -908,6 +1007,22 @@ These source-response fields do not change the poem's token weighting. When a
 cross-module relationship is available, Spearman's rank coefficient is
 computed over unique paired normalized surface types, with a minimum of three
 paired types.
+
+## Pronunciation coverage and stress density
+
+Let `P` be eligible lexical token occurrences, `R` resolved occurrences, `L`
+eligible physical lines containing lexical tokens, `C` complete lines, `S`
+resolved syllables, and `S1`/`S2` primary/secondary stressed syllables.
+
+`pronunciation_token_coverage = R / P`
+
+`complete_line_coverage = C / L`
+
+`lexical_stress_density = (S1 + S2) / S`
+
+An observation resolves only from one dictionary pronunciation, prosodically
+agreeing alternatives, or a validated scholar override. Empty denominators and
+incomplete-line totals remain missing.
 
 ## Part-of-speech share
 
@@ -1030,7 +1145,11 @@ The divergence is substantial because the long work dominates the token-weighted
 | Phrase match | One accepted multi-token span linked to one source entry |
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens, independent of lexicon coverage |
 | Population SD | Dispersion of the complete selected matched set around its mean |
+| Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
+| Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
+| Prosodic consensus | Multiple exact dictionary candidates whose phone strings differ but syllable count and full lexical-stress sequence agree |
 | Protected word | A word retained despite appearing in the underlying standard stopword list |
+| Scholar pronunciation override | Poem-specific validated ARPAbet phones with a required note, kept distinct from dictionary candidates |
 | Source value | The original value published by the lexicon |
 | Review scenario | Named, versioned set of append-only decision revisions pinned to an analysis |
 | Source-unrated AoA entry | A source word row whose mean is unavailable; retained in the audit with no numeric age |
@@ -1043,6 +1162,8 @@ The divergence is substantial because the long work dominates the token-weighted
 | Type | One distinct matched lexicon entry within the declared unit |
 | Type-weighted | Every distinct matched entry contributes once |
 | Unmatched | No accepted lexicon entry was assigned; the value remains missing |
+| Complete pronunciation line | Physical line whose every eligible lexical token has resolved syllable and lexical-stress evidence |
+| Lexical stress digit | CMUdict `0` unstressed, `1` primary, or `2` secondary lexical stress; not a metrical beat |
 | Valence | Normative pleasantness or unpleasantness associated with a lexical item |
 | Work-weighted | Every eligible work-level mean contributes equally |
 | Zipf value | Logarithmic SUBTLEX-US word-form frequency value; about one point represents a tenfold source-corpus frequency difference |
@@ -1105,10 +1226,21 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 - Optional AoA relationships are descriptive, require at least three paired surface types, and do not establish causation.
 - Age-of-acquisition results are not diagnostic of cognitive impairment or decline.
 - AoA is currently an optional one-poem in-memory module; it is not yet persisted in corpus projects.
+- CMUdict primarily represents North American dictionary pronunciation and
+  can omit or misrepresent dialectal, historical, contextual, performed, or
+  poetically elided forms.
+- Materially different CMUdict alternatives remain ambiguous; strict handling
+  can make a line incomplete until a scholar documents an override.
+- Pronunciation overrides apply to an exact observed type within the current
+  one-poem analysis, not to one individual occurrence.
+- Stage 5 includes no grapheme-to-phoneme prediction, candidate meter, rhyme,
+  or definitive performed scansion.
+- Pronunciation & Prosody is currently an optional one-poem in-memory module;
+  it is not yet persisted in corpus projects.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness.
 
 The companion definitions guide is maintained from:
 

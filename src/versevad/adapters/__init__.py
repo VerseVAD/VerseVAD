@@ -20,6 +20,15 @@ from versevad.adapters.kuperman_aoa import (
     KupermanAoALexicon,
     KupermanAoAValidation,
 )
+from versevad.adapters.cmudict import (
+    CMUDictAdapter,
+    CMUDictAdapterError,
+    CMUDictEntry,
+    CMUDictLexicon,
+    CMUDictValidation,
+    CMUPronunciation,
+    normalize_pronunciation_key,
+)
 from versevad.adapters.nrc_emotion import NrcEmotionAdapter
 from versevad.adapters.nrc_intensity import NrcEmotionIntensityAdapter
 from versevad.adapters.nrc_vad import NrcVadV1Adapter, NrcVadV21Adapter
@@ -46,6 +55,13 @@ __all__ = [
     "KupermanAoAEntry",
     "KupermanAoALexicon",
     "KupermanAoAValidation",
+    "CMUDictAdapter",
+    "CMUDictAdapterError",
+    "CMUDictEntry",
+    "CMUDictLexicon",
+    "CMUDictValidation",
+    "CMUPronunciation",
+    "normalize_pronunciation_key",
     "NrcEmotionAdapter",
     "NrcEmotionIntensityAdapter",
     "NrcVadV1Adapter",

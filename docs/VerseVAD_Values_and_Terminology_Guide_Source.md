@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources. Its optional concreteness, SUBTLEX-US frequency, and retrospective Age of Acquisition results are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, or measure what an individual reader feels.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation evidence. Concreteness, SUBTLEX-US frequency, retrospective Age of Acquisition, and pronunciation/lexical-stress results are separate from affective constructs and from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or classify meter or rhyme in Stage 5.
 
 [[PAGEBREAK]]
 
@@ -15,7 +15,7 @@
 1. The one-minute mental model
 2. A safe reading order
 3. Valence, arousal, and dominance
-4. Original and normalized scales, concreteness, Zipf frequency, and Age of Acquisition
+4. Original and normalized scales, concreteness, Zipf frequency, Age of Acquisition, and dictionary pronunciation
 5. Tokens, types, phrases, lemmas, and matches
 6. Part-of-speech profiles
 7. Coverage and unmatched vocabulary
@@ -55,7 +55,7 @@ For every analysis, read the results in this order:
 1. **Confirm the text and lexicons.** Make sure you analyzed the intended version and sources.
 2. **Read coverage.** Determine how much eligible vocabulary was represented.
 3. **Read warnings.** Note sparse evidence, lemma reliance, review exclusions, or other methodological cautions.
-4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, and retrospective normative lexical Age of Acquisition are different kinds of evidence.
+4. **Choose one construct.** VAD ratings, emotion associations, sentiment associations, emotion intensities, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, and dictionary pronunciation/lexical stress are different kinds of evidence.
 5. **Choose one analysis view.** Compare all matched observations with stopwords excluded; do not merge them.
 6. **Choose one weighting.** Token weighting answers a repetition-sensitive question; type weighting answers a vocabulary-sensitive question.
 7. **Inspect dispersion and contributors.** A mean alone can conceal mixed ratings or one repeated influential word.
@@ -258,6 +258,41 @@ Avoid: “The poem is for seven-year-olds,” “the vocabulary is difficult,”
 “the author shows cognitive decline.” Age-of-acquisition results are not
 grade-level, comprehension, intelligence, reader-response, or cognitive
 diagnostic measures.
+
+## Dictionary Pronunciation, Syllables, and Lexical Stress
+
+The optional one-poem Stage 5 module uses exact observed-form pronunciations
+from pinned official CMUdict files. It is not a rating scale and is not
+combined with VAD, emotion, concreteness, frequency, or AoA.
+
+One dictionary candidate resolves directly. Several candidates resolve only
+when they agree on syllable count and the full stress sequence. A materially
+different alternative remains ambiguous until the scholar documents a
+poem-specific ARPAbet override. Out-of-dictionary forms remain missing; no
+pronunciation is predicted.
+
+| Stress digit | Dictionary meaning |
+|---|---|
+| `0` | Unstressed syllable |
+| `1` | Primary lexical stress |
+| `2` | Secondary lexical stress |
+
+`pronunciation_token_coverage = resolved eligible tokens / eligible lexical tokens`
+
+`complete_line_coverage = complete physical lines / physical lines containing lexical tokens`
+
+`lexical_stress_density = (primary + secondary stressed syllables) / resolved syllables`
+
+A line is complete only when every eligible word resolves. Its syllable total
+and stress sequence otherwise remain missing.
+
+Safe wording: “Under the selected override configuration, CMUdict supplied
+dictionary syllable and lexical-stress evidence for 92% of eligible token
+occurrences; 8 of 10 physical lines were complete.”
+
+Avoid: “The poem is iambic,” “this is the poet's pronunciation,” or “the
+performance stresses these syllables.” Stage 5 supplies North American
+dictionary evidence, not meter, rhyme, or definitive performed scansion.
 
 # 5. Tokens, Types, Phrases, Lemmas, and Matches
 
@@ -819,6 +854,33 @@ Interpretation: the represented token occurrences have a mean retrospective
 normative lexical AoA of 7.2 years in the source ratings. This is not a claim
 about the text's grade level, reader difficulty, or anyone's cognition.
 
+## Example I: Pronunciation Alternatives and Complete Lines
+
+Suppose an invented dictionary gives `stone` one pronunciation with one
+syllable and stress `1`; gives `wind` two different phone strings that both
+have one syllable and stress `1`; gives `permit` alternatives with stress
+`01` and `12`; and gives `rings` one syllable with stress `1`.
+
+```text
+stone wind
+permit rings
+```
+
+The first line resolves as 2 syllables and `1 | 1`. `wind` has a prosodic
+consensus even though both phone strings remain visible. The second line is
+incomplete because `permit` has materially different stress alternatives, so
+its line total and sequence remain missing.
+
+If the scholar documents:
+
+```text
+permit = P ER0 M IH1 T | noun reading in this line
+```
+
+the second line resolves as 3 syllables and `01 | 1`. The override is not a
+probability or a change to CMUdict; it is an explicit, reversible analysis
+decision with a rationale.
+
 # 18. How to Report a Result
 
 Include these elements for every numeric claim:
@@ -826,11 +888,12 @@ Include these elements for every numeric claim:
 - text, work, or collection being analyzed;
 - exact lexicon or research resource and version;
 - original or normalized scale;
-- construct: VAD, emotion association, sentiment association, emotion intensity, normative lexical concreteness, corpus-relative lexical frequency, or retrospective normative lexical Age of Acquisition;
+- construct: VAD, emotion association, sentiment association, emotion intensity, normative lexical concreteness, corpus-relative lexical frequency, retrospective normative lexical Age of Acquisition, or dictionary pronunciation/syllable/lexical-stress evidence;
 - analysis view when applicable: all matched or stopwords excluded;
 - weighting: token, type, token-weighted collection, or work-weighted collection;
 - phrase policy when relevant;
 - Frequency or AoA scope when relevant: all lexical tokens or contextual content words only;
+- pronunciation override configuration and complete-line denominator when relevant;
 - matched observations or relevant denominator;
 - coverage;
 - scenario name and exact scenario version if reviewed;
@@ -856,6 +919,7 @@ Include these elements for every numeric claim:
 | Association | Binary source label linking an entry to an emotion or sentiment |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Concreteness rating | Source-supplied 1-5 normative rating from abstract/language-based toward concrete/experience-based |
+| Complete pronunciation line | Physical line whose every eligible lexical token has resolved syllable and lexical-stress evidence |
 | Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
 | Coverage | Share of eligible lexical token positions represented by matches |
 | Corpus-relative frequency | Frequency evidence tied to a named corpus rather than a universal property of a word |
@@ -865,6 +929,7 @@ Include these elements for every numeric claim:
 | Exclude decision | Scenario decision that retains evidence but omits it from aggregation |
 | Flag decision | Scenario note that does not alter a score |
 | Lemma | Model-proposed base form conditioned on part of speech |
+| Lexical stress digit | CMUdict `0` unstressed, `1` primary, or `2` secondary lexical stress; not a metrical beat |
 | Map decision | Scenario decision linking a form to a verified exact source entry |
 | Match observation | One included token occurrence or accepted phrase span |
 | Mean | Arithmetic average |
@@ -874,7 +939,11 @@ Include these elements for every numeric claim:
 | Part-of-speech profile | Model-assigned grammatical counts and shares over all eligible lexical tokens |
 | Phrase match | Multi-token span linked to one source entry |
 | Population standard deviation | Spread of the complete selected value set around its mean |
+| Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
+| Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
+| Prosodic consensus | Multiple dictionary candidates whose phone strings differ but syllable count and full stress sequence agree |
 | Review scenario | Named, versioned set of scholar-authored decision revisions |
+| Scholar pronunciation override | Poem-specific validated ARPAbet phones with a required note, kept distinct from dictionary candidates |
 | Sentiment | Broad positive or negative source association, reported separately from eight emotions |
 | Source value | Original value published by one lexicon |
 | Source-unrated AoA entry | A source word row whose mean is unavailable; retained in the audit with no numeric age |

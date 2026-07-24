@@ -475,7 +475,7 @@ review required.
 - [x] Update methodology, architecture, user guidance, validation notes,
   changelog, local resource instructions, and both rendered Word guides with
   exact beginner-friendly test steps and the required non-diagnostic warning.
-- [~] Run the complete automated suite, all synthetic demonstrations,
+- [x] Run the complete automated suite, all synthetic demonstrations,
   diagnostics, source checks, lock-file check, and full PDF/Word render review.
 - [x] Create the expansion Stage 4 source-control checkpoint.
 
@@ -499,12 +499,87 @@ review required.
   test-based AoA workbooks; existing affective, concreteness, and frequency
   behavior, database schema 3, private texts, and local research resources
   remain unchanged and excluded from source control.
-- [~] All automated and local validation checks pass, the downloaded paper has
+- [x] All automated and local validation checks pass, the downloaded paper has
   been visually verified page by page, and both Word guides have no clipped,
   overlapping, or broken content.
 - [x] Create the expansion Stage 4 source-control checkpoint.
 
-## Phase 6 - Scholarly diagnostics
+## Poetic Fingerprint expansion - Stage 5 prosody foundation
+
+- [x] Pin the official CMU Pronouncing Dictionary at an exact upstream commit;
+  retain the dictionary, phone inventory, symbol inventory, license, and
+  README locally under `resources/pronunciation/` with exact SHA-256 hashes.
+- [x] Pin the `pronouncing` and `cmudict` Python packages and record their
+  versions while keeping the exact local CMUdict files authoritative at
+  analysis time.
+- [x] Add a versioned, read-only CMUdict adapter that validates the source
+  contract, alternative-pronunciation suffixes, ARPAbet symbols, vowel stress,
+  duplicate variants, counts, and checksums without rewriting the source.
+- [x] Add an independent optional pronunciation/prosody-foundation
+  `AnalysisModule` using the shared immutable `PoemDocument`.
+- [x] Preserve every dictionary pronunciation candidate. Resolve a unique
+  candidate directly; resolve multiple candidates only when they agree on
+  syllable count and lexical-stress sequence; otherwise keep the token
+  explicitly ambiguous until a scholar override selects a pronunciation.
+- [x] Keep out-of-dictionary, ambiguous, non-lexical, and invalid-override
+  observations missing rather than fabricating a pronunciation, syllable
+  count, stress pattern, or numeric confidence.
+- [x] Add validated, poem-specific scholar pronunciation overrides with
+  explicit ARPAbet phones, stress, note/rationale, configuration identity, and
+  audit provenance.
+- [x] Calculate syllables per resolved word, complete-line syllable totals,
+  mean/median/dispersion across complete lines, lexical stress sequences,
+  primary/secondary stress counts, stress density, token/type/line coverage,
+  line summaries, and out-of-dictionary/ambiguity evidence.
+- [x] Add optional One Poem controls, a dedicated Pronunciation & Prosody tab,
+  readable summary rows, complete CSV/JSON audit exports, and an explicit
+  North American English/source-coverage warning.
+- [x] Add synthetic adapter, unique/multiple/consensus/ambiguous pronunciation,
+  override, Unicode/apostrophe, proper-name, repeated-word, empty-input,
+  incomplete-line, invalid-source, deterministic, UI, export, and installed
+  local-source contract tests.
+- [x] Add a hand-calculated Stage 5 validation command and exact
+  beginner-friendly interface steps.
+- [x] Update methodology, architecture, data model, user guidance, lexicon and
+  resource documentation, testing notes, changelog, and both Word guides.
+- [x] Run the complete automated suite, every synthetic demonstration,
+  diagnostics, source checks, lock-file check, and full Word render review.
+- [x] Close the two Stage 4 `[~]` Word-render carryovers after both rebuilt
+  guides have been visually inspected page by page.
+- [x] Create the expansion Stage 5 source-control checkpoint.
+
+### Expansion Stage 5 exit criteria
+
+- [x] The pinned official CMUdict files pass their exact read-only contracts,
+  retain their checksums, and remain excluded from source control.
+- [x] All source pronunciations and alternative variants remain auditable;
+  VerseVAD never silently selects a materially different syllable/stress
+  pattern.
+- [x] Unmatched and unresolved tokens remain missing, and incomplete lines do
+  not produce deceptively low total-syllable or stress summaries.
+- [x] Scholar overrides are validated, explicit, poem-specific, reversible,
+  and distinguishable from dictionary evidence.
+- [x] Results are described as dictionary-based North American pronunciation,
+  syllable, and lexical-stress evidence, not definitive performed scansion.
+- [x] Stage 5 does not claim meter or rhyme classification; those remain
+  Stages 6 and 7.
+- [x] Existing affective, concreteness, frequency, AoA, review, database,
+  export, and resource behavior remains unchanged.
+- [x] All automated/local checks pass, and both Word guides have no clipped,
+  overlapping, or broken content.
+- [x] Create the expansion Stage 5 source-control checkpoint.
+
+## Future Poetic Fingerprint stages from the expansion brief
+
+- [ ] Stage 6: candidate meter and rhythmic regularity.
+- [ ] Stage 7: rhyme and phonological analysis.
+- [ ] Stage 8: visible poetic structure.
+- [ ] Stage 9: syntax and lineation.
+- [ ] Stage 10: lexical style.
+- [ ] Stage 11: corpus and longitudinal analysis.
+- [ ] Stage 12: visualization and reporting.
+
+## Cross-cutting later work - Scholarly diagnostics
 
 - [ ] Add anomaly candidates and structured close-reading prompts.
 - [ ] Add corpus trends, source-disagreement views, and optional descriptive
@@ -512,7 +587,7 @@ review required.
 - [ ] Add additional sensitivity views beyond the completed stopword,
   weighting, phrase-policy, and review-scenario comparisons.
 
-## Phase 7 - Publication support
+## Cross-cutting later work - Publication support
 
 - [ ] Add polished accessible charts and underlying-data exports.
 - [ ] Add methods and reproducibility reports.

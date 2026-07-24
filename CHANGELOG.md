@@ -185,6 +185,27 @@ made a public release.
   proper-name, repetition, empty/unmatched, source-unrated, configuration,
   deterministic, UI, contextual content-scope, relationship, and export
   regression tests.
+- Read-only official CMU Pronouncing Dictionary adapter pinned to an exact
+  upstream commit and exact dictionary, phone-inventory, and symbol-inventory
+  SHA-256 checksums, with alternative, ARPAbet, stress, count, duplicate,
+  vowelless, and malformed-source validation.
+- Optional framework-independent one-poem pronunciation/prosody-foundation
+  module with exact observed-form lookup, retained dictionary alternatives,
+  unique and prosodic-consensus resolution, explicit unresolved ambiguity,
+  missing out-of-dictionary values, and complete provenance.
+- Validated poem-specific ARPAbet pronunciation overrides with required
+  scholarly notes, stable configuration identity, local-symbol validation, and
+  visible separation from retained dictionary candidates.
+- Resolved-word syllable distributions, complete-line syllable totals,
+  word-grouped lexical-stress sequences, primary/secondary stress counts,
+  stress density, token/type/line coverage, ambiguity evidence, and warnings.
+- Dedicated Pronunciation & Prosody profile, pronunciation-only or mixed
+  one-poem runs, readable summary rows, four UTF-8 CSV files, and a structured
+  JSON result.
+- Hand-calculated Stage 5 demonstration plus adapter, unique/consensus/
+  ambiguous/override, Unicode/apostrophe, proper-name, possessive,
+  repetition, empty, incomplete-line, invalid-source, deterministic, UI, and
+  export regression tests.
 
 ### Changed
 
@@ -239,9 +260,17 @@ made a public release.
   additive and in memory, uses only the pinned official Kuperman erratum
   supplement, adds no cognitive or diagnostic claim, and leaves database
   schema 3 and existing analyses unchanged.
+- Project development version advanced to `0.11.0.dev0`; Stage 5 remains
+  additive and in memory, uses exact pinned local CMUdict files, does not add
+  pronunciation prediction, meter, rhyme, or performed-scansion claims, and
+  leaves database schema 3 and existing analyses unchanged.
 
 ### Fixed
 
+- Closed the deferred Stage 4 Word-render carryover by exporting both rebuilt
+  guides through installed Microsoft Word and inspecting all 63 pages; added
+  fenced-code-block support to the shared guide builder after the review
+  exposed a literal Markdown fence around the pronunciation override example.
 - Preserved ten differently rated Warriner capitalization pairs instead of
   allowing case-insensitive lookup to select one silently.
 - Prevented stale Streamlit module state from breaking Lexicon Explorer after

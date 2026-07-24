@@ -239,6 +239,30 @@ project-managed Python runtime and environment, and no administrator access.
 The launcher uses the locked environment offline and binds Streamlit only to
 `127.0.0.1` with usage telemetry disabled.
 
+### Pronunciation alternatives and future prosody
+
+Stage 5 is a framework-independent `PronunciationModule` under
+`versevad.prosody`. Its read-only `CMUDictAdapter` owns all source parsing and
+validation. The analysis engine consumes `ModuleInput`, not Streamlit, and
+returns the shared `ModuleResult` contract plus typed token, observed-type, and
+physical-line evidence.
+
+The exact local CMUdict dictionary, phone inventory, and symbol inventory are
+the authoritative source. The pinned `pronouncing` library supplies only
+stress/syllable utilities; its package-bundled dictionary is not an
+analysis-time substitute.
+
+All dictionary alternatives travel together from adapter to result. The module
+does not collapse them into one hidden candidate. Scholar overrides are
+configuration inputs, not edits to the source or shared poem document.
+
+Stage 5 results are currently in-memory One Poem results and exports. A future
+schema-4 module-result design can persist the same module envelope,
+configuration ID, three resource hashes, token candidates, override evidence,
+and line summaries without changing the adapter or calculation API. Stage 6
+candidate-meter and Stage 7 rhyme modules will consume explicit alternatives
+rather than retrofitting a silently chosen pronunciation.
+
 ### Interface scale
 
 The final specification contains many specialist views. Progressive disclosure
