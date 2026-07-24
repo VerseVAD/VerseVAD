@@ -2,6 +2,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+import versevad.application as application_services
 from versevad.db.repository import CorpusTextImport, ProjectRepository
 from versevad.ui.preferences import AppearanceMode, load_preferences
 
@@ -44,6 +45,40 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
         field.label for field in app.checkbox
     ]
     assert not app.tabs
+
+
+def test_interface_warns_and_filters_when_research_resources_are_absent(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    readiness = application_services.installed_resource_readiness(
+        source_root=tmp_path / "source_lexicons",
+        resource_root=tmp_path / "resources",
+    )
+    monkeypatch.setattr(
+        application_services,
+        "installed_resource_readiness",
+        lambda: readiness,
+    )
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+
+    assert not app.exception
+    assert any(
+        "Resource setup needs attention" in warning.value
+        for warning in app.warning
+    )
+    lexicons = next(
+        field for field in app.multiselect if field.label == "Lexicons"
+    )
+    assert lexicons.options == []
+    lexical_style = next(
+        field
+        for field in app.checkbox
+        if field.label
+        == "Lexical diversity, word length & structural word counts"
+    )
+    assert not lexical_style.disabled
 
 
 def test_interface_opens_persistent_corpus_workspace(tmp_path, monkeypatch) -> None:
@@ -211,6 +246,13 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert ("Lexicons analyzed", "3") in [
         (metric.label, metric.value) for metric in app.metric
     ]
+    assert not {
+        "Download readable summary",
+        "Download CSV reading guide",
+        "Download full audit bundle",
+    } <= {button.label for button in app.get("download_button")}
+    _button(app, "Prepare downloads").click()
+    app.run(timeout=60)
     downloads = app.get("download_button")
     assert {button.label for button in downloads} >= {
         "Download readable summary",
@@ -554,6 +596,69 @@ def test_interface_runs_fixed_meter_workflow() -> None:
     )
 
 
+def test_interface_runs_optional_performance_aware_meter_workflow() -> None:
+    resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
+    if not all(
+        (resource_root / filename).is_file()
+        for filename in ("cmudict.dict", "cmudict.phones", "cmudict.symbols")
+    ):
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("Performance-aware interface validation")
+    line = "the stone the stone the stone the stone"
+    app.text_area[0].input("\n".join((line,) * 4))
+    app.multiselect[0].set_value([])
+    meter = next(
+        field
+        for field in app.checkbox
+        if field.label == "Meter & rhythmic regularity"
+    )
+    meter.set_value(True)
+    app.run(timeout=90)
+    mode = next(
+        field
+        for field in app.selectbox
+        if field.label == "Meter analysis layer"
+    )
+    mode.set_value("Performance-aware realization")
+    app.run(timeout=90)
+    depth = next(
+        field
+        for field in app.selectbox
+        if field.label == "Interpretation detail"
+    )
+    depth.set_value("Detailed")
+    app.run(timeout=90)
+    _button(app, "Analyze Poem").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert any(
+        heading.value == "Performance-Aware Realization"
+        for heading in app.subheader
+    )
+    organization = next(
+        metric
+        for metric in app.metric
+        if metric.label == "Rhythmic organization"
+    )
+    assert organization.value == "Accentual Syllabic"
+    assert any(
+        "does not recover one mandatory performance" in warning.value
+        for warning in app.warning
+    )
+    assert any(
+        caption.value.startswith("Scansion notation:")
+        for caption in app.caption
+    )
+
+
 def test_interface_runs_rhyme_and_sound_workflow() -> None:
     resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
     if not all(
@@ -610,4 +715,8 @@ def test_windows_helpers_are_local_and_telemetry_disabled() -> None:
     assert "gatherUsageStats false" in launcher
     assert "UV_PYTHON_INSTALL_DIR" in setup
     assert "ExpectedUvHash" in setup
+    assert "The VerseVAD folder moved" in setup
+    assert "Refusing to rebuild an environment outside" in setup
+    assert "ANEW VAD Study" not in launcher
+    assert "ANEW VAD Study" not in setup
     assert "gatherUsageStats = false" in config

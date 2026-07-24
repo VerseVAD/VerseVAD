@@ -12,6 +12,7 @@ import streamlit as st
 import versevad.exports.corpus_excel as corpus_excel_exports
 from versevad.application import (
     LEXICON_SPECS,
+    ResourceReadiness,
     TextImportError,
     WorkspaceAnalysisError,
     detailed_part_of_speech_views_for_tokens,
@@ -33,6 +34,12 @@ from versevad.lexical_semantic.frequency import FrequencyConfiguration
 from versevad.models import PhrasePolicy, ReviewAction, ReviewScope, TextDocument
 from versevad.normalization import normalize_lookup
 from versevad.preprocessing import TextPreprocessor
+from versevad.prosody import (
+    MeterAnalysisMode,
+    MeterConfiguration,
+    MeterInterpretationDepth,
+    MeterStyleProfile,
+)
 from versevad.poetry_id import (
     ARCHETYPE_BY_ID,
     SUPPORTED_VAD_LEXICON_IDS,
@@ -829,6 +836,7 @@ def _render_analysis_tab(
     repository: ProjectRepository,
     project_id: str,
     preprocessor: TextPreprocessor,
+    resource_readiness: ResourceReadiness,
 ) -> None:
     texts = repository.list_texts(project_id)
     if not texts:
@@ -846,8 +854,12 @@ def _render_analysis_tab(
         format_func=lambda text_id: next(text.title for text in texts if text.text_id == text_id),
         key=f"analysis_texts_{project_id}",
     )
-    lexicon_lookup = {spec.lexicon_id: spec for spec in LEXICON_SPECS}
-    module_labels = {
+    lexicon_lookup = {
+        spec.lexicon_id: spec
+        for spec in LEXICON_SPECS
+        if spec.lexicon_id in resource_readiness.available_lexicon_ids
+    }
+    all_module_labels = {
         "concreteness": "Concreteness",
         "frequency": "SUBTLEX-US frequency and rarity",
         "aoa": "Age of acquisition",
@@ -859,6 +871,33 @@ def _render_analysis_tab(
         ),
         "poetry_id": "PoetryID lexical-affective profiles",
     }
+    module_labels = {
+        module_id: label
+        for module_id, label in all_module_labels.items()
+        if module_id in resource_readiness.available_module_ids
+    }
+    unavailable_module_labels = tuple(
+        label
+        for module_id, label in all_module_labels.items()
+        if module_id not in resource_readiness.available_module_ids
+    )
+    if not lexicon_lookup or unavailable_module_labels:
+        with st.expander("Unavailable analysis sources", expanded=False):
+            if not lexicon_lookup:
+                st.info(
+                    "No validated affective lexicon is installed. Resource-free "
+                    "lexical style remains available."
+                )
+            if unavailable_module_labels:
+                st.write(
+                    "Install the corresponding local resource before using: "
+                    + ", ".join(unavailable_module_labels)
+                    + "."
+                )
+            st.caption(
+                "See docs/resource-installation.md for official download pages, "
+                "exact filenames, and supported checksums."
+            )
     preset_choice, preset_action = st.columns([3, 1], vertical_alignment="bottom")
     with preset_choice:
         selected_preset = st.selectbox(
@@ -903,22 +942,39 @@ def _render_analysis_tab(
             st.session_state[f"analysis_modules_{project_id}"] = [
                 module_name
                 for state_key, module_name in module_key_lookup.items()
-                if preset_state.get(state_key) is True
+                if (
+                    preset_state.get(state_key) is True
+                    and module_name in module_labels
+                )
             ]
             st.rerun()
+    lexicon_state_key = f"analysis_lexicons_{project_id}"
+    module_state_key = f"analysis_modules_{project_id}"
+    if lexicon_state_key in st.session_state:
+        st.session_state[lexicon_state_key] = [
+            lexicon_id
+            for lexicon_id in st.session_state[lexicon_state_key]
+            if lexicon_id in lexicon_lookup
+        ]
+    if module_state_key in st.session_state:
+        st.session_state[module_state_key] = [
+            module_id
+            for module_id in st.session_state[module_state_key]
+            if module_id in module_labels
+        ]
     lexicon_ids = st.multiselect(
         "Lexicons",
         options=list(lexicon_lookup),
         default=list(lexicon_lookup),
         format_func=lambda lexicon_id: lexicon_lookup[lexicon_id].display_name,
-        key=f"analysis_lexicons_{project_id}",
+        key=lexicon_state_key,
     )
     selected_modules = st.multiselect(
         "Additional analysis modules",
         options=list(module_labels),
         default=[],
         format_func=lambda name: module_labels[name],
-        key=f"analysis_modules_{project_id}",
+        key=module_state_key,
         help=(
             "These call the same tested modules used in the one-poem workspace. "
             "They are optional because pronunciation, meter, and rhyme can add "
@@ -955,6 +1011,12 @@ def _render_analysis_tab(
     poetry_id_lexical_dimensions: tuple[str, ...] = ()
     poetry_id_threshold_profile = PoetryIDConfiguration().threshold_profile
     poetry_id_configuration_error = ""
+    meter_analysis_mode = MeterAnalysisMode.CANDIDATE
+    meter_style_profile = MeterStyleProfile.GENERAL
+    meter_interpretation_depth = MeterInterpretationDepth.STANDARD
+    meter_performance_candidate_limit = 8
+    meter_realized_alternatives = 2
+    meter_allow_visible_elision = False
     with st.expander("Advanced batch methodology"):
         policies = {
             "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -992,6 +1054,107 @@ def _render_analysis_tab(
                     "Non-default. The Kuperman source contains many source POS "
                     "classes, so this is an actual analysis-scope choice."
                 ),
+            )
+        if "meter" in selected_modules:
+            st.markdown("**Meter batch settings**")
+            meter_mode_labels = {
+                "Candidate meter only (validated default)": (
+                    MeterAnalysisMode.CANDIDATE
+                ),
+                "Performance-aware realization": (
+                    MeterAnalysisMode.PERFORMANCE_AWARE
+                ),
+                "Compare both layers": MeterAnalysisMode.COMPARE_BOTH,
+            }
+            meter_style_labels = {
+                "General English Verse": MeterStyleProfile.GENERAL,
+                "Traditional Accentual-Syllabic Verse": (
+                    MeterStyleProfile.TRADITIONAL
+                ),
+                "Romantic / Victorian Verse": (
+                    MeterStyleProfile.ROMANTIC_VICTORIAN
+                ),
+                "Modernist Verse": MeterStyleProfile.MODERNIST,
+                "Contemporary Formal Verse": (
+                    MeterStyleProfile.CONTEMPORARY_FORMAL
+                ),
+                "Free Verse / Cadential": (
+                    MeterStyleProfile.FREE_VERSE_CADENTIAL
+                ),
+                "Custom visible weights": MeterStyleProfile.CUSTOM,
+            }
+            meter_depth_labels = {
+                "Summary": MeterInterpretationDepth.SUMMARY,
+                "Standard": MeterInterpretationDepth.STANDARD,
+                "Detailed": MeterInterpretationDepth.DETAILED,
+            }
+            meter_columns = st.columns(3)
+            meter_mode_label = meter_columns[0].selectbox(
+                "Meter analysis layer",
+                options=list(meter_mode_labels),
+                key=f"corpus_meter_mode_{project_id}",
+            )
+            meter_analysis_mode = meter_mode_labels[meter_mode_label]
+            meter_style_label = meter_columns[1].selectbox(
+                "Declared interpretation profile",
+                options=list(meter_style_labels),
+                disabled=(
+                    meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                key=f"corpus_meter_style_{project_id}",
+            )
+            meter_style_profile = meter_style_labels[meter_style_label]
+            meter_depth_label = meter_columns[2].selectbox(
+                "Interpretation detail",
+                options=list(meter_depth_labels),
+                index=1,
+                disabled=(
+                    meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                key=f"corpus_meter_depth_{project_id}",
+            )
+            meter_interpretation_depth = meter_depth_labels[
+                meter_depth_label
+            ]
+            meter_limit_columns = st.columns(3)
+            meter_performance_candidate_limit = int(
+                meter_limit_columns[0].number_input(
+                    "Realization candidates per line",
+                    min_value=2,
+                    max_value=40,
+                    value=8,
+                    step=1,
+                    disabled=(
+                        meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                    ),
+                    key=f"corpus_meter_candidate_limit_{project_id}",
+                )
+            )
+            meter_realized_alternatives = int(
+                meter_limit_columns[1].number_input(
+                    "Retained realized alternatives",
+                    min_value=1,
+                    max_value=8,
+                    value=2,
+                    step=1,
+                    disabled=(
+                        meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                    ),
+                    key=f"corpus_meter_alternatives_{project_id}",
+                )
+            )
+            meter_allow_visible_elision = meter_limit_columns[2].checkbox(
+                "Recognize visibly marked contractions",
+                value=False,
+                disabled=(
+                    meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                key=f"corpus_meter_elision_{project_id}",
+            )
+            st.caption(
+                "Every work uses the same declared profile and exact configuration. "
+                "Source lexical stress remains unchanged, and no named stanza-form "
+                "classification is added."
             )
         if "poetry_id" in selected_modules:
             st.markdown("**PoetryID batch settings**")
@@ -1160,6 +1323,20 @@ def _render_analysis_tab(
                 ),
                 include_pronunciation="pronunciation" in selected_modules,
                 include_meter="meter" in selected_modules,
+                meter_configuration=MeterConfiguration(
+                    analysis_mode=meter_analysis_mode,
+                    style_profile=meter_style_profile,
+                    interpretation_depth=meter_interpretation_depth,
+                    performance_candidate_limit=(
+                        meter_performance_candidate_limit
+                    ),
+                    retained_realized_alternatives=(
+                        meter_realized_alternatives
+                    ),
+                    allow_visible_poetic_elision=(
+                        meter_allow_visible_elision
+                    ),
+                ),
                 include_phonology="phonology" in selected_modules,
                 include_lexical_style="lexical_style" in selected_modules,
                 include_poetry_id="poetry_id" in selected_modules,
@@ -1171,6 +1348,14 @@ def _render_analysis_tab(
                     requested_lexical_dimensions=(
                         poetry_id_lexical_dimensions
                     ),
+                ),
+                analysis_cache_enabled=st.session_state.get(
+                    "analysis_cache_enabled",
+                    True,
+                ),
+                performance_diagnostics=st.session_state.get(
+                    "performance_diagnostics_enabled",
+                    True,
                 ),
             )
             batch = analyze_corpus(
@@ -2218,7 +2403,10 @@ def _render_export_tab(
     )
 
 
-def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
+def render_corpus_workspace(
+    preprocessor: TextPreprocessor,
+    resource_readiness: ResourceReadiness,
+) -> None:
     """Render the persistent local-project branch of the Streamlit application."""
 
     repository = ProjectRepository(default_database_path())
@@ -2305,7 +2493,12 @@ def render_corpus_workspace(preprocessor: TextPreprocessor) -> None:
     with language_tab:
         _render_part_of_speech_tab(repository, project_id, preprocessor)
     with analysis_tab:
-        _render_analysis_tab(repository, project_id, preprocessor)
+        _render_analysis_tab(
+            repository,
+            project_id,
+            preprocessor,
+            resource_readiness,
+        )
     with review_tab:
         _render_review_tab(repository, project_id)
     with export_tab:

@@ -11,8 +11,10 @@ from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from time import perf_counter
 from typing import Iterable, Sequence
 
+from versevad import __version__
 from versevad.adapters import (
     NrcEmotionAdapter,
     NrcEmotionIntensityAdapter,
@@ -23,6 +25,11 @@ from versevad.adapters import (
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.core.documents import PoemDocument
 from versevad.core.modules import ModuleInput
+from versevad.core.resources import (
+    LocalResourceManager,
+    ResourceSpec,
+    ResourceStatus,
+)
 from versevad.exports.aoa import export_aoa_bundle
 from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.frequency import export_frequency_bundle
@@ -79,6 +86,16 @@ from versevad.phonology import (
     PhonologicalConfiguration,
     PhonologicalModule,
     PhonologicalModuleError,
+)
+from versevad.performance import (
+    AnalysisPerformanceReport,
+    EXPORT_CACHE,
+    MODULE_RESULT_CACHE,
+    PREPROCESSING_CACHE,
+    OperationTiming,
+    cache_statistics,
+    resource_cache_statistics,
+    stable_fingerprint,
 )
 from versevad.prosody.pronunciation import (
     PronunciationAnalysisResult,
@@ -177,6 +194,118 @@ ADAPTER_BY_ID = {
     "nrc_emotion_intensity_v1": NrcEmotionIntensityAdapter,
 }
 
+RESOURCE_DOWNLOAD_PAGES = {
+    "warriner_vad_2013": (
+        "https://link.springer.com/article/10.3758/s13428-012-0314-x"
+    ),
+    "nrc_vad_v1": "https://saifmohammad.com/WebPages/nrc-vad.html",
+    "nrc_vad_v2_1": "https://saifmohammad.com/WebPages/nrc-vad.html",
+    "nrc_emotion_v0_92": (
+        "https://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm"
+    ),
+    "nrc_emotion_intensity_v1": (
+        "https://www.saifmohammad.com/WebPages/AffectIntensity.htm"
+    ),
+    "brysbaert-concreteness-2014": (
+        "https://link.springer.com/article/10.3758/s13428-013-0403-5"
+    ),
+    "subtlex-us-zipf-official": (
+        "https://www.ugent.be/pp/experimentele-psychologie/en/research/"
+        "documents/subtlexus"
+    ),
+    "kuperman-aoa-2012-erratum-supplement": (
+        "https://link.springer.com/article/10.3758/s13428-013-0348-8"
+    ),
+    "cmudict-dictionary": "https://github.com/cmusphinx/cmudict",
+    "cmudict-phone-inventory": "https://github.com/cmusphinx/cmudict",
+    "cmudict-symbol-inventory": "https://github.com/cmusphinx/cmudict",
+}
+
+
+@dataclass(frozen=True)
+class ResourceReadiness:
+    """Checksum-aware readiness for every runtime research resource."""
+
+    affective_lexicons: tuple[ResourceStatus, ...]
+    concreteness: ResourceStatus
+    frequency: ResourceStatus
+    aoa: ResourceStatus
+    pronunciation: tuple[ResourceStatus, ...]
+
+    @property
+    def all_statuses(self) -> tuple[ResourceStatus, ...]:
+        return (
+            *self.affective_lexicons,
+            self.concreteness,
+            self.frequency,
+            self.aoa,
+            *self.pronunciation,
+        )
+
+    @property
+    def unavailable(self) -> tuple[ResourceStatus, ...]:
+        return tuple(status for status in self.all_statuses if not status.available)
+
+    @property
+    def available_lexicon_ids(self) -> tuple[str, ...]:
+        return tuple(
+            status.resource_id
+            for status in self.affective_lexicons
+            if status.available
+        )
+
+    @property
+    def pronunciation_available(self) -> bool:
+        return all(status.available for status in self.pronunciation)
+
+    @property
+    def available_module_ids(self) -> tuple[str, ...]:
+        installed = ["lexical_style", "poetry_id"]
+        if self.concreteness.available:
+            installed.append("concreteness")
+        if self.frequency.available:
+            installed.append("frequency")
+        if self.aoa.available:
+            installed.append("aoa")
+        if self.pronunciation_available:
+            installed.extend(("pronunciation", "meter", "phonology"))
+        return tuple(installed)
+
+
+def validate_affective_resources(
+    source_root: Path = SOURCE_ROOT,
+) -> tuple[ResourceStatus, ...]:
+    """Validate every configured affective source without loading its rows."""
+
+    resource_specs = tuple(
+        ResourceSpec(
+            resource_id=spec.lexicon_id,
+            display_name=spec.display_name,
+            relative_path=spec.relative_path,
+            version=spec.lexicon_id,
+            accepted_sha256=(spec.expected_sha256,),
+            minimum_bytes=100_000,
+        )
+        for spec in LEXICON_SPECS
+    )
+    return LocalResourceManager(source_root).validate_many(resource_specs)
+
+
+def installed_resource_readiness(
+    *,
+    source_root: Path = SOURCE_ROOT,
+    resource_root: Path = RESOURCE_ROOT,
+) -> ResourceReadiness:
+    """Return one shared, non-mutating installation report for every workspace."""
+
+    return ResourceReadiness(
+        affective_lexicons=validate_affective_resources(source_root),
+        concreteness=ConcretenessModule(resource_root).validate_resources()[0],
+        frequency=FrequencyModule(resource_root).validate_resources()[0],
+        aoa=AoAModule(resource_root).validate_resources()[0],
+        pronunciation=PronunciationModule(resource_root).validate_resources(),
+    )
+
 
 @dataclass(frozen=True)
 class AnalysisRequest:
@@ -221,6 +350,8 @@ class AnalysisRequest:
     poetry_id_configuration: PoetryIDConfiguration = (
         PoetryIDConfiguration()
     )
+    analysis_cache_enabled: bool = True
+    performance_diagnostics: bool = True
 
 
 @dataclass(frozen=True)
@@ -238,6 +369,7 @@ class WorkspaceAnalysis:
     phonology: PhonologicalAnalysisResult | None = None
     lexical_style: LexicalStyleAnalysisResult | None = None
     poetry_id: PoetryIDAnalysisResult | None = None
+    performance: AnalysisPerformanceReport | None = None
 
 
 @dataclass(frozen=True)
@@ -589,6 +721,22 @@ def load_lexicon(lexicon_id: str, source_root: str = str(SOURCE_ROOT)):
     return lexicon
 
 
+@lru_cache(maxsize=2)
+def _default_preprocessor(model_name: str = "en_core_web_sm") -> TextPreprocessor:
+    """Share one read-only spaCy pipeline per process."""
+
+    return SpacyEnglishPreprocessor(model_name)
+
+
+def _module_result_id(value: object | None) -> str:
+    if value is None:
+        return ""
+    module_result = getattr(value, "module_result", None)
+    if module_result is not None:
+        return str(getattr(module_result, "result_id", ""))
+    return str(getattr(value, "analysis_id", ""))
+
+
 def run_workspace_analysis(
     request: AnalysisRequest,
     *,
@@ -628,6 +776,49 @@ def run_workspace_analysis(
     if request.minimum_match_requirement < 1:
         raise WorkspaceAnalysisError("The minimum matched-item setting must be at least 1.")
 
+    analysis_started = perf_counter()
+    timing_rows: list[OperationTiming] = []
+
+    def cached_operation(
+        module_name: str,
+        dependencies: object,
+        compute,
+        *,
+        validator=None,
+        enabled: bool = True,
+        cache=MODULE_RESULT_CACHE,
+    ):
+        key = stable_fingerprint(
+            __version__,
+            module_name,
+            dependencies,
+        )
+        operation_started = perf_counter()
+        value, lookup = cache.get_or_compute(
+            key,
+            compute,
+            enabled=request.analysis_cache_enabled and enabled,
+            validator=validator,
+        )
+        elapsed_ms = (perf_counter() - operation_started) * 1000
+        if request.performance_diagnostics:
+            timing_rows.append(
+                OperationTiming(
+                    module=module_name,
+                    status="complete",
+                    queue_ms=0.0,
+                    resource_load_ms=0.0,
+                    processing_ms=(
+                        elapsed_ms if lookup.status != "hit" else 0.0
+                    ),
+                    serialization_ms=0.0,
+                    total_ms=elapsed_ms,
+                    cache_status=lookup.status,
+                    cache_reason=lookup.reason,
+                )
+            )
+        return value
+
     identity = hashlib.sha256(
         f"{request.project_name}|{request.title}".encode("utf-8")
     ).hexdigest()[:16]
@@ -638,7 +829,7 @@ def run_workspace_analysis(
     )
     if request.text_version_id is not None:
         document = replace(document, text_version_id=request.text_version_id)
-    processor = preprocessor or SpacyEnglishPreprocessor()
+    processor = preprocessor or _default_preprocessor()
     try:
         stopword_policy = build_stopword_policy(
             mode=request.stopword_mode,
@@ -648,24 +839,85 @@ def run_workspace_analysis(
         )
     except ValueError as error:
         raise WorkspaceAnalysisError(str(error)) from error
-    poem_document = processor.process_document(document)
-    prepared_processor = PreparedPoemPreprocessor(poem_document)
-    results = tuple(
-        analyze_lexicon(
-            document,
-            load_lexicon(lexicon_id, str(source_root.resolve())),
-            prepared_processor,
-            phrase_policy=request.phrase_policy,
-            minimum_match_requirement=request.minimum_match_requirement,
-            stopword_policy=stopword_policy,
-            scenario_id=request.scenario_id,
-            scenario_version_id=request.scenario_version_id,
-            review_rules=request.review_rules,
-        )
-        for lexicon_id in request.lexicon_ids
+    poem_document = cached_operation(
+        "shared_preprocessing",
+        {
+            "text_id": document.text_id,
+            "text_version_id": document.text_version_id,
+            "text_sha256": document.text_sha256,
+            "title": document.title,
+            "preprocessing": processor.metadata,
+        },
+        lambda: processor.process_document(document),
+        validator=lambda value: (
+            isinstance(value, PoemDocument)
+            and value.source == document
+        ),
+        enabled=isinstance(processor, SpacyEnglishPreprocessor),
+        cache=PREPROCESSING_CACHE,
     )
+    prepared_processor = PreparedPoemPreprocessor(poem_document)
+    module_input = ModuleInput.from_poem_document(poem_document)
+    result_rows = []
+    for lexicon_id in request.lexicon_ids:
+        spec = LEXICON_SPEC_BY_ID[lexicon_id]
+        result_rows.append(
+            cached_operation(
+                f"affective_lexicon:{lexicon_id}",
+                {
+                    "text_version_id": document.text_version_id,
+                    "text_sha256": document.text_sha256,
+                    "preprocessing": poem_document.preprocessing,
+                    "lexicon_id": lexicon_id,
+                    "source_sha256": spec.expected_sha256,
+                    "source_root": source_root.resolve(),
+                    "phrase_policy": request.phrase_policy,
+                    "minimum_match_requirement": (
+                        request.minimum_match_requirement
+                    ),
+                    "stopword_policy": stopword_policy,
+                    "scenario_id": request.scenario_id,
+                    "scenario_version_id": request.scenario_version_id,
+                    "review_rules": request.review_rules,
+                },
+                lambda lexicon_id=lexicon_id: analyze_lexicon(
+                    document,
+                    load_lexicon(
+                        lexicon_id,
+                        str(source_root.resolve()),
+                    ),
+                    prepared_processor,
+                    phrase_policy=request.phrase_policy,
+                    minimum_match_requirement=(
+                        request.minimum_match_requirement
+                    ),
+                    stopword_policy=stopword_policy,
+                    scenario_id=request.scenario_id,
+                    scenario_version_id=request.scenario_version_id,
+                    review_rules=request.review_rules,
+                ),
+                validator=lambda value: (
+                    isinstance(value, Phase2AnalysisResult)
+                    and value.document.text_version_id
+                    == document.text_version_id
+                ),
+            )
+        )
+    results = tuple(result_rows)
     if results:
-        comparison = compare_lexicons(results)
+        comparison = cached_operation(
+            "cross_lexicon_comparison",
+            {
+                "analysis_ids": tuple(result.analysis_id for result in results),
+                "scenario_id": request.scenario_id,
+                "phrase_policy": request.phrase_policy,
+            },
+            lambda: compare_lexicons(results),
+            validator=lambda value: (
+                isinstance(value, CrossLexiconComparison)
+                and value.text_version_id == document.text_version_id
+            ),
+        )
     else:
         comparison_signature = "|".join(
             (
@@ -689,9 +941,26 @@ def run_workspace_analysis(
     if request.include_concreteness:
         module = concreteness_module or ConcretenessModule(resource_root)
         try:
-            concreteness = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                request.concreteness_configuration,
+            concreteness = cached_operation(
+                "concreteness",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "preprocessing": poem_document.preprocessing,
+                    "configuration": request.concreteness_configuration,
+                    "module_version": module.version,
+                    "resource_root": resource_root.resolve(),
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    request.concreteness_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, ConcretenessAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=concreteness_module is None,
             )
         except ConcretenessModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
@@ -699,9 +968,26 @@ def run_workspace_analysis(
     if request.include_frequency:
         module = frequency_module or FrequencyModule(resource_root)
         try:
-            frequency = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                request.frequency_configuration,
+            frequency = cached_operation(
+                "frequency",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "preprocessing": poem_document.preprocessing,
+                    "configuration": request.frequency_configuration,
+                    "module_version": module.version,
+                    "resource_root": resource_root.resolve(),
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    request.frequency_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, FrequencyAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=frequency_module is None,
             )
         except FrequencyModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
@@ -709,14 +995,43 @@ def run_workspace_analysis(
     if request.include_aoa:
         module = aoa_module or AoAModule(resource_root)
         try:
-            aoa = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                request.aoa_configuration,
+            raw_aoa = cached_operation(
+                "age_of_acquisition",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "preprocessing": poem_document.preprocessing,
+                    "configuration": request.aoa_configuration,
+                    "module_version": module.version,
+                    "resource_root": resource_root.resolve(),
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    request.aoa_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, AoAAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=aoa_module is None,
             )
-            aoa = attach_aoa_relationships(
-                aoa,
-                frequency=frequency,
-                concreteness=concreteness,
+            aoa = cached_operation(
+                "age_of_acquisition_relationships",
+                {
+                    "aoa_result_id": _module_result_id(raw_aoa),
+                    "frequency_result_id": _module_result_id(frequency),
+                    "concreteness_result_id": _module_result_id(concreteness),
+                },
+                lambda: attach_aoa_relationships(
+                    raw_aoa,
+                    frequency=frequency,
+                    concreteness=concreteness,
+                ),
+                validator=lambda value: isinstance(
+                    value,
+                    AoAAnalysisResult,
+                ),
             )
         except AoAModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
@@ -728,9 +1043,26 @@ def run_workspace_analysis(
     ):
         module = pronunciation_module or PronunciationModule(resource_root)
         try:
-            pronunciation = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                request.pronunciation_configuration,
+            pronunciation = cached_operation(
+                "pronunciation",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "preprocessing": poem_document.preprocessing,
+                    "configuration": request.pronunciation_configuration,
+                    "module_version": module.version,
+                    "resource_root": resource_root.resolve(),
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    request.pronunciation_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, PronunciationAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=pronunciation_module is None,
             )
         except PronunciationModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
@@ -742,10 +1074,28 @@ def run_workspace_analysis(
             )
         module = meter_module or MeterModule()
         try:
-            meter = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                pronunciation,
-                request.meter_configuration,
+            meter = cached_operation(
+                "meter",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "configuration": request.meter_configuration,
+                    "module_version": module.version,
+                    "pronunciation_result_id": _module_result_id(
+                        pronunciation
+                    ),
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    pronunciation,
+                    request.meter_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, MeterAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=meter_module is None,
             )
         except MeterModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
@@ -758,10 +1108,28 @@ def run_workspace_analysis(
             )
         module = phonological_module or PhonologicalModule()
         try:
-            phonology = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                pronunciation,
-                request.phonological_configuration,
+            phonology = cached_operation(
+                "rhyme_and_phonological_patterning",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "configuration": request.phonological_configuration,
+                    "module_version": module.version,
+                    "pronunciation_result_id": _module_result_id(
+                        pronunciation
+                    ),
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    pronunciation,
+                    request.phonological_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, PhonologicalAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=phonological_module is None,
             )
         except PhonologicalModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
@@ -769,28 +1137,75 @@ def run_workspace_analysis(
     if request.include_lexical_style:
         module = lexical_style_module or LexicalStyleModule()
         try:
-            lexical_style = module.analyze_detailed(
-                ModuleInput.from_poem_document(poem_document),
-                request.lexical_style_configuration,
+            lexical_style = cached_operation(
+                "lexical_style",
+                {
+                    "text_sha256": document.text_sha256,
+                    "text_version_id": document.text_version_id,
+                    "preprocessing": poem_document.preprocessing,
+                    "configuration": request.lexical_style_configuration,
+                    "module_version": module.version,
+                },
+                lambda: module.analyze_detailed(
+                    module_input,
+                    request.lexical_style_configuration,
+                ),
+                validator=lambda value: (
+                    isinstance(value, LexicalStyleAnalysisResult)
+                    and value.module_result.text_version_id
+                    == document.text_version_id
+                ),
+                enabled=lexical_style_module is None,
             )
         except LexicalStyleModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
     poetry_id = None
     if request.include_poetry_id:
         engine = poetry_id_engine or PoetryIDEngine()
-        poetry_id = engine.analyze(
-            ModuleInput.from_poem_document(poem_document),
-            vad_evidence_from_results(
-                results,
+        poetry_id = cached_operation(
+            "poetry_id",
+            {
+                "text_sha256": document.text_sha256,
+                "text_version_id": document.text_version_id,
+                "configuration": request.poetry_id_configuration,
+                "engine_version": engine.version,
+                "affective_analysis_ids": tuple(
+                    result.analysis_id for result in results
+                ),
+                "concreteness_result_id": _module_result_id(concreteness),
+                "frequency_result_id": _module_result_id(frequency),
+                "aoa_result_id": _module_result_id(aoa),
+            },
+            lambda: engine.analyze(
+                module_input,
+                vad_evidence_from_results(
+                    results,
+                    request.poetry_id_configuration,
+                ),
                 request.poetry_id_configuration,
+                lexical_evidence=lexical_evidence_from_results(
+                    concreteness=concreteness,
+                    frequency=frequency,
+                    aoa=aoa,
+                ),
             ),
-            request.poetry_id_configuration,
-            lexical_evidence=lexical_evidence_from_results(
-                concreteness=concreteness,
-                frequency=frequency,
-                aoa=aoa,
+            validator=lambda value: (
+                isinstance(value, PoetryIDAnalysisResult)
+                and value.module_result.text_version_id
+                == document.text_version_id
             ),
+            enabled=poetry_id_engine is None,
         )
+    performance_report = (
+        AnalysisPerformanceReport(
+            enabled=True,
+            total_ms=(perf_counter() - analysis_started) * 1000,
+            operations=tuple(timing_rows),
+            caches=cache_statistics() + resource_cache_statistics(),
+        )
+        if request.performance_diagnostics
+        else None
+    )
     return WorkspaceAnalysis(
         request=request,
         document=document,
@@ -805,6 +1220,7 @@ def run_workspace_analysis(
         phonology=phonology,
         lexical_style=lexical_style,
         poetry_id=poetry_id,
+        performance=performance_report,
     )
 
 
@@ -2715,6 +3131,36 @@ def csv_reading_guide() -> bytes:
             "important_caution": "Pronunciation alternatives are explored as candidate paths without rewriting the Stage 5 pronunciation audit.",
         },
         {
+            "file": "meter_realizations.csv",
+            "what_it_answers": "How does the optional performance-aware layer rerank primary and alternate line readings?",
+            "start_with": "raw lexical stress, candidate template, realized scansion, separate component scores, substitutions, and pronunciation path.",
+            "important_caution": "Realizations depend on a declared broad profile and rule-based contextual evidence; they are not mandatory performances.",
+        },
+        {
+            "file": "meter_stanzas.csv",
+            "what_it_answers": "Which candidate recurrences and exceptions appear within each preserved stanza?",
+            "start_with": "primary candidate, alternate candidate, line-position sequence, regularity, and exceptions.",
+            "important_caution": "A recurring sequence is reported generically; no named stanza form is assigned.",
+        },
+        {
+            "file": "meter_rhythm_trajectory.csv",
+            "what_it_answers": "How do realized score, syllable count, beats, substitutions, and caesura evidence vary by line?",
+            "start_with": "line number, stanza, candidate, realized score, syllables, beats, and substitutions.",
+            "important_caution": "The trajectory is descriptive textual evidence, not a recording of performed timing.",
+        },
+        {
+            "file": "meter_scansion_report.txt",
+            "what_it_answers": "What accessible, line-by-line account explains the optional realized readings?",
+            "start_with": "notation guide, raw lexical stress, fixed-layer candidate, realized scansion, alternatives, methodology, and warnings.",
+            "important_caution": "Promotion, demotion, caesura, and substitution labels remain inspectable proposals rather than altered dictionary stress.",
+        },
+        {
+            "file": "meter_scholar_revisions.csv",
+            "what_it_answers": "How does an optional scholar-supplied reading differ from the retained automatic reading?",
+            "start_with": "line, automatic candidate/scansion, revised candidate/scansion, and required scholar note.",
+            "important_caution": "This conditional file keeps the two readings separate; a revision never overwrites source lexical stress or the automatic result.",
+        },
+        {
             "file": "rhyme_summary.csv",
             "what_it_answers": "What are the principal end-rhyme, coverage, internal-rhyme, refrain, and recurring-sound results?",
             "start_with": "whole-poem scheme, rhyme density, ending coverage, pair counts, and sound densities.",
@@ -2814,7 +3260,7 @@ def csv_reading_guide() -> bytes:
     return _csv_bytes(fields, rows)
 
 
-def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
+def _build_detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
     """Create the complete audit bundle temporarily and return an in-memory ZIP."""
 
     with TemporaryDirectory(prefix="versevad-export-") as temporary:
@@ -2904,7 +3350,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "patterns at one through eight feet, retaining line fits, alternative "
                 "pronunciation paths, alignment costs, substitutions, "
                 "inversions, extra or omitted syllables, and coverage. These "
-                "are nearest configured candidates, not definitive scansion.\n"
+                "are nearest configured candidates, not definitive scansion. "
+                "When the optional performance-aware layer is selected, added "
+                "files retain realized readings, separate scoring components, "
+                "stanza recurrence, trajectory, alternatives, and a plain-text "
+                "report without changing source lexical stress.\n"
                 "When present, the rhyme and phonological files report robust "
                 "perfect/identical end-rhyme schemes, masculine/feminine and "
                 "multisyllabic evidence, graded slant and eye-rhyme comparisons, "
@@ -2928,3 +3378,38 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "they do not determine the emotion of a poem.\n",
             )
         return archive.getvalue()
+
+
+def detailed_export_zip(
+    workspace: WorkspaceAnalysis,
+    *,
+    use_cache: bool = True,
+) -> bytes:
+    """Return a bounded cached export for an immutable completed analysis."""
+
+    key = stable_fingerprint(
+        __version__,
+        "detailed_export_zip",
+        workspace.document.text_version_id,
+        workspace.document.text_sha256,
+        tuple(result.analysis_id for result in workspace.results),
+        workspace.comparison.comparison_id,
+        _module_result_id(workspace.concreteness),
+        _module_result_id(workspace.frequency),
+        _module_result_id(workspace.aoa),
+        _module_result_id(workspace.pronunciation),
+        _module_result_id(workspace.meter),
+        _module_result_id(workspace.phonology),
+        _module_result_id(workspace.lexical_style),
+        _module_result_id(workspace.poetry_id),
+    )
+    content, _lookup = EXPORT_CACHE.get_or_compute(
+        key,
+        lambda: _build_detailed_export_zip(workspace),
+        enabled=use_cache,
+        validator=lambda value: (
+            isinstance(value, bytes)
+            and value.startswith(b"PK")
+        ),
+    )
+    return content

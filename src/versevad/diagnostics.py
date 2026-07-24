@@ -15,6 +15,9 @@ from versevad.phase2_validation import (
     phase2_synthetic_intensity_lexicon,
     phase2_synthetic_vad_lexicon,
 )
+from versevad.performance_meter_validation import (
+    run_synthetic_performance_meter_validation,
+)
 from versevad.preprocessing import SpacyEnglishPreprocessor, create_text_document
 
 
@@ -119,6 +122,32 @@ def run_self_test() -> tuple[DiagnosticCheck, ...]:
         )
     except Exception as error:
         checks.append(DiagnosticCheck("Emotion intensity calculation", False, str(error)))
+
+    try:
+        meter_report, meter_problems = (
+            run_synthetic_performance_meter_validation()
+        )
+        passed = not meter_problems
+        checks.append(
+            DiagnosticCheck(
+                "Performance-aware meter safeguards",
+                passed,
+                (
+                    "Fixed candidates, generic alternating recurrence, and "
+                    "unchanged lexical stress reproduced."
+                    if passed
+                    else " ".join(meter_problems)
+                ),
+            )
+        )
+    except Exception as error:
+        checks.append(
+            DiagnosticCheck(
+                "Performance-aware meter safeguards",
+                False,
+                str(error),
+            )
+        )
 
     for spec in LEXICON_SPECS:
         try:

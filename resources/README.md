@@ -4,6 +4,12 @@ This directory is reserved for locally installed research resources used by
 optional VerseVAD modules. Resource data are ignored by source control. Only
 this instruction file is tracked.
 
+For public-release download links, exact affective-lexicon locations,
+installation steps, source-term cautions, and troubleshooting, see
+[`docs/resource-installation.md`](../docs/resource-installation.md). VerseVAD
+does not download these files automatically, and its GPL license does not
+relicense any research dataset.
+
 Current and planned local layout:
 
 ```text

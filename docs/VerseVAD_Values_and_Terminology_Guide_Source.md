@@ -6,7 +6,7 @@
 **Guide updated:** {{DATE}}  
 **Intended reader:** A first-time user with no linguistics or statistics background
 
-> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, candidate-meter, rhyme, recurring-sound, lexical-diversity, word-length, structural word-count, and PoetryID candidate-profile evidence. These constructs are separate from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
+> THE CENTRAL RULE: VerseVAD describes lexical evidence found in published word-rating and corpus-frequency resources plus optional dictionary-based pronunciation, fixed candidate-meter, separate performance-aware realization, rhyme, recurring-sound, lexical-diversity, word-length, structural word-count, and PoetryID candidate-profile evidence. These constructs are separate from each other. VerseVAD does not discover the emotion of a poem, diagnose a speaker or cognition, recover an author's intention, measure what an individual reader feels, or establish definitive meter, performed rhythm, pronunciation, or rhyme.
 
 [[PAGEBREAK]]
 
@@ -348,6 +348,46 @@ mean fit 0.91 across 8 analyzable lines.”
 
 Avoid: “VerseVAD proved the poem is in iambic pentameter,” “fit 0.91 means a
 91% probability,” or “this is the poet's intended scansion.”
+
+## Performance-Aware Meter Realization
+
+The non-default Stage 14 layer keeps the complete fixed candidate result and
+adds an inspectable contextual reading. It can label syllable-level metrical
+positions, promotion and demotion, substitutions, stress clashes and lapses,
+punctuation-supported caesurae, selected pronunciation paths, alternate
+realizations, stanza recurrence, poem trajectory, and rhythmic organization.
+It does not rewrite CMUdict lexical stress or claim to recover a performance.
+
+The scholar explicitly selects General English Verse, Traditional
+Accentual-Syllabic Verse, Romantic / Victorian Verse, Modernist Verse,
+Contemporary Formal Verse, Free Verse / Cadential, or Custom visible weights.
+These are versioned sensitivity profiles, not inferred historical labels.
+Summary, Standard, and Detailed change presentation depth.
+
+Each realized reading retains visible components for candidate, contextual,
+syllable-count, phrase, line-ending, pronunciation, stanza/poem consistency,
+and style compatibility evidence, plus a substitution penalty:
+
+`realization_score = bounded weighted component evidence - visible substitution penalty`
+
+The exact exported weights are part of the configuration. The score ranks
+configured readings; it is not a probability or an independently validated
+likelihood. Strong, moderate, tentative, ambiguous, and insufficient labels
+are rule-based descriptions.
+
+Visibly marked contraction recognition is off by default. Unmarked syllables
+are never silently elided. A scholar may record a separate revision with a
+line number, fixed candidate, visible scansion, and note; the automatic reading
+remains unchanged.
+
+Safe wording: "Under the scholar-selected General English Verse profile, the
+optional realization layer ranked an iambic pentameter reading first and
+reported two local promotions; the fixed candidate and dictionary stress audit
+remain available."
+
+Avoid: "VerseVAD discovered the correct scansion," "the poem is historically
+Modernist because that profile scored highest," or "the performer stresses
+these syllables."
 
 ## Rhyme and Recurring Phonological Patterns
 
@@ -1211,6 +1251,9 @@ Include these elements for every numeric claim:
 | Mean | Arithmetic average |
 | Meter fit | Configured 0-1 stress-alignment similarity; not a probability |
 | Meter line coverage | Analyzable eligible physical lines divided by all eligible physical lines |
+| Declared meter style profile | Scholar-selected versioned realization weights; never an inferred period, movement, author, or tradition |
+| Performance-aware realization | Optional contextual reranking and annotated reading above the unchanged fixed candidate layer; not performed scansion |
+| Rhythmic organization | Rule-based accentual-syllabic, accentual, syllabic, locally metrical, mixed, no-stable-pattern, or insufficient-evidence description |
 | Median | Middle sorted value |
 | MTLD | Mean forward/reverse sequential factor-length estimate at a configured TTR threshold |
 | Normalized VAD | Documented linear transformation to the common 0-to-1 display range |

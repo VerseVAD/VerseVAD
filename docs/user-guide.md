@@ -17,14 +17,26 @@ modules through the same analysis engines used by **Single Poem**.
 Do not rename or edit anything in `source_lexicons`. VerseVAD reads those files
 in place and verifies their SHA-256 checksums.
 
+Research data are not included in a public VerseVAD checkout. Before first
+analysis, follow the
+[resource installation guide](resource-installation.md) for official download
+pages, exact destinations, supported checksums, and source-specific terms.
+VerseVAD shows a startup warning for every missing or unsupported runtime file,
+removes unavailable affective sources from selectors, and disables only the
+optional modules whose dependencies are unavailable.
+
 ## First-time setup
 
-1. Open the `ANEW VAD Study` folder.
+1. Open the `VerseVAD` folder.
 2. Double-click `setup_windows.bat`.
 3. Allow the setup window to finish. The first setup may take several minutes
    and needs internet access to obtain the pinned local runtime and packages.
-4. Look for eleven lines marked `PASS`, followed by `All checks passed.`
-5. Press a key to close the setup window.
+4. Install the desired research resources using
+   `docs/resource-installation.md`. This is a separate, manual step because the
+   data have their own terms and are never bundled or downloaded by VerseVAD.
+5. Start VerseVAD and use **Run self-test**. Resolve any resource warning by
+   checking the exact destination and supported SHA-256 in the guide.
+6. Press a key to close the setup window when setup is complete.
 
 Setup does not need administrator access and does not install Python system
 wide. VerseVAD keeps its runtime, environment, and package cache inside ignored
@@ -576,6 +588,37 @@ under the selected alignment configuration.” Do not write “VerseVAD proved
 the poem is in iambic pentameter” or treat a metrically preferred dictionary
 alternative as the poet's performed pronunciation.
 
+### Optional performance-aware reading
+
+**Candidate meter only** remains the default. To explore possible realized
+readings, choose **Performance-aware realization** or **Compare candidate and
+performance-aware readings**, then declare a broad interpretation profile and
+Summary, Standard, or Detailed output.
+
+Read the added section in this order:
+
+1. rhythmic organization, primary/secondary candidate, coverage, and
+   rule-based confidence;
+2. declared profile and stanza recurrence;
+3. raw lexical stress beside the candidate template and realized notation;
+4. proposed promotion, demotion, caesura, ending, and substitution evidence;
+5. retained alternate readings and separate score components; and
+6. line-by-line rhythmic trajectory.
+
+Notation uses `x` for weak, `/` for strong, `^` for proposed promotion, `v`
+for proposed demotion, `2` for secondary-stress flexibility, `||` for a
+punctuation-supported caesura, and `|` for a candidate foot boundary.
+
+The profile is selected by you; VerseVAD does not infer a period or movement.
+The realized reading is not one mandatory performance. Leave visibly marked
+contraction recognition off unless the preserved spelling and your method
+justify it. No unmarked syllable is silently removed. A recurring alternating
+sequence may be reported generically, but no named stanza form is assigned.
+
+The same settings are available per Project/Corpus batch. Corpus summaries
+show compatible work-level prevalence and do not declare one corpus-wide
+meter.
+
 ## Rhyme & Sound
 
 In **Single Poem**, select **Rhyme & phonological patterns** and analyze. Stage 5
@@ -631,6 +674,16 @@ diversity or word length as proof of literary quality, intelligence,
 vocabulary knowledge, education, reader comprehension, or authorial intention.
 
 ## Diagnostics and troubleshooting
+
+The global **Settings** popover controls reuse of unchanged analyses and
+lightweight timings. **Evidence & Diagnostics** shows each selected operation,
+cache hit/miss reason, wall time, and bounded cache counts. Clearing a cache or
+releasing a loaded resource cannot delete a project, source file, or saved
+result; the next relevant action simply recomputes or reloads it.
+
+The export tab now waits for **Prepare downloads**. This avoids rebuilding a
+large ZIP during unrelated interface reruns. An unchanged prepared export is
+reused safely.
 
 Under **Installation Check**, click **Run self-test** in the app sidebar at any
 time. A healthy installation shows `11/11 checks passed`. You can also

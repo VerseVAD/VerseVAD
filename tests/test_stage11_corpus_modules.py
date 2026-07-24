@@ -7,6 +7,7 @@ import pytest
 from openpyxl import load_workbook
 
 from versevad.corpus import (
+    CorpusAnalysisCancelled,
     CorpusAnalysisConfiguration,
     corpus_module_category_profiles,
     corpus_module_profiles,
@@ -19,6 +20,7 @@ from versevad.db import (
 )
 from versevad.lexical_style import LexicalStyleConfiguration
 from versevad.exports.corpus_excel import build_corpus_workbook
+from versevad.prosody import MeterAnalysisMode, MeterConfiguration
 
 
 def test_optional_module_only_corpus_batch_persists_auditable_results(
@@ -165,6 +167,118 @@ def test_optional_module_only_corpus_batch_persists_auditable_results(
     }
     assert "ordered_pooled_token_sequence" in collection_methods
     assert workbook["Module Provenance"]["J5"].value
+
+
+def test_corpus_uses_same_optional_performance_aware_meter_engine(
+    tmp_path,
+    preprocessor,
+) -> None:
+    repository = ProjectRepository(tmp_path / "meter-corpus.sqlite3")
+    project = repository.create_project("Performance meter corpus")
+    text = "the stone the stone the stone the stone"
+    imported = repository.import_texts(
+        project.project_id,
+        (
+            CorpusTextImport(
+                "Measured",
+                "measured.txt",
+                "measured.txt",
+                "\n".join((text, text, text, text)),
+            ),
+        ),
+    )
+
+    batch = analyze_corpus(
+        repository,
+        project.project_id,
+        lexicon_ids=(),
+        text_ids=(imported[0].text_id,),
+        module_configuration=CorpusAnalysisConfiguration(
+            include_meter=True,
+            meter_configuration=MeterConfiguration(
+                analysis_mode=MeterAnalysisMode.PERFORMANCE_AWARE,
+            ),
+        ),
+        preprocessor=preprocessor,
+    )
+
+    metrics = repository.list_module_metrics_for_batch(
+        project.project_id,
+        batch.batch_id,
+    )
+    performance = {
+        row.metric_id: row.value
+        for row in metrics
+        if row.metric_id.startswith("meter.performance.")
+    }
+    assert performance["meter.performance.primary_candidate"] == (
+        "Iambic tetrameter"
+    )
+    assert performance["meter.performance.rhythmic_organization"] == (
+        "accentual_syllabic"
+    )
+    meter_result = next(
+        row
+        for row in repository.list_module_results_for_batch(
+            project.project_id,
+            batch.batch_id,
+        )
+        if row.module_name == "candidate_meter_and_rhythmic_regularity"
+    )
+    artifacts = {
+        item.filename
+        for item in repository.list_module_artifacts(
+            meter_result.run_id,
+            meter_result.module_name,
+        )
+    }
+    assert {
+        "meter_realizations.csv",
+        "meter_stanzas.csv",
+        "meter_rhythm_trajectory.csv",
+        "meter_scansion_report.txt",
+    } <= artifacts
+
+
+def test_corpus_cancellation_occurs_only_at_safe_work_boundary(
+    tmp_path,
+    preprocessor,
+) -> None:
+    repository = ProjectRepository(tmp_path / "cancel-corpus.sqlite3")
+    project = repository.create_project("Cancellable corpus")
+    imported = repository.import_texts(
+        project.project_id,
+        (
+            CorpusTextImport("First", "first.txt", "first.txt", "red blue"),
+            CorpusTextImport(
+                "Second",
+                "second.txt",
+                "second.txt",
+                "green gold",
+            ),
+        ),
+    )
+    checks = 0
+
+    def cancel_after_first_boundary() -> bool:
+        nonlocal checks
+        checks += 1
+        return checks > 1
+
+    with pytest.raises(CorpusAnalysisCancelled, match="cancelled safely"):
+        analyze_corpus(
+            repository,
+            project.project_id,
+            lexicon_ids=(),
+            text_ids=tuple(item.text_id for item in imported),
+            module_configuration=CorpusAnalysisConfiguration(
+                include_lexical_style=True,
+            ),
+            preprocessor=preprocessor,
+            cancel_check=cancel_after_first_boundary,
+        )
+
+    assert repository.list_completed_batches(project.project_id) == ()
 
 
 def _module_metric(

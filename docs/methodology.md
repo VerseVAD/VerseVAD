@@ -547,6 +547,35 @@ variation, deviations, and rule-based confidence. The output language is
 “nearest configured candidate” or “candidate meter,” never definitive meter,
 correct scansion, performed rhythm, or authorial intention.
 
+### Optional Stage 14 performance-aware realization
+
+Candidate meter remains the default. When the scholar selects a
+performance-aware mode, VerseVAD reranks a bounded set of retained Stage 6
+candidates using separately visible fixed-fit, contextual-prominence,
+syllable-count, phrasing, ending, pronunciation, poem/stanza recurrence, and
+declared-profile components. The overall score is a configured heuristic, not
+a probability.
+
+Every realized position preserves its source lexical-stress digit and records
+any proposed promotion, demotion, secondary-stress flexibility,
+extrametrical syllable, or omitted position separately. Initial inversion,
+headless opening, feminine ending, catalexis, local spondaic/pyrrhic movement,
+stress clash/lapse, and punctuation-supported caesura are inspectable
+interpretations. Unmarked written syllables are never silently elided.
+
+Broad profiles are scholar-selected and versioned. They adjust visible
+tolerances; VerseVAD does not infer period, movement, author, or a uniquely
+correct performance. Poem/stanza recurrence, trajectory, and organization
+labels are rule-based textual descriptions. Stable alternating line-position
+recurrence is described generically; no named stanza-form classifier is
+added.
+
+Performance optimization does not change analytical inclusion or floating-
+point formulas. Cache keys contain source, preprocessing, configuration,
+resource/engine, and upstream-result fingerprints relevant to one module.
+Invalid entries are discarded and recomputed. Cache state and timing are
+diagnostic evidence, not analytical metrics.
+
 ## Stage 7 rhyme and phonological patterns
 
 Stage 7 consumes retained Stage 5 phones and stress without changing any

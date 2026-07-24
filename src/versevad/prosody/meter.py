@@ -7,9 +7,10 @@ import json
 from collections import Counter
 from dataclasses import asdict, dataclass
 from enum import StrEnum
+from functools import lru_cache
 from itertools import product
 from statistics import fmean, median, pstdev
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
 
 from versevad import __version__
 from versevad.core.modules import (
@@ -29,6 +30,9 @@ from versevad.prosody.pronunciation import (
     PronunciationTokenResult,
 )
 
+if TYPE_CHECKING:
+    from versevad.prosody.performance_meter import PerformanceAwareMeterResult
+
 
 class MeterModuleError(RuntimeError):
     """Plain-language failure raised before a partial meter result is published."""
@@ -42,6 +46,66 @@ class FootPattern(StrEnum):
     AMPHIBRACHIC = "amphibrachic"
     SPONDAIC = "spondaic"
     PYRRHIC = "pyrrhic"
+
+
+class MeterAnalysisMode(StrEnum):
+    """Keep the validated candidate layer separate from optional realization."""
+
+    CANDIDATE = "candidate_meter"
+    PERFORMANCE_AWARE = "performance_aware"
+    COMPARE_BOTH = "compare_both"
+
+
+class MeterStyleProfile(StrEnum):
+    """Broad, declared interpretation profiles; never inferred as literary period."""
+
+    GENERAL = "general_english_verse"
+    TRADITIONAL = "traditional_accentual_syllabic"
+    ROMANTIC_VICTORIAN = "romantic_victorian"
+    MODERNIST = "modernist"
+    CONTEMPORARY_FORMAL = "contemporary_formal"
+    FREE_VERSE_CADENTIAL = "free_verse_cadential"
+    CUSTOM = "custom"
+
+
+class MeterInterpretationDepth(StrEnum):
+    SUMMARY = "summary"
+    STANDARD = "standard"
+    DETAILED = "detailed"
+
+
+@dataclass(frozen=True)
+class MeterScholarRevision:
+    """A separate scholar-supplied reading; never an edited automatic result."""
+
+    line_number: int
+    pattern: FootPattern
+    foot_count: int
+    realized_scansion: str
+    note: str
+
+    def __post_init__(self) -> None:
+        if self.line_number < 1:
+            raise ValueError("A meter revision line number must be positive.")
+        if self.pattern not in PRIMARY_FOOT_PATTERNS:
+            raise ValueError(
+                "A meter revision must use one of the five base patterns."
+            )
+        if self.foot_count not in FOOT_COUNT_NAMES:
+            raise ValueError(
+                "A meter revision foot count must be one through eight."
+            )
+        if not self.realized_scansion.strip():
+            raise ValueError("A meter revision requires visible scansion.")
+        if not self.note.strip():
+            raise ValueError("A meter revision requires a scholarly note.")
+
+    @property
+    def candidate_label(self) -> str:
+        return (
+            f"{self.pattern.value.capitalize()} "
+            f"{FOOT_COUNT_NAMES[self.foot_count]}"
+        )
 
 
 PRIMARY_FOOT_PATTERNS: tuple[FootPattern, ...] = (
@@ -82,6 +146,60 @@ _PATTERN_ORDER = {
 }
 
 
+def parse_meter_scholar_revisions(
+    text: str,
+) -> tuple[MeterScholarRevision, ...]:
+    """Parse `line = pattern foot-name | scansion | note` records."""
+
+    revisions = []
+    foot_counts = {
+        name.casefold(): count for count, name in FOOT_COUNT_NAMES.items()
+    }
+    patterns = {pattern.value: pattern for pattern in PRIMARY_FOOT_PATTERNS}
+    for source_line_number, raw_line in enumerate(text.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            assignment, scansion, note = (
+                part.strip() for part in line.split("|", maxsplit=2)
+            )
+            line_label, candidate = (
+                part.strip() for part in assignment.split("=", maxsplit=1)
+            )
+            normalized_line = line_label.casefold().removeprefix("line").strip()
+            line_number = int(normalized_line)
+            pattern_label, foot_label = candidate.casefold().split(
+                maxsplit=1
+            )
+            pattern = patterns[pattern_label]
+            foot_count = (
+                int(foot_label)
+                if foot_label.isdigit()
+                else foot_counts[foot_label]
+            )
+            revisions.append(
+                MeterScholarRevision(
+                    line_number=line_number,
+                    pattern=pattern,
+                    foot_count=foot_count,
+                    realized_scansion=scansion,
+                    note=note,
+                )
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(
+                "Meter revision line "
+                f"{source_line_number} must use: "
+                "`line 2 = iambic pentameter | x / x / x / x / x / | "
+                "scholarly note`."
+            ) from error
+    line_numbers = [item.line_number for item in revisions]
+    if len(line_numbers) != len(set(line_numbers)):
+        raise ValueError("Only one meter revision may be supplied per line.")
+    return tuple(revisions)
+
+
 @dataclass(frozen=True)
 class MeterConfiguration:
     """Auditable penalties and thresholds used by the candidate estimator."""
@@ -106,9 +224,32 @@ class MeterConfiguration:
     minimum_analyzable_lines: int = 2
     maximum_line_variants: int = 256
     retained_alternative_candidates: int = 4
+    analysis_mode: MeterAnalysisMode = MeterAnalysisMode.CANDIDATE
+    style_profile: MeterStyleProfile = MeterStyleProfile.GENERAL
+    interpretation_depth: MeterInterpretationDepth = (
+        MeterInterpretationDepth.STANDARD
+    )
+    performance_candidate_limit: int = 8
+    retained_realized_alternatives: int = 2
+    allow_visible_poetic_elision: bool = False
+    scholar_revisions: tuple[MeterScholarRevision, ...] = ()
+    contextual_fit_weight: float = 0.24
+    phrase_fit_weight: float = 0.08
+    poem_consistency_weight: float = 0.10
+    stanza_consistency_weight: float = 0.05
+    style_compatibility_weight: float = 0.08
     scenario_id: str = "candidate-meter-alignment-v1"
 
     def __post_init__(self) -> None:
+        if (
+            self.analysis_mode is not MeterAnalysisMode.CANDIDATE
+            and self.scenario_id == "candidate-meter-alignment-v1"
+        ):
+            object.__setattr__(
+                self,
+                "scenario_id",
+                "performance-aware-meter-realization-v1",
+            )
         if self.minimum_foot_count < 1:
             raise ValueError("The minimum foot count must be at least one.")
         if self.maximum_foot_count > 8:
@@ -160,6 +301,44 @@ class MeterConfiguration:
             raise ValueError("At least one stress variant per line must be allowed.")
         if self.retained_alternative_candidates < 1:
             raise ValueError("At least one alternative candidate must be retained.")
+        if self.performance_candidate_limit < 2:
+            raise ValueError(
+                "Performance-aware meter requires at least two candidate paths."
+            )
+        if self.retained_realized_alternatives < 1:
+            raise ValueError(
+                "At least one alternate realized scansion must be retained."
+            )
+        revision_lines = [
+            revision.line_number for revision in self.scholar_revisions
+        ]
+        if len(revision_lines) != len(set(revision_lines)):
+            raise ValueError(
+                "Only one scholar meter revision may be supplied per line."
+            )
+        realization_weights = {
+            "contextual fit": self.contextual_fit_weight,
+            "phrase fit": self.phrase_fit_weight,
+            "poem consistency": self.poem_consistency_weight,
+            "stanza consistency": self.stanza_consistency_weight,
+            "style compatibility": self.style_compatibility_weight,
+        }
+        invalid_weights = [
+            label
+            for label, value in realization_weights.items()
+            if not 0 <= value <= 1
+        ]
+        if invalid_weights:
+            raise ValueError(
+                "Performance-aware meter weights must be between zero and one: "
+                + ", ".join(invalid_weights)
+                + "."
+            )
+        if sum(realization_weights.values()) >= 0.85:
+            raise ValueError(
+                "Context, phrase, poem, stanza, and style weights must leave "
+                "at least 0.15 for the preserved candidate evidence."
+            )
         if not self.scenario_id.strip():
             raise ValueError("A meter scenario requires a stable ID.")
 
@@ -172,7 +351,7 @@ class MeterConfiguration:
             separators=(",", ":"),
         )
         digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
-        return f"meter-config-v1:{digest}"
+        return f"meter-config-v2:{digest}"
 
 
 @dataclass(frozen=True)
@@ -190,6 +369,17 @@ def candidate_templates(
 ) -> tuple[MeterTemplate, ...]:
     """Return the fixed five-pattern by configured-foot-count candidate grid."""
 
+    return _candidate_templates(
+        configuration.minimum_foot_count,
+        configuration.maximum_foot_count,
+    )
+
+
+@lru_cache(maxsize=16)
+def _candidate_templates(
+    minimum_foot_count: int,
+    maximum_foot_count: int,
+) -> tuple[MeterTemplate, ...]:
     return tuple(
         MeterTemplate(
             pattern=pattern,
@@ -203,8 +393,8 @@ def candidate_templates(
         )
         for pattern in PRIMARY_FOOT_PATTERNS
         for foot_count in range(
-            configuration.minimum_foot_count,
-            configuration.maximum_foot_count + 1,
+            minimum_foot_count,
+            maximum_foot_count + 1,
         )
     )
 
@@ -427,6 +617,7 @@ class MeterAnalysisResult:
     line_results: tuple[MeterLineResult, ...]
     candidate_summaries: tuple[MeterCandidateSummary, ...]
     summary: MeterSummary
+    performance_aware: PerformanceAwareMeterResult | None = None
 
     def __post_init__(self) -> None:
         analyzed = sum(
@@ -446,6 +637,65 @@ class _Alignment:
     aligned_template: str
 
 
+@dataclass(frozen=True)
+class _AlignmentPlanOperation:
+    kind: AlignmentKind
+    observed_index: int | None
+    template_index: int | None
+    observed_stress: str | None
+    template_stress: str | None
+    cost: float
+    feminine_ending: bool = False
+    catalectic_ending: bool = False
+
+
+@dataclass(frozen=True)
+class _AlignmentPlan:
+    cost: float
+    operations: tuple[_AlignmentPlanOperation, ...]
+    aligned_observed: str
+    aligned_template: str
+
+
+@dataclass(frozen=True)
+class _AlignmentCostConfiguration:
+    primary_stress_in_weak_cost: float
+    secondary_stress_in_weak_cost: float
+    secondary_stress_in_strong_cost: float
+    unstressed_content_in_strong_cost: float
+    unstressed_function_in_strong_cost: float
+    extra_syllable_cost: float
+    omitted_syllable_cost: float
+    feminine_ending_cost: float
+    catalectic_ending_cost: float
+
+
+def _alignment_cost_configuration(
+    configuration: MeterConfiguration,
+) -> _AlignmentCostConfiguration:
+    return _AlignmentCostConfiguration(
+        primary_stress_in_weak_cost=(
+            configuration.primary_stress_in_weak_cost
+        ),
+        secondary_stress_in_weak_cost=(
+            configuration.secondary_stress_in_weak_cost
+        ),
+        secondary_stress_in_strong_cost=(
+            configuration.secondary_stress_in_strong_cost
+        ),
+        unstressed_content_in_strong_cost=(
+            configuration.unstressed_content_in_strong_cost
+        ),
+        unstressed_function_in_strong_cost=(
+            configuration.unstressed_function_in_strong_cost
+        ),
+        extra_syllable_cost=configuration.extra_syllable_cost,
+        omitted_syllable_cost=configuration.omitted_syllable_cost,
+        feminine_ending_cost=configuration.feminine_ending_cost,
+        catalectic_ending_cost=configuration.catalectic_ending_cost,
+    )
+
+
 def _fit_label(score: float) -> str:
     if score >= 0.90:
         return "Close candidate fit"
@@ -461,10 +711,24 @@ def _aligned_cost(
     template_stress: str,
     configuration: MeterConfiguration,
 ) -> tuple[float, AlignmentKind]:
+    return _aligned_cost_values(
+        syllable.stress_digit,
+        syllable.is_function_word,
+        template_stress,
+        configuration,
+    )
+
+
+def _aligned_cost_values(
+    stress_digit: str,
+    is_function_word: bool,
+    template_stress: str,
+    configuration: MeterConfiguration | _AlignmentCostConfiguration,
+) -> tuple[float, AlignmentKind]:
     if template_stress == "0":
-        if syllable.stress_digit == "0":
+        if stress_digit == "0":
             return 0.0, AlignmentKind.MATCH
-        if syllable.stress_digit == "2":
+        if stress_digit == "2":
             return (
                 configuration.secondary_stress_in_weak_cost,
                 AlignmentKind.SUBSTITUTION,
@@ -473,9 +737,9 @@ def _aligned_cost(
             configuration.primary_stress_in_weak_cost,
             AlignmentKind.SUBSTITUTION,
         )
-    if syllable.stress_digit == "1":
+    if stress_digit == "1":
         return 0.0, AlignmentKind.MATCH
-    if syllable.stress_digit == "2":
+    if stress_digit == "2":
         return (
             configuration.secondary_stress_in_strong_cost,
             AlignmentKind.SECONDARY_FLEXIBILITY,
@@ -483,19 +747,22 @@ def _aligned_cost(
     return (
         (
             configuration.unstressed_function_in_strong_cost
-            if syllable.is_function_word
+            if is_function_word
             else configuration.unstressed_content_in_strong_cost
         ),
         AlignmentKind.SUBSTITUTION,
     )
 
 
-def _align(
-    syllables: tuple[StressSyllable, ...],
+@lru_cache(maxsize=16_384)
+def _alignment_plan(
+    syllable_signature: tuple[tuple[str, bool], ...],
     template: str,
-    configuration: MeterConfiguration,
-) -> _Alignment:
-    n = len(syllables)
+    configuration: _AlignmentCostConfiguration,
+) -> _AlignmentPlan:
+    """Cache token-independent DP paths for refrains and repeated stress shapes."""
+
+    n = len(syllable_signature)
     m = len(template)
     costs = [[float("inf")] * (m + 1) for _ in range(n + 1)]
     edits = [[10**9] * (m + 1) for _ in range(n + 1)]
@@ -513,8 +780,10 @@ def _align(
                 tuple[float, int, int, str, float, bool, bool]
             ] = []
             if i and j:
-                operation_cost, kind = _aligned_cost(
-                    syllables[i - 1],
+                stress_digit, is_function_word = syllable_signature[i - 1]
+                operation_cost, kind = _aligned_cost_values(
+                    stress_digit,
+                    is_function_word,
                     template[j - 1],
                     configuration,
                 )
@@ -534,7 +803,7 @@ def _align(
                 feminine = (
                     i == n
                     and j == m
-                    and syllables[i - 1].stress_digit == "0"
+                    and syllable_signature[i - 1][0] == "0"
                 )
                 operation_cost = (
                     configuration.feminine_ending_cost
@@ -578,7 +847,7 @@ def _align(
             edits[i][j] = best[1]
             back[i][j] = (best[3], best[4], best[5], best[6])
 
-    operations_reversed: list[AlignmentOperation] = []
+    operations_reversed: list[_AlignmentPlanOperation] = []
     observed_reversed: list[str] = []
     template_reversed: list[str] = []
     i, j = n, m
@@ -588,49 +857,48 @@ def _align(
             raise MeterModuleError("The meter alignment could not be reconstructed.")
         operation, operation_cost, feminine, catalectic = pointer
         if operation == "align":
-            syllable = syllables[i - 1]
+            stress_digit, is_function_word = syllable_signature[i - 1]
             target = template[j - 1]
-            _, kind = _aligned_cost(syllable, target, configuration)
+            _, kind = _aligned_cost_values(
+                stress_digit,
+                is_function_word,
+                target,
+                configuration,
+            )
             operations_reversed.append(
-                AlignmentOperation(
+                _AlignmentPlanOperation(
                     kind=kind,
                     observed_index=i - 1,
                     template_index=j - 1,
-                    observed_stress=syllable.stress_digit,
+                    observed_stress=stress_digit,
                     template_stress=target,
                     cost=operation_cost,
-                    token_id=syllable.token_id,
-                    surface_form=syllable.surface_form,
-                    part_of_speech=syllable.part_of_speech,
                 )
             )
-            observed_reversed.append(syllable.stress_digit)
+            observed_reversed.append(stress_digit)
             template_reversed.append(target)
             i -= 1
             j -= 1
         elif operation == "insert":
-            syllable = syllables[i - 1]
+            stress_digit = syllable_signature[i - 1][0]
             operations_reversed.append(
-                AlignmentOperation(
+                _AlignmentPlanOperation(
                     kind=AlignmentKind.EXTRA_SYLLABLE,
                     observed_index=i - 1,
                     template_index=None,
-                    observed_stress=syllable.stress_digit,
+                    observed_stress=stress_digit,
                     template_stress=None,
                     cost=operation_cost,
-                    token_id=syllable.token_id,
-                    surface_form=syllable.surface_form,
-                    part_of_speech=syllable.part_of_speech,
                     feminine_ending=feminine,
                 )
             )
-            observed_reversed.append(syllable.stress_digit)
+            observed_reversed.append(stress_digit)
             template_reversed.append("-")
             i -= 1
         else:
             target = template[j - 1]
             operations_reversed.append(
-                AlignmentOperation(
+                _AlignmentPlanOperation(
                     kind=AlignmentKind.OMITTED_SYLLABLE,
                     observed_index=None,
                     template_index=j - 1,
@@ -643,12 +911,81 @@ def _align(
             observed_reversed.append("-")
             template_reversed.append(target)
             j -= 1
-    return _Alignment(
+    return _AlignmentPlan(
         cost=costs[n][m],
         operations=tuple(reversed(operations_reversed)),
         aligned_observed="".join(reversed(observed_reversed)),
         aligned_template="".join(reversed(template_reversed)),
     )
+
+
+def _align(
+    syllables: tuple[StressSyllable, ...],
+    template: str,
+    configuration: MeterConfiguration,
+) -> _Alignment:
+    signature = tuple(
+        (syllable.stress_digit, syllable.is_function_word)
+        for syllable in syllables
+    )
+    plan = _alignment_plan(
+        signature,
+        template,
+        _alignment_cost_configuration(configuration),
+    )
+    operations = []
+    for operation in plan.operations:
+        syllable = (
+            syllables[operation.observed_index]
+            if operation.observed_index is not None
+            else None
+        )
+        operations.append(
+            AlignmentOperation(
+                kind=operation.kind,
+                observed_index=operation.observed_index,
+                template_index=operation.template_index,
+                observed_stress=operation.observed_stress,
+                template_stress=operation.template_stress,
+                cost=operation.cost,
+                token_id=syllable.token_id if syllable is not None else "",
+                surface_form=(
+                    syllable.surface_form if syllable is not None else ""
+                ),
+                part_of_speech=(
+                    syllable.part_of_speech if syllable is not None else ""
+                ),
+                feminine_ending=operation.feminine_ending,
+                catalectic_ending=operation.catalectic_ending,
+            )
+        )
+    return _Alignment(
+        cost=plan.cost,
+        operations=tuple(operations),
+        aligned_observed=plan.aligned_observed,
+        aligned_template=plan.aligned_template,
+    )
+
+
+def meter_alignment_cache_info() -> dict[str, int]:
+    """Developer-facing bounded-cache diagnostics without poem content."""
+
+    info = _alignment_plan.cache_info()
+    return {
+        "hits": info.hits,
+        "misses": info.misses,
+        "maxsize": info.maxsize or 0,
+        "currsize": info.currsize,
+    }
+
+
+def clear_meter_alignment_cache() -> None:
+    _alignment_plan.cache_clear()
+    _candidate_templates.cache_clear()
+
+
+def clear_candidate_template_cache() -> None:
+    _candidate_templates.cache_clear()
 
 
 def _local_binary_substitutions(
@@ -1480,6 +1817,7 @@ def _warnings(
 def _metrics(
     summary: MeterSummary,
     line_results: tuple[MeterLineResult, ...],
+    performance_aware: PerformanceAwareMeterResult | None = None,
 ) -> tuple[ModuleMetric, ...]:
     metrics: list[ModuleMetric] = [
         ModuleMetric(
@@ -1562,6 +1900,59 @@ def _metrics(
                 ),
             )
         )
+    if performance_aware is not None:
+        performance_summary = performance_aware.poem_summary
+        metrics.extend(
+            (
+                ModuleMetric(
+                    metric_id="meter.performance.rhythmic_organization",
+                    value=performance_summary.rhythmic_organization.value,
+                    layer=ResultLayer.INTERPRETATION,
+                    unit="rule-based organization category",
+                    denominator=(
+                        f"{performance_summary.analyzable_line_count} "
+                        "performance-aware line realizations"
+                    ),
+                    note=(
+                        "A profile-dependent interpretation, not a recovered "
+                        "performance or authorial intention."
+                    ),
+                ),
+                ModuleMetric(
+                    metric_id="meter.performance.primary_candidate",
+                    value=performance_summary.primary_meter or None,
+                    layer=ResultLayer.INTERPRETATION,
+                    unit="reranked candidate label",
+                    denominator=(
+                        f"{performance_summary.analyzable_line_count} "
+                        "performance-aware line realizations"
+                    ),
+                ),
+                ModuleMetric(
+                    metric_id="meter.performance.mean_realized_score",
+                    value=performance_summary.mean_realized_score,
+                    layer=ResultLayer.COMPUTED_SUMMARY,
+                    unit="inspectable component score 0-1",
+                    weighting="equal analyzable physical lines",
+                    denominator=(
+                        f"{performance_summary.analyzable_line_count} "
+                        "performance-aware line realizations"
+                    ),
+                    note="Configured score, not a probability.",
+                ),
+                ModuleMetric(
+                    metric_id="meter.performance.confidence",
+                    value=performance_summary.confidence.value,
+                    layer=ResultLayer.INTERPRETATION,
+                    unit="rule-based category",
+                    denominator=(
+                        f"{performance_summary.analyzable_line_count} "
+                        "performance-aware line realizations"
+                    ),
+                    note="Not a calibrated probability.",
+                ),
+            )
+        )
     return tuple(metrics)
 
 
@@ -1569,7 +1960,7 @@ class MeterModule:
     """Stage 6 dependent module using only retained Stage 5 stress evidence."""
 
     name = "candidate_meter_and_rhythmic_regularity"
-    version = "1.0.0"
+    version = "2.0.0"
 
     def validate_resources(self) -> tuple[ResourceStatus, ...]:
         return ()
@@ -1599,6 +1990,17 @@ class MeterModule:
             line_results,
             configuration,
         )
+        performance_aware = None
+        if configuration.analysis_mode is not MeterAnalysisMode.CANDIDATE:
+            from versevad.prosody.performance_meter import (
+                analyze_performance_aware_meter,
+            )
+
+            performance_aware = analyze_performance_aware_meter(
+                module_input,
+                line_results,
+                configuration,
+            )
         warnings = _warnings(summary, line_results, configuration)
         coverage = ModuleCoverage.from_counts(
             coverage_id="meter.analyzable_physical_lines",
@@ -1629,13 +2031,17 @@ class MeterModule:
                 "Consumes retained Stage 5 exact observed-form dictionary or "
                 "scholar-override stress evidence. Material dictionary "
                 "alternatives are explored as candidate paths without changing "
-                "the pronunciation result."
+                "the pronunciation result. When performance-aware analysis is "
+                "selected, retained candidates are reranked by separately "
+                "reported context, phrase, recurrence, and declared-profile "
+                "components; source lexical stress remains unchanged."
             ),
             inclusion_policy=(
                 "Physical lines require stress evidence for every eligible "
                 "lexical token. Five recurring patterns are compared at one "
                 "through eight feet; spondees and pyrrhics are local "
-                "substitution labels."
+                "substitution labels. No named stanza-form classification is "
+                "added."
             ),
             resources=pronunciation.module_result.provenance.resources,
         )
@@ -1648,6 +2054,13 @@ class MeterModule:
                 ),
                 "closest_candidate": summary.closest_candidate_label,
                 "closest_candidate_kind": summary.closest_candidate_kind,
+                "analysis_mode": configuration.analysis_mode.value,
+                "style_profile": configuration.style_profile.value,
+                "performance_primary_candidate": (
+                    performance_aware.poem_summary.primary_meter
+                    if performance_aware is not None
+                    else ""
+                ),
                 "line_statuses": [
                     (item.line_id, item.status.value) for item in line_results
                 ],
@@ -1655,7 +2068,7 @@ class MeterModule:
             sort_keys=True,
             separators=(",", ":"),
         )
-        result_id = "meter-result-v1:" + hashlib.sha256(
+        result_id = "meter-result-v2:" + hashlib.sha256(
             identity_payload.encode("utf-8")
         ).hexdigest()[:20]
         module_result = ModuleResult(
@@ -1664,7 +2077,7 @@ class MeterModule:
             module_version=self.version,
             text_id=module_input.document.text_id,
             text_version_id=module_input.document.text_version_id,
-            metrics=_metrics(summary, line_results),
+            metrics=_metrics(summary, line_results, performance_aware),
             coverage=(coverage,),
             warnings=warnings,
             provenance=provenance,
@@ -1678,4 +2091,5 @@ class MeterModule:
             line_results=line_results,
             candidate_summaries=candidate_summaries,
             summary=summary,
+            performance_aware=performance_aware,
         )

@@ -436,3 +436,31 @@ and `git diff --check` passed. Both rebuilt Word guides passed structural and
 accessibility checks with no high-severity findings. The canonical page-image
 renderer was attempted but remains unavailable because LibreOffice/`soffice`
 is not installed; no visual-render success is claimed.
+
+## Stage 14 performance-aware meter and optimization
+
+Stage 14 adds exact pre-refactor candidate fixtures before changing alignment
+internals. Tests compare pattern, foot count, cost, fit, evaluated alignment,
+deviation counts, candidate ranking, and poem summary values.
+
+Performance-aware tests cover source-stress preservation, declared profile
+separation, contextual adjustments, punctuation-supported caesura, retained
+alternatives, component scores, stanza recurrence, generic alternating
+sequence, missing evidence, exports, corpus persistence, and Streamlit
+presentation.
+
+Cache tests cover unchanged reuse, dependency-specific PoetryID and
+pronunciation invalidation, debugging disablement, invalid-entry recovery,
+LRU eviction, duplicate concurrent requests, preprocessing/module identity,
+and export identity. Timing assertions inspect states and deterministic data;
+ordinary tests do not impose unstable wall-clock limits.
+
+Use:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\benchmark_stage14.py --quick --repetitions 3
+```
+
+for repeatable medians, or add `--memory` for traced peak memory. See
+[`stage14-performance-report.md`](stage14-performance-report.md) and
+[`poetic-fingerprint-stage14-validation.md`](poetic-fingerprint-stage14-validation.md).

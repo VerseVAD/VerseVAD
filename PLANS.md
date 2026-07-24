@@ -711,7 +711,53 @@ review required.
   corpus distributions, and accessible visual reporting.
 - [x] Stage 13: application-wide design and information-architecture
   runthrough.
-- [ ] Stage 14: performance, speed, caching, and optimization pass.
+- [x] Stage 14: performance-aware meter plus measured speed, caching,
+  optimization, and interface-responsiveness pass.
+
+## Poetic Fingerprint expansion - Stage 14 performance-aware meter and optimization
+
+- [x] Read both implementation briefs and audit the existing pronunciation,
+  candidate-meter, application, corpus, cache, database, export, and UI paths.
+- [x] Record pre-change startup, analysis, memory-oriented, and profiler
+  baselines without weakening validation or omitting requested work.
+- [x] Preserve the complete Stage 6 candidate-meter layer and add optional
+  contextual realized scansion with explicit lexical stress, metrical
+  position, promotion/demotion, substitutions, phrasing, caesura, alternatives,
+  component scores, confidence, and methodological safeguards.
+- [x] Add broad, versioned style profiles that transparently rerank realized
+  candidates without rewriting lexical stress or inferring literary period.
+- [x] Add poem/stanza inference, generic alternating line-position patterns,
+  accentual/syllabic/mixed outcomes, regularity components, and trajectory
+  evidence without reintroducing the removed named common-meter classifier.
+- [x] Reuse and optimize validated alignment work with bounded caches and exact
+  candidate-output equivalence tests.
+- [x] Add explicit dependency fingerprints, layered bounded caches, timing and
+  cache diagnostics, safe cache management, and precise invalidation.
+- [x] Remove ordinary-startup development reloads and defer expensive exports
+  and hidden derived content until requested.
+- [x] Add safe corpus cancellation/resumption boundaries and cache-aware
+  progress while retaining deterministic transactional persistence.
+- [x] Add a repeatable benchmark harness and record before/after medians,
+  memory-oriented measurements, environment, remaining bottlenecks, and
+  performance budgets.
+- [x] Extend Single Poem, Other Text, Project / Corpus, schema-4 persistence,
+  exports, and the existing design system for the new meter and diagnostics.
+- [x] Add candidate equivalence, contextual meter, style, stanza, cache,
+  invalidation, corruption, corpus, export, UI, and benchmark-smoke tests.
+- [x] Rebuild documentation and both Word guides, then validate desktop and
+  narrow layouts, all appearance modes, completed reports, scansion,
+  responsiveness, overflow, focus, and browser diagnostics.
+- [x] Run the full suite, every synthetic demonstration, diagnostics,
+  source/resource and lock checks, benchmark comparison, document checks, and
+  `git diff --check`.
+- [x] Create the Stage 14 source-control checkpoint.
+- [x] Select `GPL-3.0-only`, add its canonical license text, and clearly
+  separate the software license from user-installed research-source terms.
+- [x] Document official resource pages, exact paths/names/checksums, and add
+  checksum-aware missing/unsupported-resource alerts and availability filters.
+- [x] Rename the repository folder from `ANEW VAD Study` to `VerseVAD` after
+  final validation, with a relocatable setup check for stale absolute virtual-
+  environment paths.
 
 ## Poetic Fingerprint expansion - Stage 13 design and interface
 

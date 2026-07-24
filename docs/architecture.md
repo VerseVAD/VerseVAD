@@ -422,6 +422,36 @@ explicit **Apply** action. They never write threshold, matching, filtering,
 pronunciation, or confidence settings. Appearance, collapse state, navigation,
 and other presentation state remain outside analytical configuration IDs.
 
+## Expansion Stage 14 meter and performance architecture
+
+Expansion Stage 14 advances the package to `0.18.0.dev0`. The existing
+`versevad.prosody.meter` candidate layer remains the upstream, validated
+calculation. `versevad.prosody.performance_meter` is a dependent interpretation
+layer over retained candidate alignments and the shared `ModuleInput`. It never
+tokenizes, reloads CMUdict, or edits lexical stress.
+
+`versevad.performance` owns bounded thread-safe preprocessing, module-result,
+visualization-data, and export caches plus stable dependency fingerprints,
+entry validation, timing records, diagnostics, and explicit cache management.
+The existing source-hash-keyed immutable resource caches remain inside their
+adapters/modules and are exposed through the same diagnostic view. No cache is
+the authoritative research record.
+
+The application orchestrator keys each module only by relevant dependencies.
+For example, meter includes its configuration and pronunciation result ID;
+PoetryID includes its configuration and completed VAD/lexical result IDs.
+Appearance and export controls enter neither key. Custom injected test modules
+bypass shared result caching.
+
+Schema 4 requires no migration: added meter metrics use the generic module
+tables, and added audit files use checksummed artifacts. Single Poem, Other
+Text, and corpus work-level analysis call the same `MeterModule`.
+
+Normal application startup no longer executes session-revision reloads unless
+`VERSEVAD_DEV_HOT_RELOAD=1` is explicitly set or a genuine API-compatibility
+check fails. Complete exports are constructed only after a user action and are
+then cached by immutable analysis identity.
+
 ## Implementation references
 
 - [Streamlit: run an app locally](https://docs.streamlit.io/develop/concepts/architecture/run-your-app)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
@@ -119,12 +120,29 @@ class LocalResourceManager:
         self.resource_root = Path(resource_root).resolve()
 
     @staticmethod
-    def _sha256(path: Path) -> str:
+    @lru_cache(maxsize=64)
+    def _sha256_for_signature(
+        path_text: str,
+        size_bytes: int,
+        modified_ns: int,
+    ) -> str:
+        """Hash one unchanged file once per process.
+
+        File size and modification time are part of the cache key, so adding or
+        replacing a user-installed resource is detected on the next check.
+        """
+
+        del size_bytes, modified_ns
+        path = Path(path_text)
         digest = hashlib.sha256()
         with path.open("rb") as source:
             for chunk in iter(lambda: source.read(1024 * 1024), b""):
                 digest.update(chunk)
         return digest.hexdigest()
+
+    @classmethod
+    def clear_validation_cache(cls) -> None:
+        cls._sha256_for_signature.cache_clear()
 
     def _path(self, spec: ResourceSpec) -> Path | None:
         candidate = (self.resource_root / Path(spec.relative_path)).resolve()
@@ -175,8 +193,13 @@ class LocalResourceManager:
                 message=f"{spec.display_name} is not a regular file: {path}",
             )
         try:
-            size_bytes = path.stat().st_size
-            source_sha256 = self._sha256(path)
+            file_stat = path.stat()
+            size_bytes = file_stat.st_size
+            source_sha256 = self._sha256_for_signature(
+                str(path),
+                size_bytes,
+                file_stat.st_mtime_ns,
+            )
         except OSError as error:
             return ResourceStatus(
                 resource_id=spec.resource_id,

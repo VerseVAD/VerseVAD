@@ -9,6 +9,7 @@ import pytest
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.application import (
     AnalysisRequest,
+    RESOURCE_DOWNLOAD_PAGES,
     TextImportError,
     WorkspaceAnalysis,
     WorkspaceAnalysisError,
@@ -20,6 +21,7 @@ from versevad.application import (
     emotion_association_views,
     emotion_intensity_views,
     match_views,
+    installed_resource_readiness,
     overview_notes,
     part_of_speech_views,
     part_of_speech_views_for_tokens,
@@ -72,6 +74,26 @@ def synthetic_workspace(preprocessor) -> WorkspaceAnalysis:
 
 def _csv_rows(content: bytes) -> list[dict[str, str]]:
     return list(csv.DictReader(io.StringIO(content.decode("utf-8-sig"))))
+
+
+def test_resource_readiness_reports_all_public_installation_contracts(
+    tmp_path,
+) -> None:
+    source_root = tmp_path / "source_lexicons"
+    resource_root = tmp_path / "resources"
+    readiness = installed_resource_readiness(
+        source_root=source_root,
+        resource_root=resource_root,
+    )
+
+    assert len(readiness.all_statuses) == 11
+    assert len(readiness.unavailable) == 11
+    assert readiness.available_lexicon_ids == ()
+    assert readiness.available_module_ids == ("lexical_style", "poetry_id")
+    assert not readiness.pronunciation_available
+    assert set(status.resource_id for status in readiness.all_statuses) == set(
+        RESOURCE_DOWNLOAD_PAGES
+    )
 
 
 def test_text_file_import_preserves_unicode_and_line_endings() -> None:

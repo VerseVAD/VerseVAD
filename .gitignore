@@ -18,6 +18,7 @@
 
 # Local environments and downloaded models/tools
 .venv/
+/.uv-cache/
 /.runtime/
 /.tools/
 __pycache__/

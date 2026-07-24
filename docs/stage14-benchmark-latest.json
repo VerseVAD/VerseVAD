@@ -1,0 +1,59 @@
+{
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.13",
+    "logical_cpus": 12,
+    "memory_tracing": false,
+    "preprocessor_initialization_ms": 299.067
+  },
+  "results": [
+    {
+      "scenario": "short_sound_and_form",
+      "line_count": 8,
+      "cold_ms": 2320.3888999996707,
+      "warm_median_ms": 1.088300021365285,
+      "warm_samples_ms": [
+        1.088300021365285,
+        1.5431999927386642,
+        0.9025000035762787
+      ],
+      "peak_memory_mib": null,
+      "export_cold_ms": 98.99129997938871,
+      "export_warm_ms": 0.0610999995842576,
+      "cache_hits_after": 16,
+      "cache_misses_after": 6
+    },
+    {
+      "scenario": "medium_complete",
+      "line_count": 20,
+      "cold_ms": 8776.045499951579,
+      "warm_median_ms": 2.131100045517087,
+      "warm_samples_ms": [
+        2.3028000723570585,
+        2.1152999252080917,
+        2.131100045517087
+      ],
+      "peak_memory_mib": null,
+      "export_cold_ms": 480.3566000191495,
+      "export_warm_ms": 0.055699958465993404,
+      "cache_hits_after": 50,
+      "cache_misses_after": 18
+    },
+    {
+      "scenario": "long_sound_and_form",
+      "line_count": 60,
+      "cold_ms": 1697.3399999551475,
+      "warm_median_ms": 1.2373999925330281,
+      "warm_samples_ms": [
+        1.8672000151127577,
+        1.2373999925330281,
+        1.0286999167874455
+      ],
+      "peak_memory_mib": null,
+      "export_cold_ms": 795.3012000070885,
+      "export_warm_ms": 0.05409994628280401,
+      "cache_hits_after": 66,
+      "cache_misses_after": 24
+    }
+  ]
+}

@@ -7,6 +7,49 @@ made a public release.
 
 ### Added
 
+- Stage 14 optional performance-aware meter realization above the unchanged
+  fixed candidate layer, with source lexical stress, metrical position,
+  promotion/demotion, substitutions, caesura, clashes/lapses, pronunciation
+  paths, alternate readings, inspectable component scores, and rule-based
+  confidence.
+- Seven declared, versioned broad meter interpretation profiles plus
+  Summary/Standard/Detailed presentation, stanza recurrence, generic
+  alternating sequence, rhythmic-organization labels, and trajectory evidence.
+  Candidate meter remains the default, and no named stanza-form classifier is
+  restored.
+- Four always-present performance-aware meter audit exports, a conditional
+  scholar-revisions CSV, and the same engine/configuration in Single Poem,
+  Other Text, and Project/Corpus work-level analysis.
+- Bounded thread-safe preprocessing, module-result, visualization-data, and
+  export caches with deterministic dependency fingerprints, validation,
+  concurrent duplicate suppression, precise invalidation, timings,
+  diagnostics, debugging disablement, clearing, and static-resource release.
+- Cached token-independent meter alignment plans while preserving exact Stage
+  6 candidate results; on-demand complete exports; ordinary-startup removal of
+  development hot reloads; safe corpus cancellation hooks at work boundaries.
+- Repeatable synthetic benchmark harness, pre/post performance report,
+  candidate-equivalence fixtures, performance-aware synthetic validation, and
+  cache/invalidation/corpus/export/interface regression coverage.
+- Project development version advanced to `0.18.0.dev0`.
+- GPL-3.0-only licensing for VerseVAD code and documentation, with the
+  canonical GPLv3 text and package metadata.
+- A public resource-installation guide with official source pages, exact local
+  destinations, supported SHA-256 values, and third-party license cautions.
+- Checksum-aware startup resource notices across all workspaces, unavailable
+  source/module filtering, and cached file validation that detects a replaced
+  resource without re-hashing unchanged workbooks on every rerun.
+- Relocatable Windows setup that detects and safely rebuilds only a stale
+  project-local virtual environment after the VerseVAD folder is moved or
+  renamed.
+- The local repository folder renamed from `ANEW VAD Study` to `VerseVAD`;
+  tracked runtime paths and beginner instructions remain location-independent.
+- Stage 14 completion validation: `285 passed`, all eleven direct synthetic
+  demonstrations, 12 diagnostics, immutable source inspection, supplementary
+  resource contracts, the 86-package offline lock/sync, final quick benchmark,
+  responsive four-workspace review, GPL/public-package boundary checks, and
+  zero-finding Word accessibility audits passed. The canonical DOCX renderer
+  was attempted but remains unavailable because LibreOffice/`soffice` is not
+  installed; no page-image visual inspection is claimed.
 - Poetic Fingerprint Stage 13 shared application shell with **Single Poem**,
   **Project / Corpus**, **Other Text**, and **Lexicon Explorer** workspaces,
   current-version context, visible appearance, settings, and help controls.

@@ -223,19 +223,26 @@ def _add_table(document: Document, rows: list[list[str]]) -> None:
 
 
 def _add_callout(document: Document, text: str) -> None:
-    table = document.add_table(rows=1, cols=1)
-    table.style = "Table Grid"
-    _set_table_geometry(table, [CONTENT_WIDTH_DXA])
-    _set_table_borders(table, color="D7DEE5", size=5)
-    cell = table.cell(0, 0)
-    _shade_cell(cell, LIGHT_GRAY)
-    paragraph = cell.paragraphs[0]
-    _set_spacing(paragraph, after=0, line=1.15)
+    paragraph = document.add_paragraph()
+    paragraph.paragraph_format.left_indent = Inches(0.12)
+    paragraph.paragraph_format.right_indent = Inches(0.12)
+    _set_spacing(paragraph, before=4, after=6, line=1.15)
+    p_pr = paragraph._p.get_or_add_pPr()
+    shading = OxmlElement("w:shd")
+    shading.set(qn("w:fill"), LIGHT_GRAY)
+    p_pr.append(shading)
+    borders = OxmlElement("w:pBdr")
+    for edge_name in ("top", "left", "bottom", "right"):
+        edge = OxmlElement(f"w:{edge_name}")
+        edge.set(qn("w:val"), "single")
+        edge.set(qn("w:sz"), "5")
+        edge.set(qn("w:space"), "5")
+        edge.set(qn("w:color"), "D7DEE5")
+        borders.append(edge)
+    p_pr.append(borders)
     _add_inline(paragraph, text)
     for run in paragraph.runs:
         run.font.color.rgb = _rgb(NAVY)
-    spacer = document.add_paragraph()
-    _set_spacing(spacer, after=2, line=1.0)
 
 
 def _add_code_block(document: Document, lines: list[str]) -> None:

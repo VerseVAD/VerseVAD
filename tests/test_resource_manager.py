@@ -131,3 +131,24 @@ def test_missing_resource_cannot_be_recorded_as_completed_provenance(tmp_path) -
         assert "available resource" in str(error)
     else:
         raise AssertionError("Missing resources must not become result provenance.")
+
+
+def test_resource_hash_cache_reuses_unchanged_file_and_invalidates_on_change(
+    tmp_path,
+) -> None:
+    LocalResourceManager.clear_validation_cache()
+    resource_path = tmp_path / "ratings.csv"
+    resource_path.write_bytes(b"first")
+    manager = LocalResourceManager(tmp_path)
+    spec = ResourceSpec("ratings", "Ratings", "ratings.csv")
+
+    first = manager.validate(spec)
+    second = manager.validate(spec)
+    unchanged_cache = LocalResourceManager._sha256_for_signature.cache_info()
+
+    resource_path.write_bytes(b"second-edition")
+    changed = manager.validate(spec)
+
+    assert first.source_sha256 == second.source_sha256
+    assert unchanged_cache.hits >= 1
+    assert changed.source_sha256 != first.source_sha256

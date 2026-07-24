@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import os
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -41,6 +42,7 @@ _application_was_reloaded = (
             "PhonologicalConfiguration",
             "LexicalStyleConfiguration",
             "PoetryIDConfiguration",
+            "installed_resource_readiness",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -107,7 +109,9 @@ from versevad import __version__
 from versevad.application import (
     AnalysisRequest,
     LEXICON_SPECS,
-    RESOURCE_ROOT,
+    PROJECT_ROOT,
+    RESOURCE_DOWNLOAD_PAGES,
+    ResourceReadiness,
     TextImportError,
     VAD_DEFINITIONS,
     WorkspaceAnalysisError,
@@ -118,6 +122,7 @@ from versevad.application import (
     detailed_part_of_speech_views,
     emotion_association_views,
     emotion_intensity_views,
+    installed_resource_readiness,
     match_views,
     overview_notes,
     part_of_speech_views,
@@ -134,22 +139,25 @@ from versevad.application import (
 from versevad.diagnostics import run_self_test
 from versevad.lexical_semantic.concreteness import (
     ConcretenessConfiguration,
-    ConcretenessModule,
 )
-from versevad.lexical_semantic.aoa import AoAConfiguration, AoAModule
+from versevad.lexical_semantic.aoa import AoAConfiguration
 from versevad.lexical_semantic.frequency import (
     FrequencyConfiguration,
-    FrequencyModule,
 )
 from versevad.lexical_style import LexicalStyleConfiguration
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
 from versevad.prosody.pronunciation import (
     PronunciationConfiguration,
-    PronunciationModule,
     parse_pronunciation_overrides,
 )
-from versevad.prosody.meter import MeterConfiguration
+from versevad.prosody.meter import (
+    MeterAnalysisMode,
+    MeterConfiguration,
+    MeterInterpretationDepth,
+    MeterStyleProfile,
+    parse_meter_scholar_revisions,
+)
 from versevad.phonology import PhonologicalConfiguration
 from versevad.poetry_id import (
     SUPPORTED_VAD_LEXICON_IDS,
@@ -182,9 +190,12 @@ st.set_page_config(
 # imported dependency modules. Use an explicit revision marker for Explorer
 # compatibility fixes so an open local session reloads both the service and UI
 # modules exactly once, then retains normal session state on later interactions.
+_DEVELOPMENT_HOT_RELOAD = os.environ.get("VERSEVAD_DEV_HOT_RELOAD") == "1"
 _EXPLORER_RUNTIME_REVISION = "2026-07-24-explorer-4"
 _explorer_was_reloaded = (
-    st.session_state.get("_explorer_runtime_revision") != _EXPLORER_RUNTIME_REVISION
+    _DEVELOPMENT_HOT_RELOAD
+    and st.session_state.get("_explorer_runtime_revision")
+    != _EXPLORER_RUNTIME_REVISION
 )
 if _explorer_was_reloaded:
     import versevad.explorer as _explorer_services
@@ -201,8 +212,12 @@ _CORPUS_RUNTIME_REVISION = "2026-07-24-poetry-id-1"
 import versevad.exports.corpus_excel as _corpus_excel_services
 
 _corpus_was_reloaded = (
-    st.session_state.get("_corpus_runtime_revision") != _CORPUS_RUNTIME_REVISION
-    or getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 6
+    getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 6
+    or (
+        _DEVELOPMENT_HOT_RELOAD
+        and st.session_state.get("_corpus_runtime_revision")
+        != _CORPUS_RUNTIME_REVISION
+    )
 )
 if _corpus_was_reloaded:
     importlib.reload(_corpus_excel_services)
@@ -215,7 +230,9 @@ if _corpus_was_reloaded:
 # do not require the scholar to restart VerseVAD manually.
 _DESIGN_RUNTIME_REVISION = "2026-07-24-design-3"
 _design_was_reloaded = (
-    st.session_state.get("_design_runtime_revision") != _DESIGN_RUNTIME_REVISION
+    _DEVELOPMENT_HOT_RELOAD
+    and st.session_state.get("_design_runtime_revision")
+    != _DESIGN_RUNTIME_REVISION
 )
 if _design_was_reloaded:
     importlib.reload(_design_services)
@@ -266,11 +283,77 @@ def _display_self_test() -> None:
     st.session_state["self_test_checks"] = checks
 
 
+def _render_resource_setup_notice(readiness: ResourceReadiness) -> None:
+    unavailable = readiness.unavailable
+    if not unavailable:
+        return
+    affected_lexicons = tuple(
+        status
+        for status in readiness.affective_lexicons
+        if not status.available
+    )
+    affected_modules: list[str] = []
+    if not readiness.concreteness.available:
+        affected_modules.append("concreteness")
+    if not readiness.frequency.available:
+        affected_modules.append("frequency")
+    if not readiness.aoa.available:
+        affected_modules.append("Age of Acquisition")
+    if not readiness.pronunciation_available:
+        affected_modules.extend(("pronunciation", "meter", "rhyme/sound"))
+    consequences: list[str] = []
+    if affected_lexicons:
+        consequences.append(
+            f"{len(affected_lexicons)} affective source"
+            f"{'s are' if len(affected_lexicons) != 1 else ' is'} unavailable"
+        )
+    if affected_modules:
+        consequences.append(
+            "the affected optional modules are disabled"
+        )
+    st.warning(
+        f"Resource setup needs attention: {len(unavailable)} of "
+        f"{len(readiness.all_statuses)} required runtime files are missing or "
+        f"unsupported. {'; '.join(consequences).capitalize()}. "
+        "Other installed analyses remain usable."
+    )
+    with st.expander("Resource setup details"):
+        st.write(
+            "VerseVAD never downloads research data automatically. Download each "
+            "source under its own terms, keep its original contents unchanged, "
+            "and place it at the exact destination below."
+        )
+        for status in unavailable:
+            try:
+                configured_path = status.configured_path.relative_to(PROJECT_ROOT)
+            except ValueError:
+                configured_path = status.configured_path
+            source_page = RESOURCE_DOWNLOAD_PAGES.get(status.resource_id)
+            st.markdown(
+                f"**{status.display_name}** — "
+                f"`{status.state.value.replace('_', ' ')}`"
+            )
+            st.code(str(configured_path), language=None)
+            if source_page:
+                st.markdown(f"[Open the official source/download page]({source_page})")
+            if status.source_sha256:
+                st.caption(
+                    "The file exists, but its SHA-256 does not match the edition "
+                    "VerseVAD has validated. It was not changed or analyzed."
+                )
+        st.caption(
+            "Complete filenames, supported SHA-256 values, source terms, and "
+            "installation steps: docs/resource-installation.md"
+        )
+
+
 workspace_page, _appearance_mode = render_app_shell()
+resource_readiness = installed_resource_readiness()
+_render_resource_setup_notice(resource_readiness)
 if workspace_page == "Project / Corpus":
     from versevad.ui.corpus import render_corpus_workspace
 
-    render_corpus_workspace(_preprocessor())
+    render_corpus_workspace(_preprocessor(), resource_readiness)
 if workspace_page == "Lexicon Explorer":
     from versevad.ui.explorer import render_lexicon_explorer
 
@@ -424,18 +507,16 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
     with st.container(border=True):
         st.subheader("2. Choose Evidence")
-        spec_by_id = {spec.lexicon_id: spec for spec in LEXICON_SPECS}
-        concreteness_status = ConcretenessModule(
-            RESOURCE_ROOT
-        ).validate_resources()[0]
-        frequency_status = FrequencyModule(RESOURCE_ROOT).validate_resources()[0]
-        aoa_status = AoAModule(RESOURCE_ROOT).validate_resources()[0]
-        pronunciation_statuses = PronunciationModule(
-            RESOURCE_ROOT
-        ).validate_resources()
-        pronunciation_available = all(
-            status.available for status in pronunciation_statuses
-        )
+        spec_by_id = {
+            spec.lexicon_id: spec
+            for spec in LEXICON_SPECS
+            if spec.lexicon_id in resource_readiness.available_lexicon_ids
+        }
+        concreteness_status = resource_readiness.concreteness
+        frequency_status = resource_readiness.frequency
+        aoa_status = resource_readiness.aoa
+        pronunciation_statuses = resource_readiness.pronunciation
+        pronunciation_available = resource_readiness.pronunciation_available
 
         preset_choice, preset_action = st.columns([3, 1], vertical_alignment="bottom")
         with preset_choice:
@@ -483,14 +564,26 @@ if workspace_page in {"Single Poem", "Other Text"}:
             "Affective sources stay separate. Repeated words contribute according "
             "to each module's visible weighting and view."
         )
+        if "selected_lexicons" in st.session_state:
+            st.session_state["selected_lexicons"] = [
+                lexicon_id
+                for lexicon_id in st.session_state["selected_lexicons"]
+                if lexicon_id in spec_by_id
+            ]
         selected_lexicons = st.multiselect(
             "Lexicons",
-            options=[spec.lexicon_id for spec in LEXICON_SPECS],
-            default=[spec.lexicon_id for spec in LEXICON_SPECS],
+            options=list(spec_by_id),
+            default=list(spec_by_id),
             format_func=lambda lexicon_id: spec_by_id[lexicon_id].display_name,
             help="Each source is analyzed independently. VerseVAD never creates a default consensus score.",
             key="selected_lexicons",
         )
+        if not spec_by_id:
+            st.info(
+                "No validated affective lexicon is installed. You can still run "
+                "resource-free lexical-style analysis or any installed optional "
+                "module."
+            )
         if selected_lexicons:
             with st.expander("What each selected lexicon contributes"):
                 for lexicon_id in selected_lexicons:
@@ -1130,6 +1223,81 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "resolve only when syllable count and lexical stress agree."
             )
             st.markdown("**Meter and rhythmic-regularity settings**")
+            meter_mode_labels = {
+                "Candidate meter only (validated default)": (
+                    MeterAnalysisMode.CANDIDATE
+                ),
+                "Performance-aware realization": (
+                    MeterAnalysisMode.PERFORMANCE_AWARE
+                ),
+                "Compare candidate and performance-aware readings": (
+                    MeterAnalysisMode.COMPARE_BOTH
+                ),
+            }
+            meter_style_labels = {
+                "General English Verse": MeterStyleProfile.GENERAL,
+                "Traditional Accentual-Syllabic Verse": (
+                    MeterStyleProfile.TRADITIONAL
+                ),
+                "Romantic / Victorian Verse": (
+                    MeterStyleProfile.ROMANTIC_VICTORIAN
+                ),
+                "Modernist Verse": MeterStyleProfile.MODERNIST,
+                "Contemporary Formal Verse": (
+                    MeterStyleProfile.CONTEMPORARY_FORMAL
+                ),
+                "Free Verse / Cadential": (
+                    MeterStyleProfile.FREE_VERSE_CADENTIAL
+                ),
+                "Custom visible weights": MeterStyleProfile.CUSTOM,
+            }
+            meter_depth_labels = {
+                "Summary": MeterInterpretationDepth.SUMMARY,
+                "Standard": MeterInterpretationDepth.STANDARD,
+                "Detailed": MeterInterpretationDepth.DETAILED,
+            }
+            meter_interpretation_columns = st.columns(3)
+            meter_analysis_mode_label = meter_interpretation_columns[
+                0
+            ].selectbox(
+                "Meter analysis layer",
+                options=list(meter_mode_labels),
+                key="meter_analysis_mode",
+                disabled=not include_meter,
+                help=(
+                    "Candidate meter preserves the validated fixed-template "
+                    "method. Performance-aware mode adds an inspectable, "
+                    "profile-dependent realization without changing lexical stress."
+                ),
+            )
+            meter_analysis_mode = meter_mode_labels[meter_analysis_mode_label]
+            meter_style_profile_label = meter_interpretation_columns[
+                1
+            ].selectbox(
+                "Declared interpretation profile",
+                options=list(meter_style_labels),
+                key="meter_style_profile",
+                disabled=(
+                    not include_meter
+                    or meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                help=(
+                    "A broad reading profile changes only explicit realization "
+                    "weights. VerseVAD never infers a period, movement, or author."
+                ),
+            )
+            meter_interpretation_depth_label = meter_interpretation_columns[
+                2
+            ].selectbox(
+                "Interpretation detail",
+                options=list(meter_depth_labels),
+                index=1,
+                key="meter_interpretation_depth",
+                disabled=(
+                    not include_meter
+                    or meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+            )
             meter_columns = st.columns(4)
             meter_line_match_threshold = meter_columns[0].number_input(
                 "Meter line-fit threshold",
@@ -1167,10 +1335,74 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 key="meter_maximum_variants",
                 disabled=not include_meter,
             )
+            meter_realization_columns = st.columns(3)
+            meter_performance_candidate_limit = meter_realization_columns[
+                0
+            ].number_input(
+                "Realization candidates per line",
+                min_value=2,
+                max_value=40,
+                value=8,
+                step=1,
+                key="meter_performance_candidate_limit",
+                disabled=(
+                    not include_meter
+                    or meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                help="Bounds contextual reranking while retaining fixed-layer evidence.",
+            )
+            meter_realized_alternatives = meter_realization_columns[
+                1
+            ].number_input(
+                "Retained realized alternatives",
+                min_value=1,
+                max_value=8,
+                value=2,
+                step=1,
+                key="meter_realized_alternatives",
+                disabled=(
+                    not include_meter
+                    or meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+            )
+            meter_allow_visible_elision = meter_realization_columns[
+                2
+            ].checkbox(
+                "Recognize visibly marked contractions",
+                value=False,
+                key="meter_allow_visible_elision",
+                disabled=(
+                    not include_meter
+                    or meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                help=(
+                    "Off by default. Only preserved spellings such as o'er may "
+                    "be labeled; unmarked syllables are never silently removed."
+                ),
+            )
+            meter_scholar_revisions_text = st.text_area(
+                "Scholar scansion revisions",
+                value="",
+                key="meter_scholar_revisions",
+                height=100,
+                disabled=(
+                    not include_meter
+                    or meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                ),
+                placeholder=(
+                    "line 2 = iambic pentameter | "
+                    "x / x / x / x / x / | reason for the revised reading"
+                ),
+                help=(
+                    "Optional. One line per revision. Automatic and revised "
+                    "readings remain separate in the interface and export."
+                ),
+            )
             st.caption(
-                "The fixed grid contains 40 candidates: five recurring stress "
-                "patterns × one through eight feet. Spondees and pyrrhics are "
-                "reported as local substitutions."
+                "The fixed grid remains 40 candidates: five recurring stress "
+                "patterns by one through eight feet. Optional realization "
+                "separately reports promotion, demotion, phrasing, substitutions, "
+                "alternatives, and confidence."
             )
             st.markdown("**Rhyme and phonological-pattern settings**")
             phonological_columns = st.columns(4)
@@ -1379,6 +1611,25 @@ if workspace_page in {"Single Poem", "Other Text"}:
             irregular_fit_threshold=float(meter_irregular_threshold),
             ambiguity_margin_threshold=float(meter_ambiguity_margin),
             maximum_line_variants=int(meter_maximum_variants),
+            analysis_mode=meter_analysis_mode,
+            style_profile=meter_style_labels[meter_style_profile_label],
+            interpretation_depth=meter_depth_labels[
+                meter_interpretation_depth_label
+            ],
+            performance_candidate_limit=int(
+                meter_performance_candidate_limit
+            ),
+            retained_realized_alternatives=int(
+                meter_realized_alternatives
+            ),
+            allow_visible_poetic_elision=meter_allow_visible_elision,
+            scholar_revisions=(
+                ()
+                if meter_analysis_mode is MeterAnalysisMode.CANDIDATE
+                else parse_meter_scholar_revisions(
+                    meter_scholar_revisions_text
+                )
+            ),
         )
     except ValueError as error:
         meter_configuration_error = str(error)
@@ -1447,6 +1698,14 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 meter_configuration=meter_configuration,
                 include_phonology=include_phonology,
                 phonological_configuration=phonological_configuration,
+                analysis_cache_enabled=st.session_state.get(
+                    "analysis_cache_enabled",
+                    True,
+                ),
+                performance_diagnostics=st.session_state.get(
+                    "performance_diagnostics_enabled",
+                    True,
+                ),
             )
             with st.status("Analyzing locally…", expanded=True) as analysis_status:
                 st.write("Preparing one shared linguistic representation.")
@@ -3631,6 +3890,314 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 f"Candidate margin: {_decimal(summary.candidate_margin)}."
             )
 
+            performance_meter = meter.performance_aware
+            if performance_meter is not None:
+                st.divider()
+                st.subheader("Performance-Aware Realization")
+                st.warning(
+                    "This optional layer models plausible relationships among "
+                    "lexical stress, rhythmic expectation, phrasing, recurrence, "
+                    "and the declared profile. It does not recover one mandatory "
+                    "performance or the poet's intention."
+                )
+                performance_summary = performance_meter.poem_summary
+                performance_metrics = st.columns(6)
+                performance_metrics[0].metric(
+                    "Rhythmic organization",
+                    performance_summary.rhythmic_organization.value.replace(
+                        "_",
+                        " ",
+                    ).title(),
+                )
+                performance_metrics[1].metric(
+                    "Primary realized candidate",
+                    (
+                        performance_summary.primary_meter
+                        or "Insufficient evidence"
+                    ),
+                )
+                performance_metrics[2].metric(
+                    "Mean realized score",
+                    _percentage(performance_summary.mean_realized_score),
+                    help="Inspectable configured component score; not a probability.",
+                )
+                performance_metrics[3].metric(
+                    "Line coverage",
+                    _percentage(performance_summary.line_coverage),
+                )
+                performance_metrics[4].metric(
+                    "Primary-candidate share",
+                    _percentage(
+                        performance_summary.primary_meter_line_proportion
+                    ),
+                )
+                performance_metrics[5].metric(
+                    "Rule-based confidence",
+                    performance_summary.confidence.value.replace(
+                        "_",
+                        " ",
+                    ).title(),
+                    help=performance_summary.confidence_explanation,
+                )
+                st.caption(
+                    f"Declared profile: "
+                    f"{performance_meter.style_profile.label} "
+                    f"(v{performance_meter.style_profile.version}). "
+                    f"Secondary candidate: "
+                    f"{performance_summary.secondary_meter or 'none retained'}. "
+                    "The profile is selected by the scholar, never inferred."
+                )
+                if performance_summary.generic_composite_pattern:
+                    st.info(performance_summary.generic_composite_pattern)
+
+                st.markdown("**Stanza-level recurrence**")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Stanza": item.stanza_number,
+                                "Lines": ", ".join(
+                                    str(value)
+                                    for value in item.line_numbers
+                                ),
+                                "Primary candidate": item.primary_candidate,
+                                "Alternate candidate": (
+                                    item.alternate_candidate
+                                ),
+                                "Analyzable lines": item.analyzable_lines,
+                                "Mean realized score": (
+                                    item.mean_realized_score
+                                ),
+                                "Regularity": item.regularity,
+                                "Line-position sequence": " | ".join(
+                                    item.line_position_pattern
+                                ),
+                                "Exceptions": ", ".join(
+                                    str(value) for value in item.exceptions
+                                ),
+                            }
+                            for item in performance_meter.stanza_summaries
+                        ]
+                    ).style.format(
+                        {
+                            "Mean realized score": (
+                                lambda value: _percentage(value)
+                            ),
+                            "Regularity": lambda value: _percentage(value),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+                if (
+                    meter.configuration.interpretation_depth
+                    is not MeterInterpretationDepth.SUMMARY
+                ):
+                    st.markdown("**Line-level realized readings**")
+                    st.dataframe(
+                        pd.DataFrame(
+                            [
+                                {
+                                    "Line": line.line_number,
+                                    "Stanza": line.stanza_number,
+                                    "Text": line.source_text,
+                                    "Raw lexical stress": (
+                                        line.raw_lexical_stress
+                                    ),
+                                    "Fixed-layer candidate": (
+                                        line.candidate_meter
+                                    ),
+                                    "Realized candidate": (
+                                        line.primary_realization.candidate_label
+                                        if line.primary_realization
+                                        else ""
+                                    ),
+                                    "Candidate template": (
+                                        line.primary_realization.candidate_template
+                                        if line.primary_realization
+                                        else ""
+                                    ),
+                                    "Realized scansion": (
+                                        line.primary_realization.realized_display
+                                        if line.primary_realization
+                                        else ""
+                                    ),
+                                    "Overall score": (
+                                        line.primary_realization.scores.overall
+                                        if line.primary_realization
+                                        else None
+                                    ),
+                                    "Confidence": line.confidence.value.replace(
+                                        "_",
+                                        " ",
+                                    ),
+                                    "Margin": line.score_margin,
+                                    "Substitutions": (
+                                        " | ".join(
+                                            item.label
+                                            for item in (
+                                                line.primary_realization.substitutions
+                                            )
+                                        )
+                                        if line.primary_realization
+                                        else ""
+                                    ),
+                                    "Why": line.explanation,
+                                }
+                                for line in performance_meter.line_results
+                            ]
+                        ).style.format(
+                            {
+                                "Overall score": (
+                                    lambda value: _percentage(value)
+                                ),
+                                "Margin": lambda value: _decimal(value),
+                            }
+                        ),
+                        hide_index=True,
+                        width="stretch",
+                        height=420,
+                    )
+                    st.caption(
+                        "Scansion notation: x weak; / strong; ^ proposed "
+                        "promotion; v proposed demotion; 2 secondary-stress "
+                        "flexibility; || punctuation-supported caesura; | foot "
+                        "boundary. Raw lexical stress remains separate."
+                    )
+
+                    trajectory_rows = [
+                        {
+                            "Line": item.line_number,
+                            "Stanza": item.stanza_number,
+                            "Realized score": item.realized_score,
+                            "Syllables": item.syllable_count,
+                            "Beats": item.realized_beats,
+                            "Substitutions": item.substitution_count,
+                        }
+                        for item in performance_meter.trajectory
+                    ]
+                    if trajectory_rows:
+                        with st.expander("Rhythmic trajectory"):
+                            trajectory_frame = pd.DataFrame(trajectory_rows)
+                            st.line_chart(
+                                trajectory_frame.set_index("Line")[
+                                    ["Realized score"]
+                                ],
+                                height=240,
+                            )
+                            st.dataframe(
+                                trajectory_frame,
+                                hide_index=True,
+                                width="stretch",
+                            )
+
+                if (
+                    meter.configuration.interpretation_depth
+                    is MeterInterpretationDepth.DETAILED
+                ):
+                    with st.expander(
+                        "Alternate readings and component scores",
+                        expanded=False,
+                    ):
+                        detailed_rows = []
+                        for line in performance_meter.line_results:
+                            readings = (
+                                (line.primary_realization,)
+                                + line.alternate_realizations
+                                if line.primary_realization is not None
+                                else ()
+                            )
+                            for rank, reading in enumerate(
+                                readings,
+                                start=1,
+                            ):
+                                detailed_rows.append(
+                                    {
+                                        "Line": line.line_number,
+                                        "Rank": rank,
+                                        "Role": (
+                                            "Primary"
+                                            if rank == 1
+                                            else "Alternate"
+                                        ),
+                                        "Candidate": reading.candidate_label,
+                                        "Overall": reading.scores.overall,
+                                        "Fixed fit": (
+                                            reading.scores.candidate_fit
+                                        ),
+                                        "Context": (
+                                            reading.scores.contextual_fit
+                                        ),
+                                        "Phrase": reading.scores.phrase_fit,
+                                        "Ending": (
+                                            reading.scores.line_ending_fit
+                                        ),
+                                        "Poem recurrence": (
+                                            reading.scores.poem_consistency
+                                        ),
+                                        "Stanza recurrence": (
+                                            reading.scores.stanza_consistency
+                                        ),
+                                        "Style compatibility": (
+                                            reading.scores.style_compatibility
+                                        ),
+                                        "Pronunciation path": " | ".join(
+                                            reading.selected_pronunciation_path
+                                        ),
+                                    }
+                                )
+                        st.dataframe(
+                            pd.DataFrame(detailed_rows),
+                            hide_index=True,
+                            width="stretch",
+                            height=440,
+                        )
+
+                if performance_meter.scholar_revisions:
+                    st.markdown("**Scholar revisions (kept separate)**")
+                    st.dataframe(
+                        pd.DataFrame(
+                            [
+                                {
+                                    "Line": item.line_number,
+                                    "Text": item.source_text,
+                                    "Applied to existing line": (
+                                        item.applied_to_existing_line
+                                    ),
+                                    "Automatic candidate": (
+                                        item.automatic_candidate
+                                    ),
+                                    "Automatic scansion": (
+                                        item.automatic_scansion
+                                    ),
+                                    "Scholar candidate": (
+                                        item.revised_candidate
+                                    ),
+                                    "Scholar scansion": (
+                                        item.revised_scansion
+                                    ),
+                                    "Scholar note": item.note,
+                                }
+                                for item in (
+                                    performance_meter.scholar_revisions
+                                )
+                            ]
+                        ),
+                        hide_index=True,
+                        width="stretch",
+                    )
+                    st.caption(
+                        "Scholar revisions do not overwrite the automatic "
+                        "reading or source lexical stress."
+                    )
+
+                with st.expander("Performance-aware safeguards"):
+                    for method_note in performance_meter.methodology:
+                        st.write(f"- {method_note}")
+                    for warning in performance_meter.warnings:
+                        st.info(warning)
+
             st.markdown("**Physical-line candidate evidence**")
             st.dataframe(
                 pd.DataFrame(
@@ -4554,7 +5121,86 @@ if workspace_page in {"Single Poem", "Other Text"}:
             "Use this table when you want to know exactly which surface form, lemma, "
             "phrase, or source entry contributed—or why it was suppressed."
         )
-        all_matches = match_views(workspace)
+        if workspace.performance is not None:
+            with st.expander("Performance and cache diagnostics"):
+                performance = workspace.performance
+                st.metric(
+                    "Analysis wall time",
+                    f"{performance.total_ms:,.1f} ms",
+                )
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Operation": item.module,
+                                "Status": item.status,
+                                "Cache": item.cache_status,
+                                "Cache reason": item.cache_reason,
+                                "Processing ms": item.processing_ms,
+                                "Total ms": item.total_ms,
+                            }
+                            for item in performance.operations
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Cache": item.name,
+                                "Entries": item.entry_count,
+                                "Maximum entries": item.max_entries,
+                                "Approximate shallow bytes": (
+                                    item.approximate_size_bytes
+                                ),
+                                "Hits": item.hits,
+                                "Misses": item.misses,
+                                "Evictions": item.evictions,
+                                "Discarded invalid entries": (
+                                    item.corruptions
+                                ),
+                            }
+                            for item in performance.caches
+                        ]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(performance.note)
+        evidence_signature = (
+            workspace.document.text_version_id
+            + "|"
+            + "|".join(result.analysis_id for result in workspace.results)
+        )
+        evidence_is_loaded = (
+            st.session_state.get("loaded_evidence_signature")
+            == evidence_signature
+        )
+        if st.button(
+            (
+                "Refresh match evidence"
+                if evidence_is_loaded
+                else "Load match evidence"
+            ),
+            key="load_match_evidence",
+            help=(
+                "Builds large match and unmatched tables only when requested, "
+                "then retains them for unchanged results."
+            ),
+        ):
+            st.session_state["loaded_evidence_signature"] = evidence_signature
+            evidence_is_loaded = True
+        if not evidence_is_loaded:
+            st.info(
+                "Detailed match and unmatched tables are deferred so hidden "
+                "report tabs remain responsive. Load them when you need the "
+                "token-level audit."
+            )
+        all_matches = (
+            match_views(workspace) if evidence_is_loaded else ()
+        )
         lexicon_filter = st.selectbox(
             "Filter by lexicon",
             options=["All lexicons", *sorted({row.lexicon for row in all_matches})],
@@ -4624,7 +5270,9 @@ if workspace_page in {"Single Poem", "Other Text"}:
         st.caption(f"Showing {len(filtered):,} of {len(all_matches):,} audit records.")
 
         st.subheader("Unmatched Vocabulary")
-        unmatched = unmatched_views(workspace)
+        unmatched = (
+            unmatched_views(workspace) if evidence_is_loaded else ()
+        )
         if unmatched:
             unmatched_frame = _frame(
                 unmatched,
@@ -4642,9 +5290,9 @@ if workspace_page in {"Single Poem", "Other Text"}:
             st.caption(
                 "A model lemma is proposed processing evidence, not an approved historical or scholarly mapping."
             )
-        elif workspace.results:
+        elif workspace.results and evidence_is_loaded:
             st.success("Every lexical token matched each selected lexicon under this policy.")
-        else:
+        elif evidence_is_loaded:
             st.info(
                 "No affective lexicon was selected. Optional-module matching is "
                 "available in the Concreteness, Frequency & Rarity, or Age of "
@@ -4662,31 +5310,119 @@ if workspace_page in {"Single Poem", "Other Text"}:
             character if character.isalnum() or character in {"-", "_"} else "_"
             for character in workspace.document.title.strip()
         ).strip("_") or "versevad_analysis"
-        column1, column2, column3 = st.columns(3)
-        column1.download_button(
-            "Download readable summary",
-            data=scholar_summary_csv(workspace),
-            file_name=f"{safe_stem}_scholar_summary.csv",
-            mime="text/csv",
-            width="stretch",
-            key="download_summary",
-        )
-        column2.download_button(
-            "Download CSV reading guide",
-            data=csv_reading_guide(),
-            file_name="VerseVAD_CSV_reading_guide.csv",
-            mime="text/csv",
-            width="stretch",
-            key="download_guide",
-        )
-        column3.download_button(
-            "Download full audit bundle",
-            data=detailed_export_zip(workspace),
-            file_name=f"{safe_stem}_VerseVAD_audit.zip",
-            mime="application/zip",
-            width="stretch",
-            key="download_bundle",
-        )
+        export_signature = hashlib.sha256(
+            (
+                workspace.document.text_version_id
+                + workspace.comparison.comparison_id
+                + "|".join(
+                    result.analysis_id for result in workspace.results
+                )
+                + "|".join(
+                    (
+                        (
+                            workspace.concreteness.module_result.result_id
+                            if workspace.concreteness
+                            else ""
+                        ),
+                        (
+                            workspace.frequency.module_result.result_id
+                            if workspace.frequency
+                            else ""
+                        ),
+                        (
+                            workspace.aoa.module_result.result_id
+                            if workspace.aoa
+                            else ""
+                        ),
+                        (
+                            workspace.pronunciation.module_result.result_id
+                            if workspace.pronunciation
+                            else ""
+                        ),
+                        (
+                            workspace.meter.module_result.result_id
+                            if workspace.meter
+                            else ""
+                        ),
+                        (
+                            workspace.phonology.module_result.result_id
+                            if workspace.phonology
+                            else ""
+                        ),
+                        (
+                            workspace.lexical_style.module_result.result_id
+                            if workspace.lexical_style
+                            else ""
+                        ),
+                        (
+                            workspace.poetry_id.module_result.result_id
+                            if workspace.poetry_id
+                            else ""
+                        ),
+                    )
+                )
+            ).encode("utf-8")
+        ).hexdigest()
+        prepared_exports = st.session_state.get("prepared_workspace_exports")
+        if st.button(
+            "Prepare downloads",
+            type="primary",
+            key="prepare_workspace_exports",
+            help=(
+                "Builds export bytes only when requested. Repeated preparation "
+                "of the unchanged analysis uses the bounded export cache."
+            ),
+        ):
+            with st.spinner("Preparing complete local exports..."):
+                prepared_exports = {
+                    "signature": export_signature,
+                    "summary": scholar_summary_csv(workspace),
+                    "guide": csv_reading_guide(),
+                    "bundle": detailed_export_zip(
+                        workspace,
+                        use_cache=st.session_state.get(
+                            "analysis_cache_enabled",
+                            True,
+                        ),
+                    ),
+                }
+                st.session_state["prepared_workspace_exports"] = (
+                    prepared_exports
+                )
+        if (
+            prepared_exports
+            and prepared_exports.get("signature") == export_signature
+        ):
+            column1, column2, column3 = st.columns(3)
+            column1.download_button(
+                "Download readable summary",
+                data=prepared_exports["summary"],
+                file_name=f"{safe_stem}_scholar_summary.csv",
+                mime="text/csv",
+                width="stretch",
+                key="download_summary",
+            )
+            column2.download_button(
+                "Download CSV reading guide",
+                data=prepared_exports["guide"],
+                file_name="VerseVAD_CSV_reading_guide.csv",
+                mime="text/csv",
+                width="stretch",
+                key="download_guide",
+            )
+            column3.download_button(
+                "Download full audit bundle",
+                data=prepared_exports["bundle"],
+                file_name=f"{safe_stem}_VerseVAD_audit.zip",
+                mime="application/zip",
+                width="stretch",
+                key="download_bundle",
+            )
+        else:
+            st.caption(
+                "Downloads are generated on demand so hidden tabs do not rebuild "
+                "large audit bundles during ordinary interface interactions."
+            )
         st.info(
             "The full bundle contains START_HERE.txt, the readable summary, the CSV "
             "guide, match audit, coverage, VAD, association, intensity, comparison, "
@@ -4701,6 +5437,8 @@ if workspace_page in {"Single Poem", "Other Text"}:
             "line, observed-type, candidate/token-audit, and JSON files. When "
             "Meter & Rhythm is selected, it also includes the 40 fixed "
             "candidates, line and alignment audits, summary, and JSON files. "
+            "Performance-aware runs additionally include realized readings, "
+            "stanza recurrence, trajectory, and a plain-text scansion report. "
             "When Rhyme & Sound is selected, it includes whole-poem and stanza "
             "schemes, line and ending-pair evidence, internal rhyme, recurring "
             "sound families, coverage, summary, and JSON files. When Lexical "

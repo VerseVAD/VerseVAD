@@ -81,7 +81,7 @@ UTF-8 export, and safe export replacement.
 
 ## How to test it
 
-1. Open the `ANEW VAD Study` folder in File Explorer.
+1. Open the `VerseVAD` folder in File Explorer.
 2. Double-click `test_phase2.bat`.
 3. Wait several seconds while the private source files are read locally.
 4. Look for these lines:

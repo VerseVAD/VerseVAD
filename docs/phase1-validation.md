@@ -80,7 +80,7 @@ Thirty-two tests currently cover:
 
 ## How to test it
 
-1. Open the `ANEW VAD Study` folder in File Explorer.
+1. Open the `VerseVAD` folder in File Explorer.
 2. Double-click `test_phase1.bat`.
 3. A black console window will appear. Wait for the calculations to finish.
 4. Success looks like this:

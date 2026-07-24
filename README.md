@@ -1,6 +1,6 @@
 # VerseVAD
 
-VerseVAD is a planned local scholarly application for transparent analysis of
+VerseVAD is a local scholarly application for transparent analysis of
 affective vocabulary in poetry and other literary texts.
 
 It will measure the distribution of words and phrases associated with
@@ -124,6 +124,10 @@ See:
 - [Poetic Fingerprint Stage 11 validation](docs/poetic-fingerprint-stage11-validation.md)
 - [Poetic Fingerprint Stage 12 PoetryID](docs/poetic-fingerprint-stage12.md)
 - [Poetic Fingerprint Stage 12 validation](docs/poetic-fingerprint-stage12-validation.md)
+- [Poetic Fingerprint Stage 14 performance-aware meter and optimization](docs/poetic-fingerprint-stage14.md)
+- [Poetic Fingerprint Stage 14 validation](docs/poetic-fingerprint-stage14-validation.md)
+- [Stage 14 performance report](docs/stage14-performance-report.md)
+- [Public resource installation guide](docs/resource-installation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)
@@ -145,11 +149,33 @@ ordinary use does not depend on a ChatGPT subscription. Cancelling a
 subscription would only remove access to future ChatGPT/Codex assistance, not
 the already installed local application.
 
-The supplied NRC resources prohibit redistribution, and the Warriner data has
-non-commercial and no-derivatives conditions. Consequently,
-`source_lexicons/` is intentionally excluded from source control. A future
-public code release may contain adapters and instructions, but not the source
-lexicon data.
+The research datasets are not part of VerseVAD and are not distributed in the
+public repository. NRC resources prohibit redistribution, the inspected
+Warriner package states non-commercial and no-derivatives conditions, and
+other supplements retain their own publisher or creator terms. Consequently,
+`source_lexicons/` and installed files under `resources/` are intentionally
+excluded from source control.
+
+Users download each desired source from its official page and place the
+unchanged file at the exact documented path. On startup, VerseVAD reports
+missing, malformed, and unsupported resources; affected sources or modules
+remain unavailable while installed analyses continue to work. See the
+[resource installation guide](docs/resource-installation.md) for official
+links, filenames, supported SHA-256 values, and license cautions.
+
+## License
+
+VerseVAD source code and documentation are free and open-source software
+licensed under
+[GNU General Public License v3.0 only](LICENSE) (`GPL-3.0-only`). You may use,
+study, modify, and distribute VerseVAD, including commercially, subject to the
+GPL. Distributed derivative versions must provide corresponding source and
+retain the GPL terms. VerseVAD is provided without warranty.
+
+The GPL covers VerseVAD itself. It does not grant permission to redistribute
+or commercially use third-party lexicons, datasets, papers, language models,
+or literary texts. Those materials remain governed by their own licenses and
+terms.
 
 ## Start the graphical application
 

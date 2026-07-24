@@ -99,6 +99,12 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "all 27 centroid distances",
             "poetry_id_neighbors.csv",
             "no JSON export",
+            "GPL-3.0-only",
+            "docs/resource-installation.md",
+            "Performance-aware realization",
+            "meter_realizations.csv",
+            "meter_scholar_revisions.csv",
+            "If the VerseVAD folder is moved",
         ):
             assert required in text
 
@@ -114,7 +120,8 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             assert page_margins.get(f"{W}{side}") == "1440"
 
         tables = document.findall(".//w:tbl", NS)
-        assert len(tables) >= 10
+        # Callouts are accessible bordered paragraphs rather than layout tables.
+        assert len(tables) >= 9
         for table in tables:
             width = table.find("w:tblPr/w:tblW", NS)
             indent = table.find("w:tblPr/w:tblInd", NS)
@@ -237,5 +244,8 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "PoetryID centroid",
             "Interface Terms Are Not Analytical Terms",
             "Light, Dark, and System",
+            "Performance-Aware Meter Realization",
+            "Declared meter style profile",
+            "realization_score = bounded weighted component evidence",
         ):
             assert required in text

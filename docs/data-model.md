@@ -406,6 +406,39 @@ foot counts, stress-path limit, retained alternatives, scenario ID, and a
 stable hash-derived configuration ID. `ModuleProvenance` links the result to
 the exact Stage 5 resource hashes and pronunciation configuration.
 
+Stage 14 extends, rather than replaces, that path:
+
+```text
+MeterAnalysisResult
+ -> existing MeterSummary + MeterLineResult(s) + CandidateMeterFit(s)
+ -> optional PerformanceAwareMeterResult
+    -> PerformancePoemSummary
+    -> StanzaMeterSummary(s)
+    -> PerformanceLineResult(s)
+       -> primary/alternate RealizedScansion
+          -> RealizedSyllable(s) + MetricalSubstitution(s)
+          -> RealizationScores + CaesuraEvidence(s)
+    -> RhythmTrajectoryPoint(s)
+```
+
+`MeterAnalysisMode`, `MeterStyleProfile`, and
+`MeterInterpretationDepth` are stored in `MeterConfiguration`. Profile
+definitions include an explicit label, version, tolerances, preferences, and
+note. `RealizedSyllable.lexical_stress` remains source evidence while
+`metrical_position` and `adjustment` are interpretation fields.
+
+`PerformanceAwareMeterResult` is optional. Candidate-only results therefore
+retain their prior shape and five-file bundle, while performance-aware results
+add four audit files. The common `ModuleResult` adds document metrics for
+organization, primary realized candidate, mean realized score, and
+non-probabilistic confidence; schema 4 stores them generically.
+
+`CacheEntryMetadata` records cache schema, creation timestamp, dependency
+fingerprint, and approximate shallow size. `AnalysisPerformanceReport`
+contains operation timings, cache status/reason, and cache snapshots. It is
+ephemeral session diagnostics and is not written as an analytical module
+result.
+
 The current in-memory Stage 7 path is:
 
 ```text

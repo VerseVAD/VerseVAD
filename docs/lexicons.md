@@ -2,6 +2,11 @@
 
 Inspection date: 2026-07-22
 
+The source files described below are not distributed with the open-source
+VerseVAD repository. For official download pages, exact installation paths,
+supported checksums, and source-specific terms, see the
+[resource installation guide](resource-installation.md).
+
 This inventory describes the files currently present under `source_lexicons/`.
 The files were read and hashed but not modified. Counts below refer to the
 selected primary English source file for each adapter, not translations or

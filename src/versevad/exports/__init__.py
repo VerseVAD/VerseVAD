@@ -37,6 +37,11 @@ from versevad.exports.meter import (
     export_meter_candidates_csv,
     export_meter_json,
     export_meter_lines_csv,
+    export_meter_realizations_csv,
+    export_meter_rhythm_trajectory_csv,
+    export_meter_scansion_report,
+    export_meter_scholar_revisions_csv,
+    export_meter_stanzas_csv,
     export_meter_summary_csv,
 )
 from versevad.exports.lexical_style import (
@@ -117,6 +122,11 @@ __all__ = [
     "export_meter_candidates_csv",
     "export_meter_json",
     "export_meter_lines_csv",
+    "export_meter_realizations_csv",
+    "export_meter_rhythm_trajectory_csv",
+    "export_meter_scansion_report",
+    "export_meter_scholar_revisions_csv",
+    "export_meter_stanzas_csv",
     "export_meter_summary_csv",
     "export_phase2_csv",
     "export_internal_rhymes_csv",

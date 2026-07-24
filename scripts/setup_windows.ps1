@@ -4,6 +4,8 @@ $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $UvDirectory = Join-Path $ProjectRoot ".tools\uv"
 $UvExecutable = Join-Path $UvDirectory "uv.exe"
 $RuntimeDirectory = Join-Path $ProjectRoot ".runtime"
+$VirtualEnvironment = Join-Path $ProjectRoot ".venv"
+$VirtualEnvironmentConfig = Join-Path $VirtualEnvironment "pyvenv.cfg"
 $DownloadDirectory = Join-Path $RuntimeDirectory "downloads"
 $UvArchive = Join-Path $DownloadDirectory "uv-0.11.30.zip"
 $ExpectedUvHash = "be8d78c992312212e5cc05e9f9de3fa996db73b7c86a186dfb9231eb9f91d33e"
@@ -35,6 +37,31 @@ if (-not (Test-Path -LiteralPath $UvExecutable)) {
 $env:UV_CACHE_DIR = Join-Path $RuntimeDirectory "uv-cache"
 $env:UV_PYTHON_INSTALL_DIR = Join-Path $RuntimeDirectory "python"
 $env:UV_PYTHON_INSTALL_REGISTRY = "0"
+
+# A Python virtual environment records absolute interpreter and launcher paths.
+# If the VerseVAD folder was moved or renamed, rebuild only that disposable
+# environment before syncing. The downloaded runtime and private research
+# resources remain untouched.
+if (Test-Path -LiteralPath $VirtualEnvironmentConfig) {
+    $ConfiguredHomeLine = Get-Content -LiteralPath $VirtualEnvironmentConfig |
+        Where-Object { $_ -match "^home\s*=" } |
+        Select-Object -First 1
+    $ConfiguredHome = if ($ConfiguredHomeLine) {
+        ($ConfiguredHomeLine -split "=", 2)[1].Trim()
+    } else {
+        ""
+    }
+    if (-not $ConfiguredHome -or -not (Test-Path -LiteralPath $ConfiguredHome)) {
+        $ResolvedVirtualEnvironment = [System.IO.Path]::GetFullPath($VirtualEnvironment)
+        $ResolvedParent = Split-Path -Parent $ResolvedVirtualEnvironment
+        if ($ResolvedParent -ne $ProjectRoot -or
+            (Split-Path -Leaf $ResolvedVirtualEnvironment) -ne ".venv") {
+            throw "Refusing to rebuild an environment outside the VerseVAD folder."
+        }
+        Write-Host "The VerseVAD folder moved; rebuilding its disposable local environment..."
+        Remove-Item -LiteralPath $ResolvedVirtualEnvironment -Recurse -Force
+    }
+}
 
 Write-Host "Creating or checking the locked project environment..."
 & $UvExecutable sync --locked

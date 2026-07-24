@@ -484,6 +484,8 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
 
     preferences = load_preferences()
     st.session_state.setdefault("appearance_mode", preferences.appearance.value)
+    st.session_state.setdefault("analysis_cache_enabled", True)
+    st.session_state.setdefault("performance_diagnostics_enabled", True)
     legacy_workspace = {
         "One Poem": "Single Poem",
         "Projects & Corpus": "Project / Corpus",
@@ -532,10 +534,69 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
                     "parameters remain explicit in each analysis configuration."
                 )
                 st.markdown("**Exports & performance**")
-                st.caption(
-                    "Exports remain publication-light. Cache and worker controls "
-                    "will be addressed in the dedicated performance pass."
+                st.toggle(
+                    "Reuse unchanged analysis",
+                    key="analysis_cache_enabled",
+                    help=(
+                        "Uses bounded process-local caches with dependency-specific "
+                        "keys. Disable only when debugging."
+                    ),
                 )
+                st.toggle(
+                    "Record analysis timings",
+                    key="performance_diagnostics_enabled",
+                    help=(
+                        "Adds lightweight cache and wall-clock timing diagnostics "
+                        "to completed in-memory analyses."
+                    ),
+                )
+                from versevad.performance import (
+                    cache_statistics,
+                    clear_analysis_caches,
+                    clear_export_cache,
+                    clear_resource_caches,
+                    clear_visualization_cache,
+                    resource_cache_statistics,
+                )
+
+                statistics = (
+                    cache_statistics() + resource_cache_statistics()
+                )
+                st.caption(
+                    "Process cache: "
+                    f"{sum(item.entry_count for item in statistics):,} entries; "
+                    f"{sum(item.hits for item in statistics):,} hits; "
+                    f"{sum(item.misses for item in statistics):,} misses. "
+                    "Clearing it never removes projects, source files, or results."
+                )
+                clear_columns = st.columns(3)
+                if clear_columns[0].button(
+                    "Clear analysis cache",
+                    key="clear_analysis_cache",
+                    width="stretch",
+                ):
+                    clear_analysis_caches()
+                    st.toast("Analysis cache cleared.")
+                if clear_columns[1].button(
+                    "Clear display/export cache",
+                    key="clear_display_export_cache",
+                    width="stretch",
+                ):
+                    clear_visualization_cache()
+                    clear_export_cache()
+                    st.toast("Display and export caches cleared.")
+                if clear_columns[2].button(
+                    "Release loaded resources",
+                    key="release_resource_cache",
+                    width="stretch",
+                    help=(
+                        "Releases reloadable lexicons, pronunciation data, the "
+                        "language model, and meter plans. The next relevant "
+                        "analysis reloads them."
+                    ),
+                ):
+                    clear_resource_caches()
+                    st.toast("Reloadable resources released.")
         with help_column:
             with st.popover("Help", width="stretch"):
                 st.markdown("**How to use VerseVAD**")
@@ -547,6 +608,12 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
                     "Detailed methodology, values, testing, and user guidance are "
                     "available in the local docs folder and every completed "
                     "module's methodology panel."
+                )
+                st.markdown("**License**")
+                st.caption(
+                    "VerseVAD is free software under GPL-3.0-only, without "
+                    "warranty. See LICENSE. Research datasets retain their own "
+                    "terms and are not included in that license."
                 )
         workspace = st.segmented_control(
             "Workspace",

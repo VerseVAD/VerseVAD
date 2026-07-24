@@ -45,6 +45,10 @@ MAX_CORPUS_FILES = 5_000
 MAX_CORPUS_BYTES = 250 * 1024 * 1024
 
 
+class CorpusAnalysisCancelled(RuntimeError):
+    """Raised only at a safe work boundary before another text starts."""
+
+
 @dataclass(frozen=True)
 class CorpusImportSummary:
     files: tuple[CorpusTextImport, ...]
@@ -117,6 +121,8 @@ class CorpusAnalysisConfiguration:
     poetry_id_configuration: PoetryIDConfiguration = (
         PoetryIDConfiguration()
     )
+    analysis_cache_enabled: bool = True
+    performance_diagnostics: bool = True
 
     @property
     def module_names(self) -> tuple[str, ...]:
@@ -481,6 +487,9 @@ def corpus_module_category_profiles(
         "meter.closest_candidate",
         "meter.closest_candidate_kind",
         "meter.candidate_confidence",
+        "meter.performance.rhythmic_organization",
+        "meter.performance.primary_candidate",
+        "meter.performance.confidence",
         "phonology.rhyme_scheme",
         "poetry_id.categorical_archetype_id",
         "poetry_id.confidence_label",
@@ -761,6 +770,7 @@ def analyze_corpus(
     module_configuration: CorpusAnalysisConfiguration | None = None,
     preprocessor: TextPreprocessor | None = None,
     progress: Callable[[int, int, str], None] | None = None,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> CorpusBatchRecord:
     """Analyze each work independently and publish comparisons only as a full batch."""
 
@@ -799,6 +809,12 @@ def analyze_corpus(
     total = len(selected)
     try:
         for position, text in enumerate(selected, start=1):
+            if cancel_check is not None and cancel_check():
+                raise CorpusAnalysisCancelled(
+                    "Corpus analysis was cancelled safely before starting "
+                    f"work {position} of {total}. The incomplete batch was not "
+                    "published to corpus comparisons."
+                )
             if progress is not None:
                 progress(position - 1, total, text.title)
             review_rules = (
@@ -869,6 +885,12 @@ def analyze_corpus(
                     poetry_id_configuration=(
                         module_configuration.poetry_id_configuration
                     ),
+                    analysis_cache_enabled=(
+                        module_configuration.analysis_cache_enabled
+                    ),
+                    performance_diagnostics=(
+                        module_configuration.performance_diagnostics
+                    ),
                 ),
                 preprocessor=processor,
             )
@@ -879,7 +901,17 @@ def analyze_corpus(
                 batch_id=batch.batch_id,
             )
             if progress is not None:
-                progress(position, total, text.title)
+                cache_note = ""
+                if workspace.performance is not None:
+                    hits = sum(
+                        operation.cache_status == "hit"
+                        for operation in workspace.performance.operations
+                    )
+                    cache_note = (
+                        f" ({hits}/{len(workspace.performance.operations)} "
+                        "operations reused)"
+                    )
+                progress(position, total, text.title + cache_note)
         if module_configuration.include_lexical_style:
             repository.save_module_aggregates(
                 batch.batch_id,

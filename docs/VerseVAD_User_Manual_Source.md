@@ -62,7 +62,10 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
   audits; and
 - optional candidate-meter alignment against five recurring stress patterns
   from monometer through octameter, line fit, deviations, alternatives,
-  coverage, and a complete alignment audit; and
+  coverage, and a complete alignment audit, plus an optional separate
+  performance-aware realization layer with contextual prominence, phrasing,
+  substitutions, stanza recurrence, alternate readings, and scholar
+  revisions; and
 - optional exact end-rhyme schemes, perfect/identical and
   masculine/feminine/multisyllabic evidence, graded slant and eye rhyme,
   internal rhyme, refrains, phonemic alliteration, assonance, consonance,
@@ -83,17 +86,63 @@ The supplied lexicons remain under `source_lexicons/` and must not be renamed, e
 
 Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper, Stage 3 SUBTLEX-US workbook, Stage 4 Kuperman Age of Acquisition workbook and paper, and Stage 5 pinned CMUdict files must retain their exact paths and checksums. VerseVAD reads analysis sources in place and does not copy any complete research source into an export.
 
+## Software and research-source licensing
+
+VerseVAD code and documentation are free and open-source software under
+`GPL-3.0-only`. The GPL permits educational, research, personal, and commercial
+use of VerseVAD, subject to its source-distribution and copyleft conditions.
+VerseVAD is supplied without warranty; the full terms are in `LICENSE`.
+
+The GPL does not relicense the lexicons, workbooks, papers, language model, or
+literary texts used with VerseVAD. A public VerseVAD checkout contains no
+research datasets. Users must obtain each source from its creator or publisher,
+follow its current terms, and must not assume that a permission applying to the
+software also applies to the data.
+
+## Installing separately downloaded research resources
+
+The tracked `docs/resource-installation.md` guide is the source of truth for
+official download pages, exact destinations, supported SHA-256 values, and
+source-specific cautions. The principal official pages are:
+
+- Warriner VAD, concreteness, and Kuperman AoA: the relevant *Behavior
+  Research Methods* article and supplementary-material pages;
+- NRC VAD: `https://saifmohammad.com/WebPages/nrc-vad.html`;
+- NRC Emotion:
+  `https://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm`;
+- NRC Affect Intensity:
+  `https://www.saifmohammad.com/WebPages/AffectIntensity.htm`;
+- SUBTLEX-US:
+  `https://www.ugent.be/pp/experimentele-psychologie/en/research/documents/subtlexus`;
+  and
+- CMUdict: `https://github.com/cmusphinx/cmudict`.
+
+VerseVAD never downloads these sources automatically. At startup it checks
+each exact path, file size, and supported checksum. A warning lists missing,
+malformed, or unsupported files with their expected destinations. Unavailable
+affective sources are removed from selectors; optional modules are disabled
+only when their own dependency is unavailable. Other installed analyses,
+including resource-free lexical style, remain usable.
+
 # 2. Installation, startup, and shutdown
 
 ## First-time setup
 
-1. Open the `ANEW VAD Study` folder.
+1. Open the `VerseVAD` folder.
 2. Double-click `setup_windows.bat`.
 3. Allow the setup window to finish. The first setup can use the internet to obtain the pinned local runtime and packages.
-4. Confirm that the diagnostic lines end in `PASS` and the setup reports that all checks passed.
-5. Press a key if the setup window asks you to do so.
+4. Install the desired research sources using
+   `docs/resource-installation.md`. This is intentionally a separate manual
+   step.
+5. Start VerseVAD, resolve any resource warning by checking the exact
+   destination and checksum, and use **Run self-test**.
+6. Confirm that the applicable diagnostic lines end in `PASS`.
+7. Press a key if the setup window asks you to do so.
 
 Setup is project-local. It does not require administrator access or a system-wide Python installation.
+If the `VerseVAD` folder is moved or renamed, rerun `setup_windows.bat`.
+Setup detects stale absolute virtual-environment paths and rebuilds only the
+disposable `.venv`; research sources and project data are not removed.
 
 ## Start VerseVAD
 
@@ -560,6 +609,12 @@ pentameter, hexameter, heptameter, and octameter: 40 fixed line templates.
 Spondees `11` and pyrrhics `00` are reported as local substitutions rather
 than ordinary whole-line base candidates.
 
+**Candidate meter only** is the validated default and preserves the Stage 6
+result exactly. Two non-default choices add an independent performance-aware
+realization or display candidate and performance-aware readings together.
+The second layer does not rewrite the dictionary lexical stress or replace the
+fixed candidate audit.
+
 The line alignment can report substitutions, initial inversion, feminine
 ending, catalexis, and extra or omitted syllables. Multiple retained CMUdict
 stress alternatives are explored up to the configured line limit, but the
@@ -574,6 +629,33 @@ Read:
 - rule-based confidence and its explanation;
 - physical-line stress paths, alignments, and deviations; and
 - all 40 fixed candidates, warnings, configuration, and provenance.
+
+When performance-aware analysis is selected, also read:
+
+- raw lexical stress, metrical positions, contextual prominence, and visible
+  promotion or demotion decisions syllable by syllable;
+- local substitutions, stress clashes and lapses, punctuation-supported
+  caesura evidence, selected pronunciation path, and alternate readings;
+- candidate fit, contextual fit, syllable-count fit, phrase fit, line-ending
+  fit, pronunciation plausibility, stanza/poem consistency, style
+  compatibility, substitution penalty, and their visible weights;
+- stanza summaries, recurrence, exceptions, rhythmic trajectory, generic
+  alternating line-position sequences, and the poem-level rhythmic-
+  organization label; and
+- strong, moderate, tentative, ambiguous, or insufficient rule-based
+  confidence with a plain-language explanation.
+
+The scholar explicitly selects one broad versioned profile: General English
+Verse, Traditional Accentual-Syllabic Verse, Romantic / Victorian Verse,
+Modernist Verse, Contemporary Formal Verse, Free Verse / Cadential, or Custom
+visible weights. VerseVAD never infers a period, movement, tradition, author,
+or performance from the text. Summary, Standard, and Detailed control
+presentation depth rather than analytical truth.
+
+Recognizing visibly marked contractions such as `o'er` is off by default.
+Unmarked syllables are never silently elided. Optional scholar scansion
+revisions require a line number, fixed candidate, visible scansion, and note;
+the automatic and revised readings remain separate and reversible.
 
 Fit is a configured alignment similarity from 0 to 1, not a probability.
 Confidence is a rule-based category, not a calibrated probability. Safe
@@ -836,6 +918,13 @@ evidence, all 40 fixed candidates, warnings, and configuration provenance.
 
 Do not mistake a metrically preferred stress path for a change to the Stage 5
 pronunciation result.
+
+In performance-aware or comparison mode, the same section adds the declared
+profile and depth, poem/stanza organization, realized line readings, scoring
+components, promotion/demotion and substitution evidence, caesurae,
+clashes/lapses, alternate readings, recurrence/trajectory, and any separately
+recorded scholar revisions. These are inspectable candidate realizations, not
+performed scansion facts.
 
 ## Sound & Form: Rhyme & Recurring Sound section
 
@@ -1193,6 +1282,11 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `meter_lines.csv` | Every physical line's status, nearest fixed template, selected stress path, alignment, and deviations |
 | `meter_alignment_operations.csv` | Every selected syllable-to-template operation, cost, word, model POS, and ending flag |
 | `meter_result.json` | Complete structured Stage 6 configuration, line audit, fixed candidates, metrics, warnings, and provenance |
+| `meter_realizations.csv` | Performance-aware line readings, syllable decisions, substitutions, component scores, alternatives, and confidence |
+| `meter_stanzas.csv` | Stanza-level primary/alternate candidates, realized score, regularity, line-position pattern, and exceptions |
+| `meter_rhythm_trajectory.csv` | Ordered line-by-line rhythmic trajectory and recurrence evidence |
+| `meter_scansion_report.txt` | Accessible plain-text candidate and performance-aware reading report |
+| `meter_scholar_revisions.csv` | Conditional audit of explicit scholar revisions; created only when at least one revision is supplied |
 | `rhyme_summary.csv` | Whole-poem scheme, ending coverage, rhyme density, pair counts, refrain/internal-rhyme counts, and recurring-sound densities |
 | `rhyme_stanzas.csv` | Stanza schemes, ending coverage, exact/slant pair counts, rhymed lines, and density |
 | `rhyme_lines.csv` | Every physical line's end word, status, pronunciation/rhyme parts, scheme labels, refrain, internal-rhyme and recurring-sound evidence |
@@ -1214,7 +1308,7 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `poetry_id_vad_scales.csv` | Chart-ready continuous scores, levels, boundaries, centroids, and boundary distances |
 | `poetry_id_report.txt` | Compact readable profile, VAD, confidence, narrative, and caution report |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every Stage 6 line, fixed candidate, and method record, `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record, and `lexical_style_result.json` contains every narrowed Stage 10 configuration, diversity/length summary, structural count, and token decision. At the scholar's direction, PoetryID produces CSV and plain text only and has no JSON export. `poem_document.json` includes the original text, so protect it as research material. Optional module exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every fixed candidate and, when enabled, the nested performance-aware realization, `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record, and `lexical_style_result.json` contains every narrowed Stage 10 configuration, diversity/length summary, structural count, and token decision. At the scholar's direction, PoetryID produces CSV and plain text only and has no JSON export. `poem_document.json` includes the original text, so protect it as research material. Optional module exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -1470,6 +1564,12 @@ function-word-flexibility costs are recorded configuration choices.
 Missing pronunciation produces a missing line fit, not zero. Fit is a
 similarity and confidence is rule-based; neither is a probability.
 
+For the optional performance-aware layer, the exported overall realization
+score is a bounded weighted combination of the visible component scores minus
+the visible substitution penalty. Its exact weights depend on the declared
+style profile and configuration. It is a ranking heuristic, not a probability
+or independently validated likelihood.
+
 ## Rhyme, slant, and recurring-sound formulas
 
 `ending_coverage = analyzable eligible line endings / eligible line endings`
@@ -1509,6 +1609,7 @@ The divergence is substantial because the long work dominates the token-weighted
 | Association | Binary lexicon membership for an emotion or sentiment category |
 | Approved user mapping | Scenario-pinned link from a form to a verified exact source entry, applied only after ordinary matching fails |
 | Candidate meter | Nearest configured fixed stress template; not definitive meter or performed rhythm |
+| Declared meter style profile | Scholar-selected versioned realization weights; never an inferred period, movement, author, or tradition |
 | Concreteness rating | Source-supplied 1-5 normative rating for how abstract/language-based or concrete/experience-based a lexical item was judged |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
@@ -1543,6 +1644,8 @@ The divergence is substantial because the long work dominates the token-weighted
 | Prosodic consensus | Multiple exact dictionary candidates whose phone strings differ but syllable count and full lexical-stress sequence agree |
 | Meter fit | Configured 0-1 stress-alignment similarity; not a probability |
 | Meter line coverage | Analyzable eligible physical lines divided by all eligible physical lines |
+| Performance-aware realization | Optional contextual reranking and annotated reading above the unchanged fixed candidate layer; not performed scansion |
+| Rhythmic organization | Rule-based accentual-syllabic, accentual, syllabic, locally metrical, mixed, no-stable-pattern, or insufficient-evidence description |
 | MTLD | Mean forward/reverse sequential factor-length estimate at a configured TTR threshold |
 | Rule-based meter confidence | Configured category from evidence count, coverage, fit, candidate margin, and matching lines; not a calibrated probability |
 | Protected word | A word retained despite appearing in the underlying standard stopword list |
@@ -1641,6 +1744,13 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   support a different scansion.
 - Meter costs, thresholds, fit, and confidence are transparent heuristics, not
   a probability model or validation against every poetic tradition.
+- Stage 14 performance-aware scores, style compatibility, promotion/demotion,
+  caesura, organization, recurrence, and confidence are transparent heuristics.
+  They do not establish the performed rhythm, correct scansion, literary
+  period, authorial intention, or universal metrical tradition.
+- Broad style profiles are scholar-selected sensitivity settings. Comparing
+  profiles can reveal model dependence; it cannot discover which profile the
+  poem historically belongs to.
 - Corpus meter results persist as work-level candidates; categorical
   prevalence does not declare one corpus-wide meter.
 - Stage 7 starts from North American dictionary phones and spelling; dialect,
@@ -1654,7 +1764,7 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes. A Stage 7 result retains the linked pronunciation configuration, exact resource hashes, rhyme/sound thresholds and weights, line-ending coverage, stanza/line/pair evidence, sound families, warnings, and immutable result/configuration identities.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes. Performance-aware meter additionally retains analysis mode, declared profile/version, interpretation depth, bounded candidate/alternative limits, visible-elision policy, component weights/scores, syllable-level adjustments, alternates, stanza/poem recurrence, trajectory, organization, and separately preserved scholar revisions. A Stage 7 result retains the linked pronunciation configuration, exact resource hashes, rhyme/sound thresholds and weights, line-ending coverage, stanza/line/pair evidence, sound families, warnings, and immutable result/configuration identities.
 
 The companion definitions guide is maintained from:
 

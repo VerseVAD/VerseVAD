@@ -4,11 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "versevad"
-version = "0.17.0.dev0"
+version = "0.18.0.dev0"
 description = "Transparent local lexical-evidence analysis for literary texts"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
-license = { text = "Source code license not yet selected" }
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 authors = [{ name = "VerseVAD Development" }]
 dependencies = [
   "click==8.4.2",
@@ -38,6 +39,31 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/versevad"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.agents",
+  "/.git",
+  "/.pytest_cache",
+  "/.runtime",
+  "/.tools",
+  "/.uv-cache",
+  "/.venv",
+  "/backups",
+  "/build",
+  "/corpora",
+  "/data",
+  "/dist",
+  "/exports",
+  "/output",
+  "/phase1_demo_output",
+  "/phase2_demo_output",
+  "/projects",
+  "/resources",
+  "/source_lexicons",
+  "/source_texts",
+  "/tmp",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
