@@ -263,6 +263,36 @@ and line summaries without changing the adapter or calculation API. Stage 6
 candidate-meter and Stage 7 rhyme modules will consume explicit alternatives
 rather than retrofitting a silently chosen pronunciation.
 
+### Candidate meter and stanza-aware schemes
+
+Stage 6 is a framework-independent `MeterModule` under
+`versevad.prosody.meter`. It receives the shared `ModuleInput` plus a completed
+`PronunciationAnalysisResult`; it never loads a second text representation or
+rewrites Stage 5.
+
+The engine separates:
+
+- `MeterConfiguration`: penalties, thresholds, stress-path limit, and stable
+  scenario/configuration identity;
+- `MeterTemplate`: one pattern and one foot count in the 40-candidate fixed
+  grid;
+- `MeterLineResult`: coverage status, retained candidate fits, selected stress
+  path, alignment operations, and deviations for one physical line;
+- `MeterCandidateSummary`: equal-line aggregate for one fixed template;
+- `MeterSchemeTemplate` and `MeterSchemeSummary`: stanza-aware recurring
+  line-length schemes, currently common meter `4-3-4-3`; and
+- `MeterSummary`: nearest candidate kind, alternative, fit, confidence,
+  coverage, regularity, variability, and deviation totals.
+
+Dynamic programming is isolated from Streamlit and exports. Application
+services activate Stage 5 automatically when meter is selected, then pass the
+same immutable poem document to both modules. The UI and exports consume the
+result objects rather than recomputing a hidden classification.
+
+Stage 6 remains an in-memory One Poem result. Persistence and corpus
+aggregation require an explicit later schema design for dependency provenance,
+line fits, candidate grids, scheme phase, and immutable completed runs.
+
 ### Interface scale
 
 The final specification contains many specialist views. Progressive disclosure

@@ -381,6 +381,32 @@ These records are not yet persisted in database schema 3. Their structured
 JSON export is the complete current record; a later schema migration must
 preserve the same distinctions and immutability.
 
+The current in-memory Stage 6 meter path is:
+
+```text
+MeterAnalysisResult -> ModuleResult
+ -> MeterLineResult(s) -> CandidateMeterFit(s)
+ -> AlignmentOperation(s) -> Stage 5 StressVariant evidence
+ -> MeterCandidateSummary(s) + MeterSchemeSummary(s) -> MeterSummary
+```
+
+`CandidateMeterFit` keeps pattern and foot count as separate fields while also
+providing a readable label. It retains the base and evaluated templates, the
+candidate-specific selected Stage 5 stress path, cost, fit, aligned strings,
+operation audit, and deviation counts.
+
+`MeterLineResult` has explicit analyzed, no-lexical-token,
+missing-pronunciation, and too-many-variants states. An unanalyzable line has
+no candidate fit. `MeterSchemeSummary` preserves the scheme ID, stress-pattern
+family, foot-count cycle, structural unit, line coverage, fit, matching lines,
+eligible stanzas, complete stanzas, and complete-stanza coverage. Common meter
+is stored as iambic `(4, 3, 4, 3)`, not collapsed into one foot count.
+
+`MeterConfiguration` records every cost and threshold, the minimum/maximum
+foot counts, stress-path limit, retained alternatives, scenario ID, and a
+stable hash-derived configuration ID. `ModuleProvenance` links the result to
+the exact Stage 5 resource hashes and pronunciation configuration.
+
 ## Transaction and backup rules
 
 - Database migrations run inside transactions where SQLite permits it.

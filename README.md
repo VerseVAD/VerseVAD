@@ -26,7 +26,7 @@ and for combined/work-by-work corpus views. It pairs a broad readable profile
 with a detailed Universal Dependencies tag breakdown. Positive/negative
 sentiment is presented separately from the eight emotion associations.
 
-The Poetic Fingerprint expansion Stage 5 is also complete. Stage 0 added
+The Poetic Fingerprint expansion Stage 6 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.
 Stage 1 now adds one reusable, poetry-preserving `PoemDocument` with exact
 section/stanza/line structure, separate model sentences, shared token and
@@ -55,11 +55,14 @@ on context. Stage 5 adds optional exact observed-form CMUdict pronunciation,
 syllable, and lexical-stress evidence. It retains every dictionary
 alternative, leaves materially different alternatives and absent forms
 missing, supports documented poem-specific ARPAbet overrides, withholds totals
-for incomplete lines, and adds line/type/token audit exports. It explicitly
-does not classify meter, rhyme, or performed scansion; those remain Stages 6
-and 7. Concreteness, Frequency, Age of Acquisition, and Pronunciation &
-Prosody remain temporary One Poem modules and are not yet persisted or
-aggregated in Projects & Corpus. A formal centroid/region-based
+for incomplete lines, and adds line/type/token audit exports. Stage 6 adds
+transparent candidate-meter alignment against five recurring stress patterns
+at monometer through octameter, explicit deviations and retained pronunciation
+paths, and stanza-aware common meter as alternating iambic `4-3-4-3`. Fit and
+rule-based confidence are not probabilities or definitive scansion. Rhyme
+remains Stage 7. Concreteness, Frequency, Age of Acquisition, Pronunciation &
+Prosody, and Meter & Rhythm remain temporary One Poem modules and are not yet
+persisted or aggregated in Projects & Corpus. A formal centroid/region-based
 emotional-profile classifier remains explicitly deferred.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
@@ -92,6 +95,8 @@ See:
 - [Poetic Fingerprint Stage 4 validation](docs/poetic-fingerprint-stage4-validation.md)
 - [Poetic Fingerprint Stage 5 prosody foundation](docs/poetic-fingerprint-stage5.md)
 - [Poetic Fingerprint Stage 5 validation](docs/poetic-fingerprint-stage5-validation.md)
+- [Poetic Fingerprint Stage 6 candidate meter](docs/poetic-fingerprint-stage6.md)
+- [Poetic Fingerprint Stage 6 validation](docs/poetic-fingerprint-stage6-validation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)

@@ -1521,7 +1521,7 @@ wheels = [
 
 [[package]]
 name = "versevad"
-version = "0.11.0.dev0"
+version = "0.12.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

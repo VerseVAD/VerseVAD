@@ -520,3 +520,35 @@ CMUdict primarily represents North American English. Dialect, historical
 pronunciation, performance, context, and poetic elision can differ. Stage 5
 therefore reports dictionary-based pronunciation, syllable, and lexical-stress
 evidence, not the poem's definitive sound or meter.
+
+## Stage 6 candidate meter and rhythmic regularity
+
+Stage 6 consumes retained Stage 5 stress evidence without changing its
+pronunciation decisions. For every analyzable physical line it compares five
+recurring base patterns—iambic `01`, trochaic `10`, anapestic `001`,
+dactylic `100`, and amphibrachic `010`—at one through eight feet. Spondees
+`11` and pyrrhics `00` are local substitution labels, not additional
+whole-line base candidates.
+
+Deterministic dynamic-programming alignment has explicit configuration costs
+for stress-position mismatch, secondary-stress flexibility, function-word
+promotion, extra or omitted syllables, feminine and catalectic endings, and
+initial inversion. Line fit is `max(0, 1 - cost / max(observed syllables,
+template syllables, 1))`. Fit is a configured similarity, not a probability.
+
+The estimator explores materially different retained CMUdict stress paths up
+to a declared per-line limit. The candidate-specific selected path is
+auditable but is not promoted to a dictionary or performance fact. A line with
+missing pronunciation evidence or excessive combinations remains unscored.
+
+In addition to the 40 fixed templates, Stage 6 compares common meter as a
+stanza-aware iambic `4-3-4-3` scheme: tetrameter, trimeter, tetrameter,
+trimeter. The cycle restarts at each preserved stanza. At least one complete
+quatrain is required before the scheme can become the poem-level nearest
+candidate.
+
+Poem-level reporting retains candidate kind, pattern, foot count, nearest
+alternative, mean/median fit, line coverage, matching-line proportion,
+variation, deviations, and rule-based confidence. The output language is
+“nearest configured candidate” or “candidate meter,” never definitive meter,
+correct scansion, performed rhythm, or authorial intention.

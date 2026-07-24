@@ -26,6 +26,7 @@ from versevad.core.modules import ModuleInput
 from versevad.exports.aoa import export_aoa_bundle
 from versevad.exports.concreteness import export_concreteness_bundle
 from versevad.exports.frequency import export_frequency_bundle
+from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.poem_document_json import export_poem_document_json
 from versevad.exports.pronunciation import export_pronunciation_bundle
@@ -69,6 +70,12 @@ from versevad.prosody.pronunciation import (
     PronunciationConfiguration,
     PronunciationModule,
     PronunciationModuleError,
+)
+from versevad.prosody.meter import (
+    MeterAnalysisResult,
+    MeterConfiguration,
+    MeterModule,
+    MeterModuleError,
 )
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS, build_stopword_policy
 
@@ -178,6 +185,8 @@ class AnalysisRequest:
     pronunciation_configuration: PronunciationConfiguration = (
         PronunciationConfiguration()
     )
+    include_meter: bool = False
+    meter_configuration: MeterConfiguration = MeterConfiguration()
 
 
 @dataclass(frozen=True)
@@ -191,6 +200,7 @@ class WorkspaceAnalysis:
     frequency: FrequencyAnalysisResult | None = None
     aoa: AoAAnalysisResult | None = None
     pronunciation: PronunciationAnalysisResult | None = None
+    meter: MeterAnalysisResult | None = None
 
 
 @dataclass(frozen=True)
@@ -552,6 +562,7 @@ def run_workspace_analysis(
     frequency_module: FrequencyModule | None = None,
     aoa_module: AoAModule | None = None,
     pronunciation_module: PronunciationModule | None = None,
+    meter_module: MeterModule | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -563,6 +574,7 @@ def run_workspace_analysis(
         and not request.include_frequency
         and not request.include_aoa
         and not request.include_pronunciation
+        and not request.include_meter
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -666,7 +678,7 @@ def run_workspace_analysis(
         except AoAModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
     pronunciation = None
-    if request.include_pronunciation:
+    if request.include_pronunciation or request.include_meter:
         module = pronunciation_module or PronunciationModule(resource_root)
         try:
             pronunciation = module.analyze_detailed(
@@ -674,6 +686,21 @@ def run_workspace_analysis(
                 request.pronunciation_configuration,
             )
         except PronunciationModuleError as error:
+            raise WorkspaceAnalysisError(str(error)) from error
+    meter = None
+    if request.include_meter:
+        if pronunciation is None:  # pragma: no cover - guarded by dependency
+            raise WorkspaceAnalysisError(
+                "Meter analysis requires the pronunciation foundation."
+            )
+        module = meter_module or MeterModule()
+        try:
+            meter = module.analyze_detailed(
+                ModuleInput.from_poem_document(poem_document),
+                pronunciation,
+                request.meter_configuration,
+            )
+        except MeterModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
     return WorkspaceAnalysis(
         request=request,
@@ -685,6 +712,7 @@ def run_workspace_analysis(
         frequency=frequency,
         aoa=aoa,
         pronunciation=pronunciation,
+        meter=meter,
     )
 
 
@@ -1889,6 +1917,78 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                     "plain_language_note": note,
                 }
             )
+    if workspace.meter is not None:
+        meter = workspace.meter
+        summary = meter.summary
+        for metric, value, unit, denominator, note in (
+            (
+                "Nearest configured candidate",
+                summary.closest_candidate_label,
+                summary.closest_candidate_kind,
+                f"{summary.analyzable_line_count} analyzable physical lines",
+                (
+                    "A candidate comparison, not a definitive meter or "
+                    "performed scansion."
+                ),
+            ),
+            (
+                "Mean candidate fit",
+                summary.whole_poem_mean_fit,
+                "normalized configured alignment similarity 0-1",
+                f"{summary.analyzable_line_count} analyzable physical lines",
+                "Configured sequence-alignment similarity; not a probability.",
+            ),
+            (
+                "Matching-line proportion",
+                summary.matching_line_proportion,
+                "proportion",
+                f"{summary.analyzable_line_count} analyzable physical lines",
+                (
+                    f"Uses the configured "
+                    f"{meter.configuration.line_match_threshold:g} line-fit "
+                    "threshold."
+                ),
+            ),
+            (
+                "Rule-based candidate confidence",
+                summary.candidate_confidence,
+                "configured category",
+                f"{summary.analyzable_line_count} analyzable physical lines",
+                summary.confidence_explanation,
+            ),
+            (
+                "Common-meter scheme fit",
+                summary.common_meter_mean_fit,
+                "normalized stanza-aware alignment similarity 0-1",
+                f"{summary.analyzable_line_count} analyzable physical lines",
+                (
+                    "Compares each stanza against alternating iambic "
+                    "tetrameter/trimeter (4-3-4-3)."
+                ),
+            ),
+            (
+                "Common-meter complete-stanza coverage",
+                summary.common_meter_complete_stanza_coverage,
+                "proportion",
+                "eligible stanzas",
+                (
+                    "Only complete four-line stanzas can support selecting "
+                    "common meter as the nearest scheme."
+                ),
+            ),
+        ):
+            rows.append(
+                {
+                    "section": "Candidate meter and rhythmic regularity",
+                    "lexicon": "Stage 5 pronunciation evidence",
+                    "analysis_view": meter.configuration.scenario_id,
+                    "metric": metric,
+                    "value": value if value is not None else "",
+                    "unit_or_scale": unit,
+                    "denominator": denominator,
+                    "plain_language_note": note,
+                }
+            )
     return _csv_bytes(fields, rows)
 
 
@@ -2058,6 +2158,42 @@ def csv_reading_guide() -> bytes:
             "important_caution": "Scholar overrides are poem-specific and remain distinct from dictionary candidates.",
         },
         {
+            "file": "meter_summary.csv",
+            "what_it_answers": "What fixed line template or stanza-aware scheme is nearest under the configured alignment method?",
+            "start_with": "candidate kind and label, mean fit, matching-line proportion, confidence, coverage, and common-meter fields.",
+            "important_caution": "Fit and confidence are configured descriptive evidence, not probabilities or definitive scansion.",
+        },
+        {
+            "file": "meter_candidates.csv",
+            "what_it_answers": "How do all 40 fixed pattern-by-foot-count templates compare across analyzable lines?",
+            "start_with": "rank, pattern, foot_count_name, mean_fit, variability, and matching_line_proportion.",
+            "important_caution": "Spondees and pyrrhics are local substitution labels, not additional whole-line base templates.",
+        },
+        {
+            "file": "meter_schemes.csv",
+            "what_it_answers": "How well do stanza-aware alternating schemes fit?",
+            "start_with": "scheme_id, foot_count_cycle, mean_fit, matching lines, and complete-stanza coverage.",
+            "important_caution": "Common meter is evaluated as iambic 4-3-4-3 with the cycle restarted at each stanza.",
+        },
+        {
+            "file": "meter_lines.csv",
+            "what_it_answers": "What candidate, stress path, fit, and deviations were selected for each physical line?",
+            "start_with": "status, closest_candidate, selected_stress_sequence, templates, fit_score, and deviation counts.",
+            "important_caution": "A line with missing pronunciation evidence remains unscored rather than receiving a partial or neutral fit.",
+        },
+        {
+            "file": "meter_alignment_operations.csv",
+            "what_it_answers": "Which syllable-to-template operations produced each selected line fit?",
+            "start_with": "line, operation number, stresses, cost, word, POS, and ending flags.",
+            "important_caution": "Function-word flexibility and secondary stress use explicit configured costs; the alignment is not performed rhythm.",
+        },
+        {
+            "file": "meter_result.json",
+            "what_it_answers": "Can software reproduce the complete meter comparison, line audit, scheme comparison, and method?",
+            "start_with": "module_result, configuration, line_results, candidate_summaries, scheme_summaries, and summary.",
+            "important_caution": "Pronunciation alternatives are explored as candidate paths without rewriting the Stage 5 pronunciation audit.",
+        },
+        {
             "file": "phase2_coverage.csv",
             "what_it_answers": "How much vocabulary matched each source?",
             "start_with": "lexical_token_coverage and matched_token_count.",
@@ -2149,6 +2285,11 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     workspace.pronunciation
                 ).items():
                     bundle.writestr(filename, content)
+            if workspace.meter is not None:
+                for filename, content in export_meter_bundle(
+                    workspace.meter
+                ).items():
+                    bundle.writestr(filename, content)
             if workspace.poem_document is not None:
                 bundle.writestr(
                     "poem_document.json",
@@ -2181,6 +2322,12 @@ def detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "stress, complete-line summaries, ambiguity, out-of-dictionary "
                 "coverage, scholar overrides, and resource provenance. They do "
                 "not classify meter, rhyme, or performed scansion.\n"
+                "When present, the meter files compare five recurring stress "
+                "patterns at one through eight feet plus stanza-aware common "
+                "meter (iambic 4-3-4-3), retaining line fits, alternative "
+                "pronunciation paths, alignment costs, substitutions, "
+                "inversions, extra or omitted syllables, and coverage. These "
+                "are nearest configured candidates, not definitive scansion.\n"
                 "Results describe lexical evidence under the selected policy; "
                 "they do not determine the emotion of a poem.\n",
             )

@@ -571,7 +571,77 @@ review required.
 
 ## Future Poetic Fingerprint stages from the expansion brief
 
-- [ ] Stage 6: candidate meter and rhythmic regularity.
+## Poetic Fingerprint expansion - Stage 6 candidate meter and rhythmic regularity
+
+- [x] Define a transparent, configurable candidate-meter method that consumes
+  Stage 5 evidence without changing dictionary pronunciation results.
+- [x] Compare five primary recurring foot patterns: iambic `01`, trochaic
+  `10`, anapestic `001`, dactylic `100`, and amphibrachic `010`.
+- [x] Compare every primary pattern at one through eight feet: monometer,
+  dimeter, trimeter, tetrameter, pentameter, hexameter, heptameter, and
+  octameter.
+- [x] Treat spondees `11` and pyrrhics `00` as local substitutions rather than
+  ordinary whole-line base meters; report initial inversion, feminine ending,
+  catalexis, extra syllables, and omitted syllables separately.
+- [x] Use deterministic sequence alignment with configurable mismatch,
+  insertion, omission, secondary-stress, function-word-promotion, inversion,
+  feminine-ending, and catalexis costs.
+- [x] Explore retained CMUdict stress alternatives without silently rewriting
+  the Stage 5 pronunciation decision; retain the candidate-specific selected
+  stress path and refuse lines with missing source pronunciation evidence or
+  unmanageably many combinations.
+- [x] Report the closest fixed pattern/foot-count candidate, dominant pattern
+  family, alternative candidate, line-level fit, whole-poem fit, rule-based
+  categorical confidence, matching-line proportion, deviation counts,
+  recurring-pattern regularity, and fit variability.
+- [x] Compare common meter as a stanza-aware alternating iambic
+  tetrameter/trimeter `4-3-4-3` scheme, restart its phase at every stanza, and
+  retain scheme fit, line coverage, matching lines, and complete-stanza
+  coverage.
+- [x] Add an independent framework-free Stage 6 module, stable metrics,
+  configuration identity, dependency provenance, warnings, and complete line
+  and candidate audit records.
+- [x] Add One Poem controls and a dedicated Meter & Rhythm tab with method,
+  coverage, candidate ranking, line-level evidence, deviations, cautions, and
+  provenance.
+- [x] Add readable scholar-summary rows and complete UTF-8 CSV/JSON audit
+  exports.
+- [x] Add tests before completion for regular iambic pentameter, trochaic
+  tetrameter, anapestic and amphibrachic lines, feminine endings, initial
+  inversion, catalexis, spondaic/pyrrhic substitutions, alternative
+  pronunciations, mixed line lengths, free verse, ambiguity, missing
+  pronunciation evidence, empty input, deterministic output, UI, exports, and
+  regression behavior.
+- [x] Add a hand-calculated Stage 6 validation command and exact
+  beginner-friendly interface steps.
+- [x] Update methodology, architecture, data model, user guidance, testing
+  notes, changelog, roadmap, and both Word guides.
+- [x] Run the complete suite, every synthetic demonstration, diagnostics,
+  source checks, lock-file check, and full Word render review.
+- [x] Create the expansion Stage 6 source-control checkpoint.
+
+### Expansion Stage 6 exit criteria
+
+- [x] Every result says closest or candidate meter and never definitive meter
+  or performed rhythm.
+- [x] Pattern and foot count remain separate fields even when combined into a
+  readable label.
+- [x] Missing pronunciation evidence produces missing line scansion and
+  explicit coverage loss, never an invented stress or neutral fit.
+- [x] Multiple pronunciation alternatives remain visible, and a metrically
+  preferred path is not promoted to a dictionary or performance fact.
+- [x] Fit is a documented alignment similarity, and confidence is a
+  rule-based category rather than a calibrated probability.
+- [x] Mixed/irregular assessment remains available when evidence is sparse,
+  the nearest candidates are weak, or alternatives are too close.
+- [x] Existing pronunciation, affective, concreteness, frequency, AoA,
+  review, database, export, and resource behavior remains unchanged.
+- [x] All automated/local checks pass, and both Word guides have no clipped,
+  overlapping, or broken content.
+- [x] Create the expansion Stage 6 source-control checkpoint.
+
+## Later Poetic Fingerprint stages from the expansion brief
+
 - [ ] Stage 7: rhyme and phonological analysis.
 - [ ] Stage 8: visible poetic structure.
 - [ ] Stage 9: syntax and lineation.

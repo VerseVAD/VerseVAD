@@ -35,6 +35,7 @@ _application_was_reloaded = (
             "FrequencyConfiguration",
             "AoAConfiguration",
             "PronunciationConfiguration",
+            "MeterConfiguration",
         )
     )
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
@@ -65,11 +66,13 @@ if _application_was_reloaded:
         "versevad.lexical_semantic.frequency",
         "versevad.lexical_semantic.aoa",
         "versevad.prosody.pronunciation",
+        "versevad.prosody.meter",
         "versevad.prosody",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
         "versevad.exports.aoa",
         "versevad.exports.pronunciation",
+        "versevad.exports.meter",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -128,6 +131,7 @@ from versevad.prosody.pronunciation import (
     PronunciationModule,
     parse_pronunciation_overrides,
 )
+from versevad.prosody.meter import MeterConfiguration
 from versevad.ui.stopwords import render_stopword_settings
 
 
@@ -444,6 +448,25 @@ if workspace_page == "One Poem":
                 if not status.available:
                     st.info(status.message)
 
+        include_meter = st.checkbox(
+            "Meter & rhythmic regularity",
+            value=False,
+            disabled=not pronunciation_available,
+            key="include_meter",
+            help=(
+                "Stage 6 compares retained lexical-stress evidence against "
+                "iambic, trochaic, anapestic, dactylic, and amphibrachic "
+                "templates from monometer through octameter, plus stanza-aware "
+                "common meter (iambic 4-3-4-3)."
+            ),
+        )
+        if pronunciation_available:
+            st.caption(
+                "Optional and off by default. Meter analysis automatically runs "
+                "the pronunciation foundation, retains dictionary alternatives, "
+                "and reports nearest candidates rather than definitive scansion."
+            )
+
         with st.expander("Advanced methodology settings"):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
@@ -669,7 +692,7 @@ if workspace_page == "One Poem":
                 "Poem-specific pronunciation overrides",
                 value="",
                 key="pronunciation_overrides",
-                disabled=not include_pronunciation,
+                disabled=not (include_pronunciation or include_meter),
                 height=120,
                 placeholder=(
                     "permit = P ER0 M IH1 T | noun reading in this line\n"
@@ -691,7 +714,7 @@ if workspace_page == "One Poem":
                 value=0.8,
                 step=0.05,
                 key="pronunciation_coverage_warning",
-                disabled=not include_pronunciation,
+                disabled=not (include_pronunciation or include_meter),
             )
             pronunciation_minimum_complete_lines = pronunciation_columns[
                 1
@@ -702,7 +725,7 @@ if workspace_page == "One Poem":
                 value=2,
                 step=1,
                 key="pronunciation_minimum_complete_lines",
-                disabled=not include_pronunciation,
+                disabled=not (include_pronunciation or include_meter),
             )
             pronunciation_minimum_resolved_tokens = pronunciation_columns[
                 2
@@ -713,12 +736,56 @@ if workspace_page == "One Poem":
                 value=3,
                 step=1,
                 key="pronunciation_minimum_resolved_tokens",
-                disabled=not include_pronunciation,
+                disabled=not (include_pronunciation or include_meter),
             )
             st.caption(
                 "Exact observed forms only: no lemma, possessive-base, or "
                 "grapheme-to-phoneme fallback. Multiple dictionary candidates "
                 "resolve only when syllable count and lexical stress agree."
+            )
+            st.markdown("**Meter and rhythmic-regularity settings**")
+            meter_columns = st.columns(4)
+            meter_line_match_threshold = meter_columns[0].number_input(
+                "Meter line-fit threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.75,
+                step=0.05,
+                key="meter_line_match_threshold",
+                disabled=not include_meter,
+            )
+            meter_irregular_threshold = meter_columns[1].number_input(
+                "Poem candidate-fit threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.65,
+                step=0.05,
+                key="meter_irregular_threshold",
+                disabled=not include_meter,
+            )
+            meter_ambiguity_margin = meter_columns[2].number_input(
+                "Candidate margin threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.03,
+                step=0.01,
+                key="meter_ambiguity_margin",
+                disabled=not include_meter,
+            )
+            meter_maximum_variants = meter_columns[3].number_input(
+                "Maximum stress paths per line",
+                min_value=1,
+                max_value=4096,
+                value=256,
+                step=1,
+                key="meter_maximum_variants",
+                disabled=not include_meter,
+            )
+            st.caption(
+                "The fixed grid contains 40 candidates: five recurring stress "
+                "patterns × one through eight feet. Spondees and pyrrhics are "
+                "reported as local substitutions. Common meter is a separate "
+                "stanza-aware iambic 4-3-4-3 comparison."
             )
         st.markdown("**Stopword reporting**")
         reporting_columns = st.columns(2)
@@ -819,8 +886,22 @@ if workspace_page == "One Poem":
     except ValueError as error:
         pronunciation_configuration_error = str(error)
         pronunciation_configuration = PronunciationConfiguration()
-        if include_pronunciation:
+        if include_pronunciation or include_meter:
             st.warning(pronunciation_configuration_error)
+
+    meter_configuration_error = ""
+    try:
+        meter_configuration = MeterConfiguration(
+            line_match_threshold=float(meter_line_match_threshold),
+            irregular_fit_threshold=float(meter_irregular_threshold),
+            ambiguity_margin_threshold=float(meter_ambiguity_margin),
+            maximum_line_variants=int(meter_maximum_variants),
+        )
+    except ValueError as error:
+        meter_configuration_error = str(error)
+        meter_configuration = MeterConfiguration()
+        if include_meter:
+            st.warning(meter_configuration_error)
 
     if analyze_clicked:
         try:
@@ -832,6 +913,8 @@ if workspace_page == "One Poem":
                 raise ValueError(aoa_configuration_error)
             if pronunciation_configuration_error:
                 raise ValueError(pronunciation_configuration_error)
+            if meter_configuration_error:
+                raise ValueError(meter_configuration_error)
             request = AnalysisRequest(
                 project_name=st.session_state["project_name"],
                 title=st.session_state["poem_title"],
@@ -851,6 +934,8 @@ if workspace_page == "One Poem":
                 aoa_configuration=aoa_configuration,
                 include_pronunciation=include_pronunciation,
                 pronunciation_configuration=pronunciation_configuration,
+                include_meter=include_meter,
+                meter_configuration=meter_configuration,
             )
             with st.spinner("Analyzing locally and preserving the audit trail…"):
                 st.session_state["workspace"] = run_workspace_analysis(
@@ -882,6 +967,7 @@ if workspace_page == "One Poem":
         or include_frequency != workspace.request.include_frequency
         or include_aoa != workspace.request.include_aoa
         or include_pronunciation != workspace.request.include_pronunciation
+        or include_meter != workspace.request.include_meter
         or (
             include_concreteness
             and concreteness_configuration
@@ -897,9 +983,13 @@ if workspace_page == "One Poem":
             and aoa_configuration != workspace.request.aoa_configuration
         )
         or (
-            include_pronunciation
+            (include_pronunciation or include_meter)
             and pronunciation_configuration
             != workspace.request.pronunciation_configuration
+        )
+        or (
+            include_meter
+            and meter_configuration != workspace.request.meter_configuration
         )
     ):
         st.warning(
@@ -923,6 +1013,7 @@ if workspace_page == "One Poem":
         frequency_tab,
         aoa_tab,
         pronunciation_tab,
+        meter_tab,
         vad_tab,
         emotion_tab,
         evidence_tab,
@@ -936,6 +1027,7 @@ if workspace_page == "One Poem":
             "Frequency & Rarity",
             "Age of Acquisition",
             "Pronunciation & Prosody",
+            "Meter & Rhythm",
             "VAD Profile",
             "Emotion Profile",
             "Evidence",
@@ -1267,6 +1359,11 @@ if workspace_page == "One Poem":
                     warning.message,
                 )
                 for warning in workspace.pronunciation.module_result.warnings
+            )
+        if workspace.meter is not None:
+            warnings.extend(
+                ("Meter & Rhythm", warning.message)
+                for warning in workspace.meter.module_result.warnings
             )
         if warnings:
             with st.expander(f"Warnings and cautions ({len(warnings)})"):
@@ -2581,6 +2678,301 @@ if workspace_page == "One Poem":
                     f"**Inclusion policy:** {provenance.inclusion_policy}"
                 )
 
+    with meter_tab:
+        meter = workspace.meter
+        if meter is None:
+            st.info(
+                "Select Meter & rhythmic regularity, then analyze again to "
+                "compare fixed line templates and stanza-aware common meter."
+            )
+        else:
+            st.subheader("Candidate Meter & Rhythmic Regularity")
+            st.warning(
+                "This module reports nearest configured candidates from "
+                "dictionary lexical-stress evidence. It does not establish a "
+                "definitive meter, correct scansion, performed rhythm, dialect, "
+                "or authorial intention."
+            )
+            summary = meter.summary
+            meter_metrics = st.columns(6)
+            meter_metrics[0].metric(
+                "Nearest candidate",
+                summary.closest_candidate_label or "Insufficient evidence",
+                help=summary.closest_candidate_kind,
+            )
+            meter_metrics[1].metric(
+                "Mean fit",
+                _percentage(summary.whole_poem_mean_fit),
+                help="Configured alignment similarity; not a probability.",
+            )
+            meter_metrics[2].metric(
+                "Matching lines",
+                (
+                    f"{summary.matching_line_count}/"
+                    f"{summary.analyzable_line_count}"
+                ),
+                help=(
+                    "Lines at or above the configured "
+                    f"{meter.configuration.line_match_threshold:g} fit threshold."
+                ),
+            )
+            meter_metrics[3].metric(
+                "Line coverage",
+                _percentage(summary.line_coverage),
+                help=(
+                    f"{summary.analyzable_line_count} of "
+                    f"{summary.eligible_line_count} eligible physical lines."
+                ),
+            )
+            meter_metrics[4].metric(
+                "Candidate confidence",
+                summary.candidate_confidence,
+                help=summary.confidence_explanation,
+            )
+            meter_metrics[5].metric(
+                "Rhythmic variability",
+                _decimal(summary.rhythmic_variability),
+                help=(
+                    "Population standard deviation of selected-candidate line "
+                    "fits; missing when fewer than two lines are analyzable."
+                ),
+            )
+            st.caption(
+                f"Assessment: {summary.assessment.value.replace('_', ' ')}. "
+                f"Nearest alternative: "
+                f"{summary.alternative_candidate_label or 'none available'}. "
+                f"Candidate margin: {_decimal(summary.candidate_margin)}."
+            )
+
+            common = next(
+                (
+                    item
+                    for item in meter.scheme_summaries
+                    if item.scheme_id == "common_meter"
+                ),
+                None,
+            )
+            st.markdown("**Common meter (alternating iambic 4–3–4–3)**")
+            if common is None:
+                st.info("No common-meter scheme result is available.")
+            else:
+                common_columns = st.columns(5)
+                common_columns[0].metric(
+                    "Scheme fit",
+                    _percentage(common.mean_fit),
+                    help=(
+                        "Mean stanza-phased fit to iambic tetrameter, trimeter, "
+                        "tetrameter, trimeter."
+                    ),
+                )
+                common_columns[1].metric(
+                    "Matching lines",
+                    f"{common.matching_line_count}/{common.analyzed_line_count}",
+                )
+                common_columns[2].metric(
+                    "Analyzable coverage",
+                    _percentage(common.line_coverage),
+                )
+                common_columns[3].metric(
+                    "Complete quatrains",
+                    (
+                        f"{common.complete_stanza_count}/"
+                        f"{common.eligible_stanza_count}"
+                    ),
+                )
+                common_columns[4].metric(
+                    "Complete-stanza coverage",
+                    _percentage(common.complete_stanza_coverage),
+                )
+                st.caption(
+                    "The 4–3–4–3 cycle restarts at each preserved stanza. "
+                    "At least one complete four-line stanza is required before "
+                    "common meter can become the poem-level nearest scheme."
+                )
+
+            common_line_evidence: dict[str, tuple[int, object]] = {}
+            for stanza_number in sorted(
+                {item.stanza_number for item in meter.line_results}
+            ):
+                stanza_lines = sorted(
+                    (
+                        item
+                        for item in meter.line_results
+                        if item.stanza_number == stanza_number
+                        and item.status.value != "no_lexical_tokens"
+                    ),
+                    key=lambda item: item.line_number,
+                )
+                for position, line in enumerate(stanza_lines):
+                    expected_feet = (4, 3, 4, 3)[position % 4]
+                    expected_fit = next(
+                        (
+                            fit
+                            for fit in line.candidate_fits
+                            if fit.pattern.value == "iambic"
+                            and fit.foot_count == expected_feet
+                        ),
+                        None,
+                    )
+                    common_line_evidence[line.line_id] = (
+                        expected_feet,
+                        expected_fit,
+                    )
+
+            st.markdown("**Physical-line candidate evidence**")
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Line": line.line_number,
+                            "Stanza": line.stanza_number,
+                            "Text": line.source_text,
+                            "Status": line.status.value.replace("_", " "),
+                            "Closest fixed template": (
+                                line.closest_candidate.label
+                                if line.closest_candidate
+                                else ""
+                            ),
+                            "Closest fit": (
+                                line.closest_candidate.fit_score
+                                if line.closest_candidate
+                                else None
+                            ),
+                            "Common-meter expected feet": (
+                                common_line_evidence.get(line.line_id, ("", None))[0]
+                            ),
+                            "Common-meter line fit": (
+                                (
+                                    common_line_evidence[line.line_id][1].fit_score
+                                    if common_line_evidence.get(line.line_id)
+                                    and common_line_evidence[line.line_id][1]
+                                    else None
+                                )
+                            ),
+                            "Selected lexical stress": (
+                                line.closest_candidate.selected_stress_sequence
+                                if line.closest_candidate
+                                else ""
+                            ),
+                            "Aligned observed": (
+                                line.closest_candidate.aligned_observed
+                                if line.closest_candidate
+                                else ""
+                            ),
+                            "Aligned template": (
+                                line.closest_candidate.aligned_template
+                                if line.closest_candidate
+                                else ""
+                            ),
+                            "Substitutions": (
+                                line.closest_candidate.substitution_count
+                                if line.closest_candidate
+                                else None
+                            ),
+                            "Initial inversion": (
+                                line.closest_candidate.initial_inversion_count
+                                if line.closest_candidate
+                                else None
+                            ),
+                            "Extra syllables": (
+                                line.closest_candidate.extra_syllable_count
+                                if line.closest_candidate
+                                else None
+                            ),
+                            "Omitted syllables": (
+                                line.closest_candidate.omitted_syllable_count
+                                if line.closest_candidate
+                                else None
+                            ),
+                            "Why": line.reason,
+                        }
+                        for line in meter.line_results
+                    ]
+                ).style.format(
+                    {
+                        "Closest fit": lambda value: _percentage(value),
+                        "Common-meter line fit": (
+                            lambda value: _percentage(value)
+                        ),
+                    }
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            st.caption(
+                "Each line's closest fixed template and its phase-specific "
+                "common-meter comparison are separate. Stress digits use "
+                "CMUdict notation: 0 unstressed, 1 primary, 2 secondary."
+            )
+
+            with st.expander("All 40 fixed candidates"):
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Rank": item.rank,
+                                "Pattern": item.pattern.value,
+                                "Feet": item.foot_count,
+                                "Foot-count name": item.foot_count_name,
+                                "Candidate": item.label,
+                                "Mean fit": item.mean_fit,
+                                "Median fit": item.median_fit,
+                                "Fit variability": item.fit_variability,
+                                "Matching lines": item.matching_line_count,
+                                "Matching proportion": (
+                                    item.matching_line_proportion
+                                ),
+                            }
+                            for item in meter.candidate_summaries
+                        ]
+                    ).style.format(
+                        {
+                            "Mean fit": lambda value: _percentage(value),
+                            "Median fit": lambda value: _percentage(value),
+                            "Fit variability": lambda value: _decimal(value),
+                            "Matching proportion": (
+                                lambda value: _percentage(value)
+                            ),
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                    height=440,
+                )
+
+            if meter.module_result.warnings:
+                with st.expander(
+                    "Meter warnings and methodology notes "
+                    f"({len(meter.module_result.warnings)})"
+                ):
+                    for warning in meter.module_result.warnings:
+                        if warning.severity.value == "information":
+                            st.info(warning.message)
+                        else:
+                            st.warning(warning.message)
+
+            with st.expander("Meter calculation provenance"):
+                provenance = meter.module_result.provenance
+                st.write(
+                    f"**Module:** {meter.module_result.module_name} "
+                    f"{meter.module_result.module_version}  \n"
+                    f"**Configuration:** `{provenance.configuration_id}`  \n"
+                    f"**Scenario:** `{provenance.scenario_id}`  \n"
+                    f"**Pronunciation configuration:** "
+                    f"`{meter.pronunciation_configuration_id}`  \n"
+                    f"**Lookup policy:** {provenance.lookup_policy}  \n"
+                    f"**Inclusion policy:** {provenance.inclusion_policy}"
+                )
+                st.write(
+                    "**Primary foot patterns:** iambic 01; trochaic 10; "
+                    "anapestic 001; dactylic 100; amphibrachic 010.  \n"
+                    "**Foot counts:** monometer through octameter.  \n"
+                    "**Common meter:** iambic 4-3-4-3, reset by stanza.  \n"
+                    "**Local deviations:** spondaic and pyrrhic substitutions, "
+                    "initial inversion, feminine ending, catalexis, and extra "
+                    "or omitted syllables."
+                )
+
     with vad_tab:
         visible_vad_views = set()
         if show_all_matched:
@@ -3212,8 +3604,8 @@ if workspace_page == "One Poem":
             st.info(
                 "No affective lexicon was selected. Optional-module matching is "
                 "available in the Concreteness, Frequency & Rarity, or Age of "
-                "Acquisition tabs, or in the Pronunciation & Prosody audit and "
-                "downloads."
+                "Acquisition tabs, or in the Pronunciation & Prosody and "
+                "Meter & Rhythm audits and downloads."
             )
 
     with download_tab:
@@ -3262,7 +3654,10 @@ if workspace_page == "One Poem":
             "Acquisition is selected, it includes summary, distribution, "
             "structural, POS, term, relationship, token-audit, and JSON files. "
             "When Pronunciation & Prosody is selected, it includes summary, "
-            "line, observed-type, candidate/token-audit, and JSON files."
+            "line, observed-type, candidate/token-audit, and JSON files. When "
+            "Meter & Rhythm is selected, it also includes the 40 fixed "
+            "candidates, stanza-aware common-meter scheme, line and alignment "
+            "audits, summary, and JSON files."
         )
 
     with help_tab:
@@ -3274,6 +3669,7 @@ if workspace_page == "One Poem":
             3. **Frequency:** Read median SUBTLEX-US Zipf with its named corpus and matched coverage.
             4. **Age of Acquisition:** Read source means in years, response evidence, configured bands, and the non-diagnostic warning.
             5. **Pronunciation & Prosody:** Read exact observed-form coverage, unresolved alternatives, complete-line syllables, and lexical stress; do not treat this as meter or performed scansion.
+            6. **Meter & Rhythm:** Read the nearest fixed template or stanza-aware scheme with fit, coverage, alternatives, and deviations; treat it as candidate evidence, not definitive scansion.
             6. **Normalized VAD:** Compare source-specific 0–1 means, keeping coverage beside them.
             7. **Emotion associations:** Read category rates as overlapping lexical associations.
             8. **Emotion intensity:** Keep prevalence separate from mean intensity among matches.

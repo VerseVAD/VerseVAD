@@ -206,6 +206,27 @@ made a public release.
   ambiguous/override, Unicode/apostrophe, proper-name, possessive,
   repetition, empty, incomplete-line, invalid-source, deterministic, UI, and
   export regression tests.
+- Framework-independent Stage 6 candidate-meter engine with deterministic
+  stress-template alignment, configurable penalties and thresholds, retained
+  CMUdict stress alternatives, explicit missing-line refusal, stable
+  configuration identity, metrics, warnings, and dependency provenance.
+- Forty fixed candidates crossing iambic, trochaic, anapestic, dactylic, and
+  amphibrachic patterns with monometer through octameter, plus explicit local
+  spondaic/pyrrhic substitutions, inversions, feminine/catalectic endings, and
+  extra/omitted syllables.
+- Stanza-aware common-meter comparison as alternating iambic
+  tetrameter/trimeter `4-3-4-3`, with the cycle restarted at each stanza and
+  complete-quatrain coverage retained separately from fixed line templates.
+- Optional Meter & Rhythm one-poem workflow, automatic Stage 5 dependency,
+  advanced method controls, dedicated reading tab, scholar-summary rows, CSV
+  reading guidance, five audit CSV files, and complete JSON result.
+- Hand-calculated Stage 6 validation plus regular-pattern, deviation,
+  alternative-path, missingness, common-meter, application, UI, export, and
+  regression tests.
+- Stage 6 completion validation: 204 automated tests, every synthetic
+  demonstration, all 11 diagnostics, read-only source checks, the pinned
+  CMUdict contract, the 86-package offline lock check, and visual inspection
+  of all 68 pages across both rebuilt Word guides.
 
 ### Changed
 
@@ -264,6 +285,10 @@ made a public release.
   additive and in memory, uses exact pinned local CMUdict files, does not add
   pronunciation prediction, meter, rhyme, or performed-scansion claims, and
   leaves database schema 3 and existing analyses unchanged.
+- Project development version advanced to `0.12.0.dev0`; Stage 6 remains
+  additive and in memory, exposes nearest configured candidates rather than
+  definitive scansion or performed rhythm, and leaves database schema 3 and
+  existing analyses unchanged.
 
 ### Fixed
 

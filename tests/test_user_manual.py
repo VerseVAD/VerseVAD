@@ -69,6 +69,11 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Dictionary pronunciation, syllables, and lexical stress",
             "Pronunciation & Prosody",
             "pronunciation_token_audit.csv",
+            "Candidate meter and rhythmic regularity",
+            "Common meter (alternating iambic",
+            "Meter & Rhythm tab",
+            "meter_alignment_operations.csv",
+            "meter_line_fit = max(0, 1 - selected_alignment_cost",
         ):
             assert required in text
 
@@ -184,5 +189,9 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Numeric-response proportion",
             "Dictionary Pronunciation, Syllables, and Lexical Stress",
             "poem-specific ARPAbet override",
+            "Candidate Meter, Fit, and Common Meter",
+            "common_meter_cycle = 4-3-4-3",
+            "Example J: Common Meter as an Alternating Scheme",
+            "Meter fit",
         ):
             assert required in text

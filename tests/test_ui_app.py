@@ -164,6 +164,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
             "Frequency & Rarity",
             "Age of Acquisition",
             "Pronunciation & Prosody",
+            "Meter & Rhythm",
             "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -234,6 +235,7 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
         "Frequency & Rarity",
         "Age of Acquisition",
         "Pronunciation & Prosody",
+        "Meter & Rhythm",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -294,6 +296,7 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
         "Frequency & Rarity",
         "Age of Acquisition",
         "Pronunciation & Prosody",
+        "Meter & Rhythm",
         "VAD Profile",
         "Emotion Profile",
         "Evidence",
@@ -421,6 +424,60 @@ def test_interface_runs_optional_pronunciation_and_override_workflow() -> None:
     assert any(
         "CMUdict supplies North American dictionary pronunciations"
         in warning.value
+        for warning in app.warning
+    )
+
+
+def test_interface_runs_common_meter_scheme_workflow() -> None:
+    resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
+    if not all(
+        (resource_root / filename).is_file()
+        for filename in ("cmudict.dict", "cmudict.phones", "cmudict.symbols")
+    ):
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    title = next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    )
+    title.input("Common meter interface validation")
+    tetrameter = "the stone the stone the stone the stone"
+    trimeter = "the stone the stone the stone"
+    app.text_area[0].input(
+        "\n".join((tetrameter, trimeter, tetrameter, trimeter))
+    )
+    app.multiselect[0].set_value([])
+    meter = next(
+        field
+        for field in app.checkbox
+        if field.label == "Meter & rhythmic regularity"
+    )
+    assert not meter.disabled
+    meter.set_value(True)
+    app.run(timeout=90)
+    _button(app, "Analyze this text").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert any("Analysis complete" in message.value for message in app.success)
+    assert any(
+        heading.value == "Candidate Meter & Rhythmic Regularity"
+        for heading in app.subheader
+    )
+    nearest = next(
+        metric for metric in app.metric if metric.label == "Nearest candidate"
+    )
+    assert nearest.value == (
+        "Common meter (alternating iambic tetrameter/trimeter)"
+    )
+    scheme_fit = next(
+        metric for metric in app.metric if metric.label == "Scheme fit"
+    )
+    assert scheme_fit.value == "100.0%"
+    assert any(
+        "nearest configured candidates" in warning.value.lower()
         for warning in app.warning
     )
 

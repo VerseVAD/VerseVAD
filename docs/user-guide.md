@@ -454,6 +454,9 @@ files plus:
 - five `pronunciation_*` CSV/JSON files when the optional module is enabled:
   summary, physical lines, observed types, complete token/candidate audit, and
   structured result.
+- six `meter_*` CSV/JSON files when candidate meter is enabled: readable
+  summary, all 40 fixed candidates, stanza-aware schemes, physical lines,
+  operation-level alignment audit, and structured result.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. Both JSON files are local machine-readable records.
@@ -508,6 +511,41 @@ Always retain the visible warning: CMUdict primarily represents North American
 dictionary pronunciation. Dialect, historical pronunciation, context,
 performance, and poetic elision may differ. Stage 5 does not classify meter,
 rhyme, or definitive performed scansion.
+
+## Meter & Rhythm
+
+In **One Poem**, select **Meter & rhythmic regularity** and analyze. The option
+is off by default. It automatically runs the local pronunciation foundation,
+so no affective lexicon is required.
+
+The module compares iambic, trochaic, anapestic, dactylic, and amphibrachic
+base patterns at monometer through octameter. It also checks **Common meter
+(alternating iambic tetrameter/trimeter)** as a stanza-aware `4-3-4-3` scheme,
+restarting the cycle at each stanza. Spondees and pyrrhics are local
+substitution labels, not ordinary whole-line base candidates.
+
+Open **Meter & Rhythm** to read:
+
+1. nearest candidate and whether it is a fixed line template or alternating
+   scheme;
+2. mean fit, matching lines, analyzable-line coverage, nearest alternative,
+   candidate margin, and rule-based confidence;
+3. common-meter fit and complete-quatrain coverage;
+4. each physical line's nearest fixed template and phase-specific
+   common-meter fit;
+5. retained stress path, alignments, substitutions, inversions, endings, and
+   extra/omitted syllables; and
+6. all 40 fixed candidates, warnings, and provenance.
+
+Fit is a configured 0–1 alignment similarity, not a probability. Confidence is
+a rule-based reading aid, not a calibrated probability. A word without usable
+pronunciation evidence makes its line unscored; it does not receive a low,
+zero, or neutral fit.
+
+Use language such as “the nearest configured candidate was common meter under
+the selected alignment configuration.” Do not write “VerseVAD proved the poem
+is in common meter” or treat a metrically preferred dictionary alternative as
+the poet's performed pronunciation.
 
 ## Diagnostics and troubleshooting
 

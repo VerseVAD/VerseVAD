@@ -291,3 +291,26 @@ synthetic validations all passed, as did all 11 diagnostics, the installed
 CMUdict contract, the 86-package offline lock check, and `git diff --check`.
 Both rebuilt Word guides passed structural tests and complete visual
 inspection: 37 User Manual pages and 26 Values and Terminology Guide pages.
+
+Poetic Fingerprint expansion Stage 6 adds pure meter-alignment, common-meter,
+application, UI, export, and synthetic-validation tests. The direct synthetic
+command is:
+
+```powershell
+.\.venv\Scripts\python.exe -m versevad.meter_validation
+```
+
+It checks the 40 fixed templates, exact iambic pentameter, feminine ending,
+initial inversion, catalectic ending, exact stanza-aware iambic `4-3-4-3`
+common meter, and missing-pronunciation refusal. The full suite additionally
+covers every base pattern, spondaic/pyrrhic local substitutions, secondary
+stress, function-word promotion, stress-path limits, deterministic ranking,
+meter-only workspace activation, UI, all six exports, and regression behavior.
+
+The Stage 6 completion suite passed `204 passed` on 2026-07-24. Phase 2,
+Concreteness, SUBTLEX-US Frequency, Kuperman AoA, pronunciation, and
+candidate-meter synthetic validations all passed, as did all 11 diagnostics,
+the five-lexicon read-only source inspection, the installed CMUdict contract,
+the 86-package offline lock check, and `git diff --check`. Both rebuilt Word
+guides passed structural tests and complete visual inspection: 40 User Manual
+pages and 28 Values and Terminology Guide pages.

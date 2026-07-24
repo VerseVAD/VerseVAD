@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence** and optional dictionary-based pronunciation evidence. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, and pronunciation/lexical-stress results remain separate constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, classify meter or rhyme in Stage 5, or replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, and transparent candidate-meter comparisons. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical-stress, and meter-fit results remain separate constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter or performed rhythm, or replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -28,7 +28,7 @@
 14. Troubleshooting and limitations
 15. Reproducibility and updating this manual
 
-> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, and **Pronunciation & Prosody** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
+> QUICK ORIENTATION: Read **Overview** first, inspect the shared record in **Language Profile**, then read the enabled evidence tabs, including **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, and **Meter & Rhythm** when selected, and inspect **Evidence**. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
 # 1. Purpose, privacy, and scholarly scope
 
@@ -59,7 +59,11 @@ VerseVAD compares words and accepted phrases in a literary text with locally ins
 - optional exact observed-form CMUdict pronunciation candidates, resolved
   syllables, complete-line totals, lexical-stress sequences, coverage,
   ambiguity evidence, poem-specific scholar overrides, and token/type/line
-  audits.
+  audits; and
+- optional candidate-meter alignment against five recurring stress patterns
+  from monometer through octameter, stanza-aware common meter as iambic
+  `4-3-4-3`, line/scheme fit, deviations, alternatives, coverage, and a
+  complete alignment audit.
 
 ## What VerseVAD does not do
 
@@ -108,13 +112,13 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 2. Enter a title or working label.
 3. Paste a short poem, or upload a UTF-8 `.txt` file.
 4. Keep the selected lexicons and default methodology for the first run.
-5. Optionally enable **Normative lexical concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, **Age of Acquisition profile (Kuperman et al. ratings)**, and/or **Pronunciation & prosody foundation (CMUdict)** under **Choose Evidence**.
+5. Optionally enable **Normative lexical concreteness**, **Frequency & rarity profile (SUBTLEX-US Zipf)**, **Age of Acquisition profile (Kuperman et al. ratings)**, **Pronunciation & prosody foundation (CMUdict)**, and/or **Meter & rhythmic regularity** under **Choose Evidence**.
 6. Keep both affective reporting views enabled.
 7. Click **Analyze this text**.
 8. In **Overview**, inspect coverage and warnings.
 9. In **VAD Profile**, compare all matched observations with stopwords excluded.
 10. In **Language Profile**, inspect the independent grammatical profile when it is relevant to your question.
-11. If enabled, inspect the separate **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, and **Pronunciation & Prosody** tabs.
+11. If enabled, inspect the separate **Concreteness Profile**, **Frequency & Rarity**, **Age of Acquisition**, **Pronunciation & Prosody**, and **Meter & Rhythm** tabs.
 12. In **Evidence**, inspect exactly which surface forms, lemmas, or phrases matched.
 13. In **Downloads**, save the readable summary or full audit bundle.
 
@@ -520,6 +524,58 @@ resolution, not a probability. Report these results as dictionary-based North
 American pronunciation, syllable, and lexical-stress evidence. Do not call
 them definitive performed pronunciation, meter, rhyme, or scansion.
 
+## Candidate meter and rhythmic regularity
+
+When enabled, **Meter & Rhythm** automatically uses the retained Stage 5
+pronunciation evidence. No affective lexicon is required. It compares five
+recurring base patterns:
+
+| Pattern | Stress pattern |
+|---|---|
+| Iambic | `01` |
+| Trochaic | `10` |
+| Anapestic | `001` |
+| Dactylic | `100` |
+| Amphibrachic | `010` |
+
+Each pattern is checked at monometer, dimeter, trimeter, tetrameter,
+pentameter, hexameter, heptameter, and octameter: 40 fixed line templates.
+Spondees `11` and pyrrhics `00` are reported as local substitutions rather
+than ordinary whole-line base candidates.
+
+Stage 6 also checks **Common meter (alternating iambic
+tetrameter/trimeter)** as a stanza-aware cycle:
+
+`4-3-4-3 = tetrameter, trimeter, tetrameter, trimeter`
+
+The cycle restarts at each preserved stanza. At least one complete four-line
+stanza is required before common meter can become the poem-level nearest
+scheme. Partial stanzas remain visible as incomplete scheme evidence.
+
+The line alignment can report substitutions, initial inversion, feminine
+ending, catalexis, and extra or omitted syllables. Multiple retained CMUdict
+stress alternatives are explored up to the configured line limit, but the
+metrically preferred path is not promoted to a dictionary or performance
+fact. A line with missing pronunciation evidence remains unscored.
+
+Read:
+
+- nearest candidate and whether it is a fixed template or alternating scheme;
+- mean fit, matching-line proportion, line coverage, nearest alternative, and
+  candidate margin;
+- rule-based confidence and its explanation;
+- common-meter fit and complete-stanza coverage;
+- physical-line stress paths, alignments, deviations, and expected
+  common-meter foot counts; and
+- all 40 fixed candidates, warnings, configuration, and provenance.
+
+Fit is a configured alignment similarity from 0 to 1, not a probability.
+Confidence is a rule-based category, not a calibrated probability. Safe
+wording is: “The nearest configured candidate was common meter under the
+selected alignment configuration.” Do not write: “VerseVAD proved the poem is
+in common meter,” “this is the correct scansion,” or “the poet performed the
+line this way.”
+
 ## Eight emotion associations
 
 NRC Emotion values are binary, multi-label associations. VerseVAD reports the eight emotions—anger, anticipation, disgust, fear, joy, sadness, surprise, and trust—in their own section. An entry can be associated with several categories, so percentages do not need to total 100 percent. Read the labeled denominator.
@@ -548,9 +604,9 @@ Paste text or upload one UTF-8 `.txt` file up to 5 MB. Enter a title or working 
 
 ## Choose evidence
 
-Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, and CMUdict pronunciation/prosody-foundation modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, and dictionary pronunciation/lexical stress answer different questions and remain separate. Any optional module can run by itself when its exact local source is available.
+Select one or more affective lexicons and/or enable the optional normative lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition, CMUdict pronunciation/prosody-foundation, and candidate-meter modules. VAD, categorical association, intensity, concreteness, corpus-relative frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress, and configured meter fit answer different questions and remain separate. Any optional module can run by itself when its exact local source is available; selecting meter automatically runs its pronunciation dependency.
 
-Concreteness, Frequency, AoA, and Pronunciation & Prosody are currently temporary **One Poem** modules.
+Concreteness, Frequency, AoA, Pronunciation & Prosody, and Meter & Rhythm are currently temporary **One Poem** modules.
 They are not yet batched, persisted, aggregated, or exported by **Projects &
 Corpus**.
 
@@ -577,7 +633,11 @@ Under **Advanced methodology settings**, choose:
 - poem-specific `word = ARPAbet phones | note` pronunciation overrides;
 - the pronunciation resolved-token coverage caution threshold;
 - minimum complete pronunciation lines; and
-- minimum resolved pronunciation tokens for sparse-result warnings.
+- minimum resolved pronunciation tokens for sparse-result warnings;
+- the meter line-fit threshold;
+- the poem candidate-fit threshold;
+- the candidate-margin threshold; and
+- the maximum retained stress paths evaluated per line.
 
 Under **Stopword settings**, inspect or change the secondary-view policy. The all-matched result is always preserved even when only one view is displayed.
 
@@ -653,6 +713,23 @@ reading. Removing an override and analyzing again reverses it.
 The North American dictionary warning remains visible. `0`, `1`, and `2` are
 lexical-stress digits, not metrical beats. The Stage 5 tab does not report
 candidate meter or rhyme.
+
+## Meter & Rhythm tab
+
+This tab appears when **Meter & rhythmic regularity** is enabled. It reports
+the nearest fixed template or alternating scheme, fit, matching lines,
+coverage, alternative, candidate margin, rule-based confidence, rhythmic
+variation, a separate common-meter panel, physical-line evidence, all 40 fixed
+candidates, warnings, and configuration provenance.
+
+For common meter, confirm the expected foot counts restart as `4, 3, 4, 3` in
+each stanza and read complete-stanza coverage. A stanza fragment can supply
+partial line evidence but cannot by itself select common meter as the nearest
+poem-level scheme.
+
+The closest fixed template for one line and the phase-specific common-meter
+line fit are separate columns. Do not mistake a metrically preferred stress
+path for a change to the Stage 5 pronunciation result.
 
 ## Evidence tab
 
@@ -892,8 +969,14 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `pronunciation_types.csv` | Observed forms, token occurrences, statuses, candidate phones, and resolved prosodic fields |
 | `pronunciation_token_audit.csv` | Every token's eligibility, exact candidates, source lines, resolved fields or missing values, categorical resolution label, override note, and reason |
 | `pronunciation_result.json` | Complete structured Stage 5 result, source contracts, configuration, candidates, warnings, and provenance |
+| `meter_summary.csv` | Nearest candidate kind and label, fit, coverage, confidence, deviations, and common-meter summary |
+| `meter_candidates.csv` | All 40 fixed pattern-by-foot-count candidates with rank, fit, variation, and matching lines |
+| `meter_schemes.csv` | Stanza-aware scheme cycle, fit, line coverage, matching lines, and complete-stanza coverage |
+| `meter_lines.csv` | Every physical line's status, nearest fixed template, selected stress path, common-meter position/expected feet/fit, alignment, and deviations |
+| `meter_alignment_operations.csv` | Every selected syllable-to-template operation, cost, word, model POS, and ending flag |
+| `meter_result.json` | Complete structured Stage 6 configuration, line audit, fixed candidates, schemes, metrics, warnings, and provenance |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, and `pronunciation_result.json` contains every Stage 5 candidate and decision. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, AoA, and Pronunciation exports retain source-row provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, and `meter_result.json` contains every Stage 6 line, fixed-candidate, scheme, and method record. `poem_document.json` includes the original text, so protect it as research material. Concreteness, Frequency, AoA, Pronunciation, and Meter exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
 
 ## Corpus Excel workbook
 
@@ -1102,6 +1185,26 @@ Because one token can belong to several categories, category rates need not sum 
 
 Missing pairs do not enter either numerator or denominator.
 
+## Candidate-meter fit and coverage
+
+For one retained stress path and one template:
+
+`meter_line_fit = max(0, 1 - selected_alignment_cost / max(observed_syllables, template_syllables, 1))`
+
+For an exact alignment, cost is zero and fit is `1.0`. Mismatch, insertion,
+omission, inversion, feminine-ending, catalectic-ending, secondary-stress, and
+function-word-flexibility costs are recorded configuration choices.
+
+`meter_line_coverage = analyzable physical lines / eligible physical lines`
+
+`meter_matching_line_proportion = lines at or above the configured fit threshold / analyzable physical lines`
+
+`common_meter_complete_stanza_coverage = complete analyzable four-line stanzas / eligible stanzas`
+
+The common-meter line template follows iambic foot counts `4-3-4-3`, restarted
+at each stanza. Missing pronunciation produces a missing line fit, not zero.
+Fit is a similarity and confidence is rule-based; neither is a probability.
+
 ## Worked synthetic example
 
 Suppose normalized valence matches are `bright = 0.875` repeated ten times in one work and `dark = 0.250` once in a second work.
@@ -1124,6 +1227,8 @@ The divergence is substantial because the long work dominates the token-weighted
 | Arousal | Normative activation associated with a lexical item |
 | Association | Binary lexicon membership for an emotion or sentiment category |
 | Approved user mapping | Scenario-pinned link from a form to a verified exact source entry, applied only after ordinary matching fails |
+| Candidate meter | Nearest configured stress template or stanza-aware scheme; not definitive meter or performed rhythm |
+| Common meter | Stanza-aware alternating iambic tetrameter/trimeter scheme with foot-count cycle 4-3-4-3 |
 | Concreteness rating | Source-supplied 1-5 normative rating for how abstract/language-based or concrete/experience-based a lexical item was judged |
 | Concreteness orientation band | Configurable VerseVAD display aid, not a validated source-paper category |
 | Content words only | Optional Frequency or AoA contextual scope limited to exact model tags NOUN, VERB, ADJ, and ADV; off by default |
@@ -1148,6 +1253,9 @@ The divergence is substantial because the long work dominates the token-weighted
 | Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
 | Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
 | Prosodic consensus | Multiple exact dictionary candidates whose phone strings differ but syllable count and full lexical-stress sequence agree |
+| Meter fit | Configured 0-1 stress-alignment similarity; not a probability |
+| Meter line coverage | Analyzable eligible physical lines divided by all eligible physical lines |
+| Rule-based meter confidence | Configured category from evidence count, coverage, fit, candidate margin, and matching lines; not a calibrated probability |
 | Protected word | A word retained despite appearing in the underlying standard stopword list |
 | Scholar pronunciation override | Poem-specific validated ARPAbet phones with a required note, kept distinct from dictionary candidates |
 | Source value | The original value published by the lexicon |
@@ -1233,14 +1341,23 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   can make a line incomplete until a scholar documents an override.
 - Pronunciation overrides apply to an exact observed type within the current
   one-poem analysis, not to one individual occurrence.
-- Stage 5 includes no grapheme-to-phoneme prediction, candidate meter, rhyme,
-  or definitive performed scansion.
+- Stage 5 includes no grapheme-to-phoneme prediction or hidden pronunciation
+  selection. Its own tab does not classify meter or rhyme.
 - Pronunciation & Prosody is currently an optional one-poem in-memory module;
   it is not yet persisted in corpus projects.
+- Stage 6 meter starts from dictionary lexical stress; contextual promotion,
+  demotion, dialect, historical pronunciation, elision, and performance may
+  support a different scansion.
+- Meter costs, thresholds, fit, and confidence are transparent heuristics, not
+  a probability model or validation against every poetic tradition.
+- Common meter is the only stanza-aware alternating scheme currently
+  implemented; rhyme remains Stage 7.
+- Meter & Rhythm is currently an optional one-poem in-memory module; it is not
+  yet persisted or aggregated in corpus projects.
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed and scheme candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes.
 
 The companion definitions guide is maintained from:
 
