@@ -7,6 +7,13 @@ made a public release.
 
 ### Added
 
+- Source- and analysis-view-specific normalized VAD means inside the one-text
+  Part-of-Speech Profile, with token-weighted and type-weighted valence,
+  arousal, and dominance shown together; group-level coverage, sparse evidence,
+  and mixed-POS published phrases remain explicit.
+- `vad_by_part_of_speech.csv` in the complete audit bundle, including
+  normalized and original-scale means, matched observation/type/token counts,
+  coverage, phrase evidence, and normalization provenance.
 - Stage 14 optional performance-aware meter realization above the unchanged
   fixed candidate layer, with source lexical stress, metrical position,
   promotion/demotion, substitutions, caesura, clashes/lapses, pronunciation
@@ -465,6 +472,14 @@ made a public release.
 
 ### Fixed
 
+- Removed Streamlit's default-plus-Session-State widget warnings by giving
+  workspace, lexicon, module, preset, and corpus controls one state owner.
+- Repaired Dark text-entry foreground/caret/placeholder colors and primary
+  Analyze-label contrast across Light, Dark, and System appearances with
+  stable semantic selectors.
+- Reduced installed-resource readiness from full eager workbook/dictionary
+  parsing to exact checksum identity checks; selected modules still perform
+  complete adapter validation before analysis and preserve source hashes.
 - Closed the deferred Stage 4 Word-render carryover by exporting both rebuilt
   guides through installed Microsoft Word and inspecting all 63 pages; added
   fenced-code-block support to the shared guide builder after the review

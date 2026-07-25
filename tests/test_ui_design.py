@@ -44,6 +44,12 @@ def test_stylesheet_uses_semantic_tokens_and_accessibility_modes() -> None:
         assert "--color-focus" in sheet
         assert "prefers-reduced-motion" in sheet
         assert "focus-visible" in sheet
+        assert '[data-testid="stTextAreaRootElement"]' in sheet
+        assert '[data-testid="stTextInputRootElement"]' in sheet
+        assert '[data-testid="stBaseButton-primary"]' in sheet
+        assert "-webkit-text-fill-color" in sheet
+        assert "caret-color" in sheet
+        assert "::placeholder" in sheet
     assert "prefers-color-scheme: dark" not in light
     assert "prefers-color-scheme: dark" not in dark
     assert "prefers-color-scheme: dark" in system
@@ -78,6 +84,10 @@ def test_primary_text_and_focus_tokens_meet_contrast_expectations() -> None:
         assert _contrast(tokens["text-primary"], tokens["surface"]) >= 7
         assert _contrast(tokens["text-secondary"], tokens["background"]) >= 4.5
         assert _contrast(tokens["focus"], tokens["background"]) >= 3
+        assert (
+            _contrast(tokens["text-inverse"], tokens["accent-strong"]) >= 4.5
+        )
+        assert _contrast(tokens["text-inverse"], tokens["accent"]) >= 4.5
 
 
 def test_presets_change_only_module_selection_not_advanced_settings() -> None:

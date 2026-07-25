@@ -950,29 +950,35 @@ def _render_analysis_tab(
             st.rerun()
     lexicon_state_key = f"analysis_lexicons_{project_id}"
     module_state_key = f"analysis_modules_{project_id}"
-    if lexicon_state_key in st.session_state:
-        st.session_state[lexicon_state_key] = [
+    if lexicon_state_key not in st.session_state:
+        st.session_state[lexicon_state_key] = list(lexicon_lookup)
+    else:
+        available_lexicon_state = [
             lexicon_id
             for lexicon_id in st.session_state[lexicon_state_key]
             if lexicon_id in lexicon_lookup
         ]
-    if module_state_key in st.session_state:
-        st.session_state[module_state_key] = [
+        if available_lexicon_state != st.session_state[lexicon_state_key]:
+            st.session_state[lexicon_state_key] = available_lexicon_state
+    if module_state_key not in st.session_state:
+        st.session_state[module_state_key] = []
+    else:
+        available_module_state = [
             module_id
             for module_id in st.session_state[module_state_key]
             if module_id in module_labels
         ]
+        if available_module_state != st.session_state[module_state_key]:
+            st.session_state[module_state_key] = available_module_state
     lexicon_ids = st.multiselect(
         "Lexicons",
         options=list(lexicon_lookup),
-        default=list(lexicon_lookup),
         format_func=lambda lexicon_id: lexicon_lookup[lexicon_id].display_name,
         key=lexicon_state_key,
     )
     selected_modules = st.multiselect(
         "Additional analysis modules",
         options=list(module_labels),
-        default=[],
         format_func=lambda name: module_labels[name],
         key=module_state_key,
         help=(

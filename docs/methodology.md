@@ -251,6 +251,27 @@ Source tags `VERB` and `AUX` are likewise merged into **Verb**. This retains
 forms of `be` and other auxiliary/copular uses in the broad verb quantity
 requested by the user while preserving their original tags in token evidence.
 
+The one-text Language Profile may also join the already completed VAD matches
+to these broad POS groups. This is a separate, lexicon-dependent subsection;
+it does not change the independent grammatical count/share profile. Lexicons
+and the all-matched and stopword-excluded analysis views are never pooled.
+
+Within each lexicon, view, and broad POS group, the token-weighted VAD mean
+uses every included match occurrence and the type-weighted mean uses each
+distinct matched lexicon lookup form once. Both appear on the independently
+normalized 0-1 scale; the detailed CSV also retains original-scale means and
+the normalization formula. Coverage is the number of eligible token positions
+covered by the group's included matches divided by eligible token positions in
+that POS group. Unmatched positions remain missing, not neutral.
+
+An accepted published phrase contributes one VAD observation, consistent with
+the main VAD summary. When all lexical components have the same broad POS, its
+observation is assigned to that group and all covered token positions count
+toward coverage. A phrase spanning several broad POS groups remains under
+**Mixed-POS Phrase**. Because mixed-POS is a property of a matched span rather
+than a token population, VerseVAD reports no coverage denominator for that
+row. Groups below the configured minimum match requirement are marked sparse.
+
 ## Dual VAD reporting and stopword policy
 
 VerseVAD does not treat stopword removal as neutral preprocessing. Every VAD

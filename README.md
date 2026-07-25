@@ -23,8 +23,11 @@ equal-work-weighted profile so long poems do not determine the only result.
 The new Language Profile reports model-assigned part-of-speech counts and
 relative shares independently of affective-lexicon coverage, both for one poem
 and for combined/work-by-work corpus views. It pairs a broad readable profile
-with a detailed Universal Dependencies tag breakdown. Positive/negative
-sentiment is presented separately from the eight emotion associations.
+with a detailed Universal Dependencies tag breakdown. For one-text results, a
+separate source-specific subsection reports matched normalized VAD means by
+broad POS using both token and type weighting, with coverage and mixed-POS
+phrases kept explicit. Positive/negative sentiment is presented separately
+from the eight emotion associations.
 
 The Poetic Fingerprint expansion through Stage 12 is also complete. Stage 0 added
 framework-independent module contracts and read-only local resource validation.

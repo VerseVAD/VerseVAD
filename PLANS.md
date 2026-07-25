@@ -958,6 +958,41 @@ review required.
 
 ## Cross-cutting later work - Scholarly diagnostics
 
+## Pre-release repair - startup, widget state, and theme contrast
+
+- [x] Separate fast checksum-aware startup readiness from first-use structural
+  parsing without weakening source identity or completed-run provenance.
+- [x] Give workspace, lexicon, and preset-controlled widgets one Session State
+  owner so Streamlit emits no conflicting default-value warnings.
+- [x] Repair text-entry surfaces and primary action-button contrast in Light,
+  Dark, and System appearances with stable Streamlit selectors.
+- [x] Add source-separated VAD-by-part-of-speech rows with both token-weighted
+  and type-weighted normalized means, explicit coverage, and mixed-POS phrase
+  handling.
+- [x] Add resource-loading, widget-state, semantic-token, and rendered contrast
+  regression coverage.
+- [x] Run targeted, full-suite, synthetic, diagnostic, responsive-browser, and
+  cold/warm startup validation.
+- [x] Update release documentation and create a source-control checkpoint.
+
+### Pre-release repair exit criteria
+
+- [x] A cold startup hashes configured research resources but does not parse
+  whole workbooks or dictionaries before the scholar requests a dependent
+  workspace or analysis.
+- [x] First use still performs exact adapter-contract validation, and every
+  completed result still records the exact source SHA-256.
+- [x] No widget is created with both a programmatically supplied Session State
+  value and a competing default.
+- [x] Editable text and enabled primary action labels meet at least WCAG AA
+  normal-text contrast in Light, Dark, and System appearances.
+- [x] The one-text Part-of-Speech Profile and detailed audit export report
+  token-weighted and type-weighted normalized VAD means without assigning
+  neutral values to unmatched evidence or forcing mixed-POS phrases into a
+  single grammatical category.
+- [x] Existing analyses, projects, exports, resource safeguards, and responsive
+  layouts remain unchanged.
+
 - [ ] Add anomaly candidates and structured close-reading prompts.
 - [ ] Add corpus trends, source-disagreement views, and optional descriptive
   change-over-sequence views.

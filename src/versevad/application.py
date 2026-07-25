@@ -22,7 +22,12 @@ from versevad.adapters import (
     NrcVadV21Adapter,
     WarrinerVadAdapter,
 )
-from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
+from versevad.analysis.phase2 import (
+    analyze_lexicon,
+    compare_lexicons,
+    stopword_eligible_token_ids,
+)
+from versevad.analysis.statistics import weighted_vad_statistics
 from versevad.core.documents import PoemDocument
 from versevad.core.modules import ModuleInput
 from versevad.core.resources import (
@@ -66,7 +71,9 @@ from versevad.lexical_style import (
     LexicalStyleModuleError,
 )
 from versevad.models import (
+    AffectMatchRecord,
     CrossLexiconComparison,
+    MatchMethod,
     MatchSelection,
     Phase2AnalysisResult,
     PhrasePolicy,
@@ -296,14 +303,30 @@ def installed_resource_readiness(
     source_root: Path = SOURCE_ROOT,
     resource_root: Path = RESOURCE_ROOT,
 ) -> ResourceReadiness:
-    """Return one shared, non-mutating installation report for every workspace."""
+    """Return a fast, checksum-aware installation report for every workspace.
+
+    Startup readiness establishes exact file identity without parsing complete
+    workbooks or dictionaries. Each selected module still performs its adapter
+    contract validation before analysis, and the resulting source SHA-256 is
+    retained on every completed result.
+    """
+
+    supplementary_manager = LocalResourceManager(resource_root)
+    concreteness_module = ConcretenessModule(resource_root)
+    frequency_module = FrequencyModule(resource_root)
+    aoa_module = AoAModule(resource_root)
+    pronunciation_module = PronunciationModule(resource_root)
 
     return ResourceReadiness(
         affective_lexicons=validate_affective_resources(source_root),
-        concreteness=ConcretenessModule(resource_root).validate_resources()[0],
-        frequency=FrequencyModule(resource_root).validate_resources()[0],
-        aoa=AoAModule(resource_root).validate_resources()[0],
-        pronunciation=PronunciationModule(resource_root).validate_resources(),
+        concreteness=supplementary_manager.validate(
+            concreteness_module.resource_spec
+        ),
+        frequency=supplementary_manager.validate(frequency_module.resource_spec),
+        aoa=supplementary_manager.validate(aoa_module.resource_spec),
+        pronunciation=supplementary_manager.validate_many(
+            pronunciation_module.resource_specs
+        ),
     )
 
 
@@ -395,6 +418,7 @@ PART_OF_SPEECH_LABELS = {
     "CCONJ": "Coordinating Conjunction",
     "DET": "Determiner",
     "INTJ": "Interjection",
+    "MIXED": "Mixed-POS Phrase",
     "NOUN": "Common Noun",
     "NOUN + PROPN": "Noun",
     "NUM": "Numeral",
@@ -440,6 +464,36 @@ class VadView:
     normalization_formula: str
 
 
+@dataclass(frozen=True)
+class VadPartOfSpeechView:
+    lexicon_id: str
+    lexicon: str
+    analysis_view: str
+    tag: str
+    category: str
+    matched_observations: int
+    matched_types: int
+    matched_token_occurrences: int
+    eligible_token_occurrences: int | None
+    lexical_coverage: float | None
+    token_weighted_valence: float | None
+    token_weighted_arousal: float | None
+    token_weighted_dominance: float | None
+    type_weighted_valence: float | None
+    type_weighted_arousal: float | None
+    type_weighted_dominance: float | None
+    original_token_weighted_valence: float | None
+    original_token_weighted_arousal: float | None
+    original_token_weighted_dominance: float | None
+    original_type_weighted_valence: float | None
+    original_type_weighted_arousal: float | None
+    original_type_weighted_dominance: float | None
+    phrase_observations: int
+    is_sparse: bool
+    original_scale: str
+    normalization_formula: str
+
+
 VAD_DEFINITIONS = {
     "valence": (
         "Normative pleasantness: lower ratings are associated with more unpleasant "
@@ -455,6 +509,15 @@ VAD_DEFINITIONS = {
         "constraint or vulnerability; higher ratings with greater control or power."
     ),
 }
+
+
+def _broad_part_of_speech_tag(source_tag: str | None) -> str:
+    tag = source_tag or "X"
+    if tag in {"NOUN", "PROPN"}:
+        return "NOUN + PROPN"
+    if tag in {"VERB", "AUX"}:
+        return "VERB + AUX"
+    return tag
 
 
 def part_of_speech_views_for_tokens(
@@ -485,12 +548,11 @@ def _part_of_speech_views_for_tokens(
     by_tag: dict[str, list[TokenRecord]] = {}
     for token in lexical_tokens:
         source_tag = token.part_of_speech or "X"
-        if merge_broad_categories and source_tag in {"NOUN", "PROPN"}:
-            tag = "NOUN + PROPN"
-        elif merge_broad_categories and source_tag in {"VERB", "AUX"}:
-            tag = "VERB + AUX"
-        else:
-            tag = source_tag
+        tag = (
+            _broad_part_of_speech_tag(source_tag)
+            if merge_broad_categories
+            else source_tag
+        )
         by_tag.setdefault(tag, []).append(token)
     rows = []
     for tag, tagged_tokens in by_tag.items():
@@ -1322,6 +1384,183 @@ def vad_views(workspace: WorkspaceAnalysis) -> tuple[VadView, ...]:
     return tuple(rows)
 
 
+def _match_part_of_speech_tag(
+    match: AffectMatchRecord,
+    token_by_id: dict[str, TokenRecord],
+) -> str:
+    tags = {
+        _broad_part_of_speech_tag(token_by_id[token_id].part_of_speech)
+        for token_id in match.token_ids
+        if token_id in token_by_id and token_by_id[token_id].is_lexical
+    }
+    if len(tags) == 1:
+        return next(iter(tags))
+    return "MIXED"
+
+
+def vad_part_of_speech_views(
+    workspace: WorkspaceAnalysis,
+) -> tuple[VadPartOfSpeechView, ...]:
+    """Group source-specific normative VAD evidence by broad model POS.
+
+    Token weighting counts every included match occurrence. Type weighting
+    counts each distinct matched lexicon lookup form once within its source,
+    analysis view, and POS group. Published phrases that span broad POS groups
+    remain in an explicit mixed-POS row.
+    """
+
+    rows: list[VadPartOfSpeechView] = []
+    for result in workspace.results:
+        summary = result.vad_summary
+        if summary is None:
+            continue
+        metadata = result.lexicon_metadata
+        lexical_by_id = {
+            token.token_id: token
+            for token in result.tokens
+            if token.is_lexical
+        }
+        all_eligible_ids = set(lexical_by_id)
+        view_groups = [
+            (
+                "All matched tokens",
+                all_eligible_ids,
+                tuple(
+                    match
+                    for match in result.matches
+                    if match.included and match.normalized_scores is not None
+                ),
+            )
+        ]
+        if result.stopword_coverage is not None and result.stopword_policy is not None:
+            view_groups.append(
+                (
+                    "Stopwords excluded",
+                    stopword_eligible_token_ids(
+                        result.tokens,
+                        result.matches,
+                        result.stopword_policy,
+                    ),
+                    tuple(
+                        match
+                        for match in result.matches
+                        if match.included_in_stopword_view
+                        and match.normalized_scores is not None
+                    ),
+                )
+            )
+
+        for analysis_view, eligible_ids, included_matches in view_groups:
+            eligible_by_tag: dict[str, set[str]] = {}
+            for token_id in eligible_ids:
+                token = lexical_by_id[token_id]
+                tag = _broad_part_of_speech_tag(token.part_of_speech)
+                eligible_by_tag.setdefault(tag, set()).add(token_id)
+
+            matches_by_tag: dict[str, list[AffectMatchRecord]] = {}
+            for match in included_matches:
+                tag = _match_part_of_speech_tag(match, lexical_by_id)
+                matches_by_tag.setdefault(tag, []).append(match)
+
+            for tag in set(eligible_by_tag) | set(matches_by_tag):
+                matches = tuple(matches_by_tag.get(tag, ()))
+                unique_matches = {}
+                for match in matches:
+                    if match.matched_lookup_form is not None:
+                        unique_matches.setdefault(match.matched_lookup_form, match)
+                token_normalized = weighted_vad_statistics(
+                    match.normalized_scores
+                    for match in matches
+                    if match.normalized_scores is not None
+                )
+                type_normalized = weighted_vad_statistics(
+                    match.normalized_scores
+                    for match in unique_matches.values()
+                    if match.normalized_scores is not None
+                )
+                token_original = weighted_vad_statistics(
+                    match.original_scores
+                    for match in matches
+                    if match.original_scores is not None
+                )
+                type_original = weighted_vad_statistics(
+                    match.original_scores
+                    for match in unique_matches.values()
+                    if match.original_scores is not None
+                )
+                matched_token_ids = {
+                    token_id
+                    for match in matches
+                    for token_id in match.token_ids
+                    if token_id in lexical_by_id
+                }
+                eligible_for_tag = eligible_by_tag.get(tag)
+                eligible_count = (
+                    len(eligible_for_tag)
+                    if eligible_for_tag is not None
+                    else None
+                )
+                coverage = (
+                    len(matched_token_ids & eligible_for_tag) / eligible_count
+                    if eligible_for_tag is not None and eligible_count
+                    else None
+                )
+                rows.append(
+                    VadPartOfSpeechView(
+                        lexicon_id=metadata.lexicon_id,
+                        lexicon=metadata.display_name,
+                        analysis_view=analysis_view,
+                        tag=tag,
+                        category=PART_OF_SPEECH_LABELS.get(tag, tag.title()),
+                        matched_observations=len(matches),
+                        matched_types=len(unique_matches),
+                        matched_token_occurrences=len(matched_token_ids),
+                        eligible_token_occurrences=eligible_count,
+                        lexical_coverage=coverage,
+                        token_weighted_valence=token_normalized.valence.mean,
+                        token_weighted_arousal=token_normalized.arousal.mean,
+                        token_weighted_dominance=token_normalized.dominance.mean,
+                        type_weighted_valence=type_normalized.valence.mean,
+                        type_weighted_arousal=type_normalized.arousal.mean,
+                        type_weighted_dominance=type_normalized.dominance.mean,
+                        original_token_weighted_valence=token_original.valence.mean,
+                        original_token_weighted_arousal=token_original.arousal.mean,
+                        original_token_weighted_dominance=token_original.dominance.mean,
+                        original_type_weighted_valence=type_original.valence.mean,
+                        original_type_weighted_arousal=type_original.arousal.mean,
+                        original_type_weighted_dominance=type_original.dominance.mean,
+                        phrase_observations=sum(
+                            match.method == MatchMethod.PHRASE for match in matches
+                        ),
+                        is_sparse=(
+                            len(matches) < summary.minimum_match_requirement
+                        ),
+                        original_scale=(
+                            f"{metadata.source_scale_min:g} to "
+                            f"{metadata.source_scale_max:g}"
+                        ),
+                        normalization_formula=metadata.normalization_formula,
+                    )
+                )
+    view_order = {"All matched tokens": 0, "Stopwords excluded": 1}
+    return tuple(
+        sorted(
+            rows,
+            key=lambda row: (
+                row.lexicon.casefold(),
+                view_order.get(row.analysis_view, 99),
+                -(
+                    row.eligible_token_occurrences
+                    if row.eligible_token_occurrences is not None
+                    else row.matched_token_occurrences
+                ),
+                row.category,
+                row.tag,
+            ),
+        )
+    )
+
+
 def vad_interpretation_views(
     workspace: WorkspaceAnalysis,
 ) -> tuple[VadInterpretationView, ...]:
@@ -1852,6 +2091,128 @@ def _csv_bytes(fieldnames: list[str], rows: Iterable[dict[str, object]]) -> byte
     writer.writeheader()
     writer.writerows(rows)
     return b"\xef\xbb\xbf" + output.getvalue().encode("utf-8")
+
+
+def vad_part_of_speech_csv(workspace: WorkspaceAnalysis) -> bytes:
+    """Export the source- and view-specific VAD-by-POS table."""
+
+    fields = [
+        "lexicon_id",
+        "lexicon",
+        "analysis_view",
+        "source_pos_tags",
+        "part_of_speech",
+        "matched_observations",
+        "distinct_matched_lexicon_entries",
+        "matched_token_occurrences",
+        "eligible_token_occurrences",
+        "lexical_token_coverage",
+        "token_weighted_mean_valence_0_1",
+        "token_weighted_mean_arousal_0_1",
+        "token_weighted_mean_dominance_0_1",
+        "type_weighted_mean_valence_0_1",
+        "type_weighted_mean_arousal_0_1",
+        "type_weighted_mean_dominance_0_1",
+        "token_weighted_mean_valence_original_scale",
+        "token_weighted_mean_arousal_original_scale",
+        "token_weighted_mean_dominance_original_scale",
+        "type_weighted_mean_valence_original_scale",
+        "type_weighted_mean_arousal_original_scale",
+        "type_weighted_mean_dominance_original_scale",
+        "published_phrase_observations",
+        "sparse_below_configured_minimum",
+        "original_scale",
+        "normalization_formula",
+    ]
+    rows = []
+    for row in vad_part_of_speech_views(workspace):
+        rows.append(
+            {
+                "lexicon_id": row.lexicon_id,
+                "lexicon": row.lexicon,
+                "analysis_view": row.analysis_view,
+                "source_pos_tags": row.tag,
+                "part_of_speech": row.category,
+                "matched_observations": row.matched_observations,
+                "distinct_matched_lexicon_entries": row.matched_types,
+                "matched_token_occurrences": row.matched_token_occurrences,
+                "eligible_token_occurrences": (
+                    row.eligible_token_occurrences
+                    if row.eligible_token_occurrences is not None
+                    else ""
+                ),
+                "lexical_token_coverage": (
+                    row.lexical_coverage
+                    if row.lexical_coverage is not None
+                    else ""
+                ),
+                "token_weighted_mean_valence_0_1": (
+                    row.token_weighted_valence
+                    if row.token_weighted_valence is not None
+                    else ""
+                ),
+                "token_weighted_mean_arousal_0_1": (
+                    row.token_weighted_arousal
+                    if row.token_weighted_arousal is not None
+                    else ""
+                ),
+                "token_weighted_mean_dominance_0_1": (
+                    row.token_weighted_dominance
+                    if row.token_weighted_dominance is not None
+                    else ""
+                ),
+                "type_weighted_mean_valence_0_1": (
+                    row.type_weighted_valence
+                    if row.type_weighted_valence is not None
+                    else ""
+                ),
+                "type_weighted_mean_arousal_0_1": (
+                    row.type_weighted_arousal
+                    if row.type_weighted_arousal is not None
+                    else ""
+                ),
+                "type_weighted_mean_dominance_0_1": (
+                    row.type_weighted_dominance
+                    if row.type_weighted_dominance is not None
+                    else ""
+                ),
+                "token_weighted_mean_valence_original_scale": (
+                    row.original_token_weighted_valence
+                    if row.original_token_weighted_valence is not None
+                    else ""
+                ),
+                "token_weighted_mean_arousal_original_scale": (
+                    row.original_token_weighted_arousal
+                    if row.original_token_weighted_arousal is not None
+                    else ""
+                ),
+                "token_weighted_mean_dominance_original_scale": (
+                    row.original_token_weighted_dominance
+                    if row.original_token_weighted_dominance is not None
+                    else ""
+                ),
+                "type_weighted_mean_valence_original_scale": (
+                    row.original_type_weighted_valence
+                    if row.original_type_weighted_valence is not None
+                    else ""
+                ),
+                "type_weighted_mean_arousal_original_scale": (
+                    row.original_type_weighted_arousal
+                    if row.original_type_weighted_arousal is not None
+                    else ""
+                ),
+                "type_weighted_mean_dominance_original_scale": (
+                    row.original_type_weighted_dominance
+                    if row.original_type_weighted_dominance is not None
+                    else ""
+                ),
+                "published_phrase_observations": row.phrase_observations,
+                "sparse_below_configured_minimum": row.is_sparse,
+                "original_scale": row.original_scale,
+                "normalization_formula": row.normalization_formula,
+            }
+        )
+    return _csv_bytes(fields, rows)
 
 
 def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
@@ -3215,6 +3576,12 @@ def csv_reading_guide() -> bytes:
             "important_caution": "Source and normalized scales are separate; unmatched tokens are absent.",
         },
         {
+            "file": "vad_by_part_of_speech.csv",
+            "what_it_answers": "How do matched normative VAD means vary across model-assigned broad part-of-speech groups?",
+            "start_with": "lexicon, analysis view, POS, coverage, then token- and type-weighted normalized means.",
+            "important_caution": "Sources and analysis views remain separate; missing matches are not neutral, and cross-POS phrases remain in a mixed-POS row.",
+        },
+        {
             "file": "phase2_emotion_associations.csv",
             "what_it_answers": "Which categorical associations occur?",
             "start_with": "proportion_of_lexical_tokens and top_contributing_terms.",
@@ -3319,6 +3686,11 @@ def _build_detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                     "poem_document.json",
                     export_poem_document_json(workspace.poem_document),
                 )
+            if vad_part_of_speech_views(workspace):
+                bundle.writestr(
+                    "vad_by_part_of_speech.csv",
+                    vad_part_of_speech_csv(workspace),
+                )
             bundle.writestr("scholar_summary.csv", scholar_summary_csv(workspace))
             bundle.writestr("csv_reading_guide.csv", csv_reading_guide())
             bundle.writestr(
@@ -3328,6 +3700,11 @@ def _build_detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
                 "poem_document.json preserves the exact text, poetic structure, "
                 "shared processing configuration, model annotations, coverage, "
                 "and warnings used by every selected lexicon.\n"
+                "When VAD evidence is present, vad_by_part_of_speech.csv reports "
+                "source- and view-specific token-weighted and type-weighted "
+                "means, model-assigned broad POS groups, coverage, original-scale "
+                "means, normalization provenance, and a separate mixed-POS "
+                "phrase row where needed.\n"
                 "When present, the concreteness files report normative lexical "
                 "concreteness, line/stanza and part-of-speech summaries, term "
                 "rankings, token matching, resource provenance, and configuration.\n"

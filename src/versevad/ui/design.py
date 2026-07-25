@@ -268,6 +268,35 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
     p, label, [data-testid="stCaptionContainer"] {{
       color: var(--color-text-secondary);
     }}
+    [data-testid="stTextAreaRootElement"],
+    [data-testid="stTextInputRootElement"] {{
+      background: var(--color-surface) !important;
+      border-color: var(--color-border) !important;
+    }}
+    [data-testid="stTextAreaRootElement"] textarea,
+    [data-testid="stTextInputRootElement"] input {{
+      caret-color: var(--color-accent);
+      color: var(--color-text-primary) !important;
+      -webkit-text-fill-color: var(--color-text-primary) !important;
+    }}
+    [data-testid="stTextAreaRootElement"] textarea::placeholder,
+    [data-testid="stTextInputRootElement"] input::placeholder {{
+      color: var(--color-text-secondary) !important;
+      opacity: 1;
+    }}
+    [data-testid="stBaseButton-primary"] {{
+      background: var(--color-accent-strong) !important;
+      border-color: var(--color-accent-strong) !important;
+      color: var(--color-text-inverse) !important;
+    }}
+    [data-testid="stBaseButton-primary"] p,
+    [data-testid="stBaseButton-primary"] span {{
+      color: inherit !important;
+    }}
+    [data-testid="stBaseButton-primary"]:hover {{
+      background: var(--color-accent) !important;
+      border-color: var(--color-accent) !important;
+    }}
     a {{
       color: var(--color-accent);
     }}
@@ -486,6 +515,7 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
     st.session_state.setdefault("appearance_mode", preferences.appearance.value)
     st.session_state.setdefault("analysis_cache_enabled", True)
     st.session_state.setdefault("performance_diagnostics_enabled", True)
+    st.session_state.setdefault("workspace_page", WORKSPACES[0])
     legacy_workspace = {
         "One Poem": "Single Poem",
         "Projects & Corpus": "Project / Corpus",
@@ -618,7 +648,6 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
         workspace = st.segmented_control(
             "Workspace",
             options=WORKSPACES,
-            default=WORKSPACES[0],
             selection_mode="single",
             key="workspace_page",
         )

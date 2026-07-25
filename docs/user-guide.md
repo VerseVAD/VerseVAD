@@ -165,6 +165,24 @@ It also combines main-verb (`VERB`) and auxiliary/copular (`AUX`) tags into
 **Verb**. Thus `was` is counted as a verb even when the model uses `AUX` for
 its grammatical role.
 
+When at least one VAD lexicon is selected, **VAD Means by Part of Speech**
+appears beneath the count/share profile. Each lexicon and the all-matched and
+stopword-excluded views remain separate. For every broad POS group it reports
+matched observations, distinct matched lexicon entries, covered and eligible
+token occurrences, lexical-token coverage, and normalized 0-1 means for
+valence, arousal, and dominance under two weighting rules:
+
+- token-weighted means count every included matched occurrence, so repetition
+  contributes repeatedly;
+- type-weighted means count each distinct matched lexicon entry once within
+  that lexicon, analysis view, and POS group.
+
+Unmatched tokens do not receive neutral values. An accepted multiword lexicon
+entry contributes one observation. If its lexical tokens cross broad POS
+groups, VerseVAD retains it under **Mixed-POS Phrase** rather than assigning
+the score to one grammatical category; that row therefore has no token-
+coverage denominator. Sparse groups remain visible and are labeled.
+
 ### Normative lexical concreteness
 
 Under **Choose Evidence**, enable **Normative lexical concreteness** to analyze
@@ -473,6 +491,9 @@ files plus:
   decisions with source values and provenance;
 - `phase2_coverage.csv` — eligible, matched, and unmatched counts and rates;
 - `phase2_vad_summary.csv` — source-scale and derived VAD statistics;
+- `vad_by_part_of_speech.csv` — source- and view-specific broad-POS coverage,
+  token-weighted and type-weighted VAD means on both normalized and original
+  scales, phrase counts, sparsity, and normalization provenance;
 - `phase2_emotion_associations.csv` — category counts, rates, denominators, and
   contributors;
 - `phase2_emotion_intensity.csv` — prevalence and matched-pair intensity

@@ -47,6 +47,31 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     assert not app.tabs
 
 
+def test_interface_state_migration_and_preset_emit_no_widget_default_warning(
+    caplog,
+) -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+
+    app.session_state["workspace_page"] = "One Poem"
+    caplog.clear()
+    app.run(timeout=30)
+    navigation = app.get("button_group")[0]
+    assert navigation.value == "Single Poem"
+    assert "created with a default value" not in caplog.text
+
+    preset = next(
+        field for field in app.selectbox if field.label == "Module preset"
+    )
+    preset.set_value("Essential")
+    app.run(timeout=30)
+    caplog.clear()
+    _button(app, "Apply preset").click()
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert "created with a default value" not in caplog.text
+
+
 def test_interface_warns_and_filters_when_research_resources_are_absent(
     tmp_path,
     monkeypatch,
@@ -267,6 +292,10 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         for heading in app.subheader
     )
     assert any("Part-of-Speech Profile" in heading.value for heading in app.subheader)
+    assert any(
+        "VAD Means by Part of Speech" in heading.value
+        for heading in app.subheader
+    )
     assert any(
         "Shared Processing Record" in heading.value for heading in app.subheader
     )

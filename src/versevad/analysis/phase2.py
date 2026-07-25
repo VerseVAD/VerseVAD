@@ -519,12 +519,12 @@ def _coverage(
     )
 
 
-def _stopword_coverage(
+def stopword_eligible_token_ids(
     tokens: tuple[TokenRecord, ...],
     matches: tuple[AffectMatchRecord, ...],
     policy: StopwordPolicy,
-) -> StopwordCoverageStatistics:
-    """Calculate content-focused coverage without penalizing intentional removals."""
+) -> frozenset[str]:
+    """Return the exact token denominator for the recorded secondary view."""
 
     lexical = tuple(token for token in tokens if token.is_lexical)
     lexical_by_id = {token.token_id: token for token in lexical}
@@ -556,6 +556,19 @@ def _stopword_coverage(
         if token_id in lexical_by_id
     }
     eligible_ids.difference_update(review_excluded_ids)
+    return frozenset(eligible_ids)
+
+
+def _stopword_coverage(
+    tokens: tuple[TokenRecord, ...],
+    matches: tuple[AffectMatchRecord, ...],
+    policy: StopwordPolicy,
+) -> StopwordCoverageStatistics:
+    """Calculate content-focused coverage without penalizing intentional removals."""
+
+    lexical = tuple(token for token in tokens if token.is_lexical)
+    lexical_by_id = {token.token_id: token for token in lexical}
+    eligible_ids = stopword_eligible_token_ids(tokens, matches, policy)
     filtered_matches = tuple(
         match for match in matches if match.included_in_stopword_view
     )

@@ -464,3 +464,24 @@ Use:
 for repeatable medians, or add `--memory` for traced peak memory. See
 [`stage14-performance-report.md`](stage14-performance-report.md) and
 [`poetic-fingerprint-stage14-validation.md`](poetic-fingerprint-stage14-validation.md).
+
+## Pre-release startup, theme, and VAD/POS repair
+
+The repair suite adds regression coverage for lightweight checksum-only
+startup readiness, single-owner Streamlit widget state, stable semantic
+selectors, Light/Dark contrast, and the source/view-specific VAD-by-POS table.
+The hand-calculated POS fixture repeats one adjective so its token-weighted
+and type-weighted normalized VAD means differ, preserves an unmatched POS
+group with missing means, and retains a cross-POS published phrase in an
+explicit mixed group. The audit ZIP test verifies
+`vad_by_part_of_speech.csv`.
+
+The completed suite passed `289 passed` on 2026-07-24. All eleven direct
+synthetic validation modules and all twelve local diagnostics passed.
+Checksum readiness for all eleven installed resources took 0.0434 seconds in
+the final focused measurement without parsing the complete workbooks or
+dictionary. Rendered browser checks measured Light text-entry/primary-button
+contrast at approximately 15.6:1/11.8:1 and Dark contrast at
+14.4:1/9.3:1. At a 390 by 844 viewport the completed Structure report,
+responsive navigation, and VAD-by-POS audit table produced no page-level
+horizontal overflow.

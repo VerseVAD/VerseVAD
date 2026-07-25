@@ -53,6 +53,13 @@ named/versioned review scenarios, append-only decisions, occurrence evidence,
 baseline-versus-reviewed batch comparison, a separate sentiment presentation,
 and lexicon-independent part-of-speech profiles.
 
+The one-text application layer can derive a separate VAD-by-broad-POS view
+from immutable completed `Phase2AnalysisResult` records. It neither reloads a
+lexicon nor rematches text. The derivation preserves lexicon and stopword-view
+boundaries, reuses the analysis engine's exact stopword-eligible token IDs,
+and calculates both occurrence-sensitive and distinct-entry means. Its
+dedicated CSV is assembled with the other detailed audit artifacts.
+
 The Poetic Fingerprint expansion Stage 0 adds a framework-independent common
 module contract under `versevad.core` and a read-only local resource manager.
 It is additive: the validated VAD engine and schema version 3 remain unchanged.

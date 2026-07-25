@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import pytest
 
+import versevad.application as application_services
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.application import (
     AnalysisRequest,
@@ -29,6 +30,8 @@ from versevad.application import (
     scholar_summary_csv,
     sentiment_association_views,
     unmatched_views,
+    vad_part_of_speech_csv,
+    vad_part_of_speech_views,
     vad_views,
 )
 from versevad.models import PhrasePolicy
@@ -94,6 +97,37 @@ def test_resource_readiness_reports_all_public_installation_contracts(
     assert set(status.resource_id for status in readiness.all_statuses) == set(
         RESOURCE_DOWNLOAD_PAGES
     )
+
+
+def test_resource_readiness_does_not_eagerly_parse_installed_datasets(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    def reject_deep_validation(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError(
+            "Startup readiness must not parse a complete research dataset."
+        )
+
+    for module_type in (
+        application_services.ConcretenessModule,
+        application_services.FrequencyModule,
+        application_services.AoAModule,
+        application_services.PronunciationModule,
+    ):
+        monkeypatch.setattr(
+            module_type,
+            "validate_resources",
+            reject_deep_validation,
+        )
+
+    readiness = application_services.installed_resource_readiness(
+        source_root=tmp_path / "source_lexicons",
+        resource_root=tmp_path / "resources",
+    )
+
+    assert len(readiness.all_statuses) == 11
+    assert len(readiness.unavailable) == 11
 
 
 def test_text_file_import_preserves_unicode_and_line_endings() -> None:
@@ -323,6 +357,159 @@ def test_part_of_speech_profile_merges_main_and_auxiliary_verbs(
     }
 
 
+def test_vad_part_of_speech_profile_reports_token_and_type_weighted_means(
+    preprocessor,
+) -> None:
+    document = create_text_document(
+        "vad-pos-weighting",
+        "VAD POS weighting",
+        "dark dark bright night.",
+    )
+    poem_document = preprocessor.process_document(document)
+    result = analyze_lexicon(
+        document,
+        phase2_synthetic_vad_lexicon(),
+        PreparedPoemPreprocessor(poem_document),
+    )
+    pos_by_form = {"dark": "ADJ", "bright": "ADJ", "night": "NOUN"}
+    tokens = tuple(
+        replace(
+            token,
+            part_of_speech=pos_by_form.get(
+                token.normalized_form,
+                token.part_of_speech,
+            ),
+        )
+        for token in result.tokens
+    )
+    result = replace(result, tokens=tokens)
+    poem_document = replace(poem_document, tokens=tokens)
+    request = AnalysisRequest(
+        project_name="Test workspace",
+        title=document.title,
+        original_text=document.original_text,
+        lexicon_ids=(result.lexicon_metadata.lexicon_id,),
+    )
+    workspace = WorkspaceAnalysis(
+        request,
+        document,
+        (result,),
+        compare_lexicons((result,)),
+        poem_document,
+    )
+
+    rows = vad_part_of_speech_views(workspace)
+    adjective = next(
+        row
+        for row in rows
+        if row.analysis_view == "All matched tokens" and row.tag == "ADJ"
+    )
+    assert adjective.matched_observations == 3
+    assert adjective.matched_types == 2
+    assert adjective.matched_token_occurrences == 3
+    assert adjective.eligible_token_occurrences == 3
+    assert adjective.lexical_coverage == 1.0
+    assert adjective.token_weighted_valence == pytest.approx(
+        (0.25 + 0.25 + 0.875) / 3
+    )
+    assert adjective.type_weighted_valence == pytest.approx(
+        (0.25 + 0.875) / 2
+    )
+    assert adjective.token_weighted_arousal == pytest.approx(
+        (0.625 + 0.625 + 0.5) / 3
+    )
+    assert adjective.type_weighted_arousal == pytest.approx(
+        (0.625 + 0.5) / 2
+    )
+    assert adjective.token_weighted_dominance == pytest.approx(
+        (0.375 + 0.375 + 0.75) / 3
+    )
+    assert adjective.type_weighted_dominance == pytest.approx(
+        (0.375 + 0.75) / 2
+    )
+
+    exported = _csv_rows(vad_part_of_speech_csv(workspace))
+    exported_adjective = next(
+        row
+        for row in exported
+        if row["analysis_view"] == "All matched tokens"
+        and row["source_pos_tags"] == "ADJ"
+    )
+    assert float(exported_adjective["token_weighted_mean_valence_0_1"]) == (
+        pytest.approx(adjective.token_weighted_valence)
+    )
+    assert float(exported_adjective["type_weighted_mean_valence_0_1"]) == (
+        pytest.approx(adjective.type_weighted_valence)
+    )
+
+
+def test_vad_part_of_speech_profile_keeps_cross_pos_phrases_separate(
+    preprocessor,
+) -> None:
+    document = create_text_document(
+        "vad-pos-phrase",
+        "VAD POS phrase",
+        "dark night.",
+    )
+    poem_document = preprocessor.process_document(document)
+    result = analyze_lexicon(
+        document,
+        phase2_synthetic_vad_lexicon(),
+        PreparedPoemPreprocessor(poem_document),
+    )
+    tokens = tuple(
+        replace(
+            token,
+            part_of_speech=(
+                "ADJ"
+                if token.normalized_form == "dark"
+                else "NOUN"
+                if token.normalized_form == "night"
+                else token.part_of_speech
+            ),
+        )
+        for token in result.tokens
+    )
+    result = replace(result, tokens=tokens)
+    poem_document = replace(poem_document, tokens=tokens)
+    request = AnalysisRequest(
+        project_name="Test workspace",
+        title=document.title,
+        original_text=document.original_text,
+        lexicon_ids=(result.lexicon_metadata.lexicon_id,),
+    )
+    workspace = WorkspaceAnalysis(
+        request,
+        document,
+        (result,),
+        compare_lexicons((result,)),
+        poem_document,
+    )
+
+    mixed = next(
+        row
+        for row in vad_part_of_speech_views(workspace)
+        if row.analysis_view == "All matched tokens" and row.tag == "MIXED"
+    )
+    assert mixed.category == "Mixed-POS Phrase"
+    assert mixed.matched_observations == 1
+    assert mixed.matched_types == 1
+    assert mixed.matched_token_occurrences == 2
+    assert mixed.eligible_token_occurrences is None
+    assert mixed.lexical_coverage is None
+    assert mixed.phrase_observations == 1
+    assert mixed.token_weighted_valence == pytest.approx(0.125)
+    assert mixed.type_weighted_valence == pytest.approx(0.125)
+    unmatched_adjective = next(
+        row
+        for row in vad_part_of_speech_views(workspace)
+        if row.analysis_view == "All matched tokens" and row.tag == "ADJ"
+    )
+    assert unmatched_adjective.matched_observations == 0
+    assert unmatched_adjective.token_weighted_valence is None
+    assert unmatched_adjective.type_weighted_valence is None
+
+
 def test_match_and_unmatched_views_are_plain_language_drilldowns(synthetic_workspace) -> None:
     matches = match_views(synthetic_workspace)
     phrase = next(row for row in matches if row.surface == "dark night" and row.status == "included")
@@ -357,6 +544,7 @@ def test_scholar_summary_and_guide_are_excel_friendly(synthetic_workspace) -> No
     guide_rows = _csv_rows(guide)
     assert guide_rows[0]["file"] == "scholar_summary.csv"
     assert any(row["file"] == "phase2_match_audit.csv" for row in guide_rows)
+    assert any(row["file"] == "vad_by_part_of_speech.csv" for row in guide_rows)
 
 
 def test_detailed_download_starts_with_friendly_files_and_retains_audit(
@@ -372,6 +560,7 @@ def test_detailed_download_starts_with_friendly_files_and_retains_audit(
         assert "phase2_manifest.csv" in names
         assert "phase2_results.json" in names
         assert "poem_document.json" in names
+        assert "vad_by_part_of_speech.csv" in names
         poem_document = json.loads(bundle.read("poem_document.json"))
         assert poem_document["source"]["original_text"] == "Fear joy dark night."
         assert poem_document["configuration"]["preserve_original_text"] is True

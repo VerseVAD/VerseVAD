@@ -616,6 +616,27 @@ rule than this broad display. They include exact tags `NOUN`, `VERB`, `ADJ`,
 and `ADV` only; `AUX` and `PROPN` are not automatically included. The two
 module settings are recorded separately. Always report which scope was used.
 
+## VAD by part of speech
+
+In one-text results, the Language Profile can add VAD evidence to the broad
+POS groups without changing the grammatical count/share denominator. Results
+remain separate for every VAD source and for the all-matched and stopword-
+excluded views.
+
+The **token-weighted POS mean** counts every included matched occurrence in
+the group. The **type-weighted POS mean** counts each distinct matched lexicon
+entry once within that source, view, and group. Repetition can therefore make
+the two means differ. Both are normative lexical VAD means, not measurements
+of the emotion of the grammatical category or poem.
+
+Only matched evidence enters either mean. Unmatched tokens remain missing,
+never 0 or neutral. An accepted published phrase contributes one observation.
+If its lexical components cross broad POS groups, VerseVAD reports it under
+**Mixed-POS Phrase** rather than assigning the rating to one category. That
+span-based row has no grammatical token-coverage denominator. Every ordinary
+POS row reports its matched and eligible token occurrences, coverage, and
+sparse-evidence status.
+
 # 7. Coverage and Unmatched Vocabulary
 
 **Coverage** asks how much eligible vocabulary was represented by the selected lexicon under the declared policy.

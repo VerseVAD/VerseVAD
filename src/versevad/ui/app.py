@@ -34,6 +34,7 @@ _application_was_reloaded = (
             "vad_sensitivity_views",
             "part_of_speech_views",
             "detailed_part_of_speech_views",
+            "vad_part_of_speech_views",
             "RESOURCE_ROOT",
             "FrequencyConfiguration",
             "AoAConfiguration",
@@ -133,6 +134,7 @@ from versevad.application import (
     vad_contributor_views,
     vad_cumulative_views,
     vad_interpretation_views,
+    vad_part_of_speech_views,
     vad_sensitivity_views,
     vad_views,
 )
@@ -517,6 +519,43 @@ if workspace_page in {"Single Poem", "Other Text"}:
         aoa_status = resource_readiness.aoa
         pronunciation_statuses = resource_readiness.pronunciation
         pronunciation_available = resource_readiness.pronunciation_available
+        unavailable_modules = {
+            "include_concreteness": not concreteness_status.available,
+            "include_frequency": not frequency_status.available,
+            "include_aoa": not aoa_status.available,
+            "include_pronunciation": not pronunciation_available,
+            "include_meter": not pronunciation_available,
+            "include_phonology": not pronunciation_available,
+        }
+        for module_key in (
+            "include_concreteness",
+            "include_frequency",
+            "include_aoa",
+            "include_pronunciation",
+            "include_meter",
+            "include_phonology",
+            "include_lexical_style",
+            "include_poetry_id",
+        ):
+            if unavailable_modules.get(module_key, False):
+                st.session_state[module_key] = False
+            else:
+                st.session_state.setdefault(module_key, False)
+        if "selected_lexicons" not in st.session_state:
+            st.session_state["selected_lexicons"] = list(spec_by_id)
+        else:
+            selected_available_lexicons = [
+                lexicon_id
+                for lexicon_id in st.session_state["selected_lexicons"]
+                if lexicon_id in spec_by_id
+            ]
+            if (
+                selected_available_lexicons
+                != st.session_state["selected_lexicons"]
+            ):
+                st.session_state["selected_lexicons"] = (
+                    selected_available_lexicons
+                )
 
         preset_choice, preset_action = st.columns([3, 1], vertical_alignment="bottom")
         with preset_choice:
@@ -544,14 +583,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
             if not preset_state:
                 st.info("Custom keeps the current manual selections unchanged.")
-            unavailable_modules = {
-                "include_concreteness": not concreteness_status.available,
-                "include_frequency": not frequency_status.available,
-                "include_aoa": not aoa_status.available,
-                "include_pronunciation": not pronunciation_available,
-                "include_meter": not pronunciation_available,
-                "include_phonology": not pronunciation_available,
-            }
             for key, value in preset_state.items():
                 st.session_state[key] = (
                     False if unavailable_modules.get(key, False) else value
@@ -564,16 +595,9 @@ if workspace_page in {"Single Poem", "Other Text"}:
             "Affective sources stay separate. Repeated words contribute according "
             "to each module's visible weighting and view."
         )
-        if "selected_lexicons" in st.session_state:
-            st.session_state["selected_lexicons"] = [
-                lexicon_id
-                for lexicon_id in st.session_state["selected_lexicons"]
-                if lexicon_id in spec_by_id
-            ]
         selected_lexicons = st.multiselect(
             "Lexicons",
             options=list(spec_by_id),
-            default=list(spec_by_id),
             format_func=lambda lexicon_id: spec_by_id[lexicon_id].display_name,
             help="Each source is analyzed independently. VerseVAD never creates a default consensus score.",
             key="selected_lexicons",
@@ -593,7 +617,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
         st.markdown("#### Lexical Character")
         include_concreteness = st.checkbox(
             "Concreteness profile (Brysbaert et al. ratings)",
-            value=False,
             disabled=not concreteness_status.available,
             key="include_concreteness",
             help=(
@@ -611,7 +634,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
         include_frequency = st.checkbox(
             "Frequency & rarity profile (SUBTLEX-US Zipf)",
-            value=False,
             disabled=not frequency_status.available,
             key="include_frequency",
             help=(
@@ -630,7 +652,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
         include_aoa = st.checkbox(
             "Age of Acquisition profile (Kuperman et al. ratings)",
-            value=False,
             disabled=not aoa_status.available,
             key="include_aoa",
             help=(
@@ -650,7 +671,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
         st.markdown("#### Structural and Lexical Measures")
         include_lexical_style = st.checkbox(
             "Lexical diversity, word length & structural word counts",
-            value=False,
             key="include_lexical_style",
             help=(
                 "Reports normalized observed surface-form diversity, "
@@ -673,9 +693,10 @@ if workspace_page in {"Single Poem", "Other Text"}:
             for lexicon_id in selected_lexicons
             if lexicon_id in SUPPORTED_VAD_LEXICON_IDS
         ]
+        if not available_poetry_id_sources:
+            st.session_state["include_poetry_id"] = False
         include_poetry_id = st.checkbox(
             "PoetryID lexical-affective profile",
-            value=False,
             disabled=not available_poetry_id_sources,
             key="include_poetry_id",
             help=(
@@ -745,7 +766,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
         include_pronunciation = st.checkbox(
             "Pronunciation & prosody foundation (CMUdict)",
-            value=False,
             disabled=not pronunciation_available,
             key="include_pronunciation",
             help=(
@@ -767,7 +787,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
         include_meter = st.checkbox(
             "Meter & rhythmic regularity",
-            value=False,
             disabled=not pronunciation_available,
             key="include_meter",
             help=(
@@ -785,7 +804,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
         include_phonology = st.checkbox(
             "Rhyme & phonological patterns",
-            value=False,
             disabled=not pronunciation_available,
             key="include_phonology",
             help=(
@@ -2429,6 +2447,100 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 hide_index=True,
                 width="stretch",
             )
+            vad_pos_rows = vad_part_of_speech_views(workspace)
+            if vad_pos_rows:
+                st.subheader("VAD Means by Part of Speech")
+                st.write(
+                    "These source-separated rows add matched normative VAD "
+                    "evidence to the grammatical profile. Token-weighted means "
+                    "count every included match occurrence; type-weighted means "
+                    "count each distinct matched lexicon entry once within its "
+                    "lexicon, analysis view, and part-of-speech group."
+                )
+                vad_pos_frame = _frame(
+                    vad_pos_rows,
+                    {
+                        "lexicon": "Lexicon",
+                        "analysis_view": "Analysis view",
+                        "tag": "Source POS tag(s)",
+                        "category": "Part of speech",
+                        "matched_observations": "Matched observations",
+                        "matched_types": "Distinct matched types",
+                        "matched_token_occurrences": "Covered token occurrences",
+                        "eligible_token_occurrences": "Eligible token occurrences",
+                        "lexical_coverage": "Lexical-token coverage",
+                        "token_weighted_valence": "Token-weighted valence",
+                        "token_weighted_arousal": "Token-weighted arousal",
+                        "token_weighted_dominance": "Token-weighted dominance",
+                        "type_weighted_valence": "Type-weighted valence",
+                        "type_weighted_arousal": "Type-weighted arousal",
+                        "type_weighted_dominance": "Type-weighted dominance",
+                        "phrase_observations": "Published phrase observations",
+                        "is_sparse": "Sparse",
+                    },
+                )[
+                    [
+                        "Lexicon",
+                        "Analysis view",
+                        "Part of speech",
+                        "Source POS tag(s)",
+                        "Matched observations",
+                        "Distinct matched types",
+                        "Covered token occurrences",
+                        "Eligible token occurrences",
+                        "Lexical-token coverage",
+                        "Token-weighted valence",
+                        "Token-weighted arousal",
+                        "Token-weighted dominance",
+                        "Type-weighted valence",
+                        "Type-weighted arousal",
+                        "Type-weighted dominance",
+                        "Published phrase observations",
+                        "Sparse",
+                    ]
+                ]
+                mean_columns = {
+                    "Token-weighted valence",
+                    "Token-weighted arousal",
+                    "Token-weighted dominance",
+                    "Type-weighted valence",
+                    "Type-weighted arousal",
+                    "Type-weighted dominance",
+                }
+                st.dataframe(
+                    vad_pos_frame.style.format(
+                        {
+                            "Lexical-token coverage": (
+                                lambda value: (
+                                    "not available"
+                                    if pd.isna(value)
+                                    else _percentage(float(value))
+                                )
+                            ),
+                            **{
+                                column: (
+                                    lambda value: (
+                                        "not available"
+                                        if pd.isna(value)
+                                        else _decimal(float(value))
+                                    )
+                                )
+                                for column in mean_columns
+                            },
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+                st.caption(
+                    "Means use each lexicon's independently normalized 0-1 "
+                    "ratings. Unmatched evidence remains missing, never neutral. "
+                    "An accepted multiword entry contributes one observation; "
+                    "phrases spanning more than one broad POS stay in the "
+                    "Mixed-POS Phrase row, whose token-coverage denominator is "
+                    "not defined. Sparse marks fewer matches than the configured "
+                    "minimum."
+                )
             st.subheader("Detailed Model-Tag Breakdown")
             st.write(
                 "This second table preserves the installed model's Universal "
