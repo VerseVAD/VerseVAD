@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import pyarrow as pa
+
 from versevad.adapters.cmudict import CMUDictEntry, CMUPronunciation
 from versevad.adapters.concreteness import ConcretenessEntry
 from versevad.adapters.kuperman_aoa import KupermanAoAEntry
 from versevad.adapters.subtlex_us import SubtlexUsEntry
 from versevad.explorer import (
+    LexiconExplorerResult,
+    SupplementaryEvidenceValue,
+    SupplementaryExplorerEntry,
     SupplementaryExplorerResource,
     explore_loaded_lexicons,
 )
+from versevad.ui.explorer import _supplementary_evidence_frame
 
 
 class _Lookup:
@@ -180,3 +186,61 @@ def test_explorer_keeps_unmatched_and_unavailable_resources_explicit(
     assert by_resource["missing"].status == "resource_unavailable"
     assert by_resource["no-entry"].status == "unmatched"
     assert all(row.values == () for row in result.supplementary_entries)
+
+
+def test_supplementary_display_values_are_arrow_safe_text() -> None:
+    result = LexiconExplorerResult(
+        query="bright",
+        normalized_query="bright",
+        processing_lemma="bright",
+        processing_pos="ADJ",
+        entries=(),
+        supplementary_entries=(
+            SupplementaryExplorerEntry(
+                resource_id="frequency-resource",
+                resource="SUBTLEX-US",
+                construct="frequency",
+                status="matched",
+                status_message="Available locally.",
+                matched_term="bright",
+                match_method="exact entry",
+                variant_label="",
+                source_rows=(2,),
+                values=(
+                    SupplementaryEvidenceValue(
+                        field="Zipf value",
+                        value=4.25,
+                        unit="SUBTLEX-US Zipf",
+                    ),
+                    SupplementaryEvidenceValue(
+                        field="Dominant source POS",
+                        value="Adjective",
+                    ),
+                    SupplementaryEvidenceValue(
+                        field="Multiword source entry",
+                        value=False,
+                    ),
+                    SupplementaryEvidenceValue(
+                        field="Unavailable field",
+                        value=None,
+                    ),
+                ),
+                source_file="SUBTLEXus74286wordstextversion.txt",
+                source_sha256="a" * 64,
+                source_hashes=(),
+                version="synthetic-v1",
+                adapter_version="1.0.0",
+                citation="Synthetic test source.",
+            ),
+        ),
+        component_averages=(),
+        comparisons=(),
+        suggestions=(),
+        notices=(),
+    )
+
+    frame = _supplementary_evidence_frame(result)
+
+    assert frame["Value"].tolist() == ["4.25", "Adjective", "False", "—"]
+    assert all(isinstance(value, str) for value in frame["Value"])
+    pa.Table.from_pandas(frame)

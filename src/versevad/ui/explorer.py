@@ -7,6 +7,7 @@ import streamlit as st
 
 from versevad.explorer import LexiconExplorerResult, explore_lexicons
 from versevad.preprocessing import TextPreprocessor
+from versevad.ui.dataframes import heterogeneous_display_value
 from versevad.ui.design import render_empty_state, render_workspace_header
 
 
@@ -286,6 +287,29 @@ def _render_components(result: LexiconExplorerResult) -> None:
     )
 
 
+def _supplementary_evidence_frame(
+    result: LexiconExplorerResult,
+) -> pd.DataFrame:
+    rows = [
+        {
+            "Resource": entry.resource,
+            "Variant": entry.variant_label or "—",
+            "Field": value.field,
+            "Value": heterogeneous_display_value(value.value),
+            "Unit": value.unit or "—",
+            "Note": value.note or "—",
+        }
+        for entry in result.supplementary_entries
+        for value in entry.values
+    ]
+    frame = pd.DataFrame(
+        rows,
+        columns=("Resource", "Variant", "Field", "Value", "Unit", "Note"),
+    )
+    frame["Value"] = frame["Value"].astype("string")
+    return frame
+
+
 def _render_supplementary(result: LexiconExplorerResult) -> None:
     if not result.supplementary_entries:
         return
@@ -313,22 +337,10 @@ def _render_supplementary(result: LexiconExplorerResult) -> None:
         width="stretch",
     )
 
-    evidence_rows = []
-    for entry in result.supplementary_entries:
-        for value in entry.values:
-            evidence_rows.append(
-                {
-                    "Resource": entry.resource,
-                    "Variant": entry.variant_label or "—",
-                    "Field": value.field,
-                    "Value": "—" if value.value is None else value.value,
-                    "Unit": value.unit or "—",
-                    "Note": value.note or "—",
-                }
-            )
-    if evidence_rows:
+    evidence_frame = _supplementary_evidence_frame(result)
+    if not evidence_frame.empty:
         st.dataframe(
-            pd.DataFrame(evidence_rows),
+            evidence_frame,
             hide_index=True,
             width="stretch",
         )

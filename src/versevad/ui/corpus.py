@@ -48,13 +48,14 @@ from versevad.poetry_id import (
     ThresholdProfile,
     VadLevel,
 )
-from versevad.ui.stopwords import render_stopword_settings
+from versevad.ui.dataframes import heterogeneous_display_value
 from versevad.ui.design import (
     MODULE_PRESETS,
     preset_widget_state,
     render_empty_state,
     render_workspace_header,
 )
+from versevad.ui.stopwords import render_stopword_settings
 
 
 def _safe_filename(value: str) -> str:
@@ -693,7 +694,7 @@ def _render_corpus_modules(
                     {
                         "Metric": row.metric_id,
                         "Method": row.aggregation_method,
-                        "Value": row.value,
+                        "Value": heterogeneous_display_value(row.value),
                         "Unit": row.unit,
                         "Works included": row.works_included,
                         "Works omitted": row.works_omitted,
@@ -728,11 +729,7 @@ def _render_corpus_modules(
                     "Scope": row.scope,
                     "Scope ID": row.scope_id or "—",
                     "Metric": row.metric_id,
-                    "Value": (
-                        json.dumps(row.value, ensure_ascii=False)
-                        if isinstance(row.value, (dict, list))
-                        else row.value
-                    ),
+                    "Value": heterogeneous_display_value(row.value),
                     "Unit": row.unit or "—",
                     "Weighting": row.weighting or "—",
                     "Denominator": row.denominator or "—",

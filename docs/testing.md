@@ -497,3 +497,27 @@ resource installation contract.
 The release suite passed `291 passed` on 2026-07-24. All eleven direct
 synthetic validation modules, all twelve diagnostics, and the 86-package
 offline lock check passed with the runtime reporting VerseVAD `1.0.0`.
+
+## Pre-release Arrow display repair
+
+The regression fixture builds one heterogeneous Lexicon Explorer evidence
+table containing a numeric Zipf value, textual SUBTLEX-US part-of-speech
+label, Boolean field, and missing field. It requires the presentation-only
+`Value` column to contain explicit strings and verifies direct conversion to a
+PyArrow table. The underlying Explorer result remains typed. Generic
+Project/Corpus module tables use the same display-only conversion because
+their metrics may also legitimately mix numbers, text, Booleans, and missing
+values.
+
+The end-to-end check opens Lexicon Explorer against the installed local
+resources, searches for `bright`, and verifies that the result renders eight
+dataframes with no application exception or Arrow conversion traceback.
+Ordinary headless Streamlit startup is checked separately so a use-time table
+warning cannot be mistaken for a launch warning.
+
+The completed automated suite passed `292 passed` on 2026-07-24, including the
+new direct PyArrow regression. The focused Explorer test passed `3 passed`, and
+the real installed-resource search completed normally. At the scholar's
+direction, the unrelated full-resource synthetic demonstration rerun was
+stopped rather than continuing to traverse every installed lexicon for this
+display-only repair.

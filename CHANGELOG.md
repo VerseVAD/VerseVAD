@@ -475,6 +475,10 @@ All notable VerseVAD changes will be recorded here.
 
 ### Fixed
 
+- Prevented Arrow serialization warnings when Lexicon Explorer or generic
+  Project/Corpus result tables display source fields that legitimately mix
+  numbers, text, booleans, and missing values. Only the presentation column is
+  rendered as text; typed analytical records and exports remain unchanged.
 - Removed Streamlit's default-plus-Session-State widget warnings by giving
   workspace, lexicon, module, preset, and corpus controls one state owner.
 - Repaired Dark text-entry foreground/caret/placeholder colors and primary

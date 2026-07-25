@@ -1002,6 +1002,25 @@ review required.
 - [x] Existing analyses, projects, exports, resource safeguards, and responsive
   layouts remain unchanged.
 
+## Pre-release repair - Arrow-safe heterogeneous result tables
+
+- [x] Reproduce the Lexicon Explorer Arrow warning with an installed
+  SUBTLEX-US result that combines numeric frequency evidence and a textual
+  source POS label.
+- [x] Convert only heterogeneous display-table values to explicit text while
+  retaining typed analytical records, calculations, persistence, and exports.
+- [x] Apply the same safeguard to generic Project/Corpus result tables that can
+  contain numeric, textual, Boolean, and missing module metrics.
+- [x] Add an Arrow-conversion regression fixture covering numeric, textual,
+  Boolean, and missing evidence.
+- [x] Confirm ordinary Streamlit startup and a real Explorer search complete
+  without the reported Arrow conversion traceback.
+- [x] Run the full automated suite, focused Arrow fixture, real installed
+  Explorer lookup, and clean startup check. At the scholar's direction, stop
+  the broader full-resource synthetic rerun because it is disproportionate to
+  this display-only repair.
+- [x] Create the source-control checkpoint.
+
 - [ ] Add anomaly candidates and structured close-reading prompts.
 - [ ] Add corpus trends, source-disagreement views, and optional descriptive
   change-over-sequence views.
