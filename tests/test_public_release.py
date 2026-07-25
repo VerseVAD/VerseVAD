@@ -35,9 +35,10 @@ def test_citation_metadata_names_release_and_author_without_placeholders() -> No
         'given-names: "Nicky"',
         'family-names: "Bennett"',
         'license: "GPL-3.0-only"',
+        'repository-code: "https://github.com/nickybennett/VerseVAD"',
+        'date-released: "2026-07-24"',
     ):
         assert required in citation
-    assert "repository-code:" not in citation
     assert "doi:" not in citation
     assert "TODO" not in citation
     assert "PLACEHOLDER" not in citation

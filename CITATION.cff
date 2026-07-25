@@ -10,6 +10,8 @@ authors:
   - given-names: "Nicky"
     family-names: "Bennett"
 version: "1.0.0"
+repository-code: "https://github.com/nickybennett/VerseVAD"
+date-released: "2026-07-24"
 license: "GPL-3.0-only"
 keywords:
   - "affective lexicons"

@@ -962,8 +962,8 @@ review required.
 
 - [x] Promote package, runtime, and offline-lock metadata to version `1.0.0`.
 - [x] Add root-level Citation File Format 1.2 metadata for Nicky Bennett.
-- [x] Keep repository URL, DOI, affiliation, and release date absent until
-  stable public details exist.
+- [x] Add the canonical GitHub repository URL and 2026-07-24 release date after
+  publication; keep DOI and affiliation absent until stable details exist.
 - [x] Run public-release metadata tests and the complete automated suite.
 - [x] Update release documentation and create the version checkpoint.
 

@@ -490,9 +490,10 @@ horizontal overflow.
 
 Public-release tests require the package metadata, runtime `__version__`,
 offline lock, and `CITATION.cff` to agree on `1.0.0`. They also verify the
-GPL-3.0-only license, Nicky Bennett authorship, absence of invented repository
-or DOI placeholders, public-package exclusions, and the complete local-
-resource installation contract.
+GPL-3.0-only license, Nicky Bennett authorship, exact canonical GitHub
+repository, exact 2026-07-24 release date, absence of an invented DOI
+placeholder, public-package exclusions, and the complete local-resource
+installation contract.
 
 The release suite passed `291 passed` on 2026-07-24. All eleven direct
 synthetic validation modules, all twelve diagnostics, and the 86-package
