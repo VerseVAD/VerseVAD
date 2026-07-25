@@ -437,6 +437,11 @@ calculation. `versevad.prosody.performance_meter` is a dependent interpretation
 layer over retained candidate alignments and the shared `ModuleInput`. It never
 tokenizes, reloads CMUdict, or edits lexical stress.
 
+After Stage 14 and the final pre-release repair pass, the package is promoted
+to the first public-release version, `1.0.0`. This release marker does not
+change analytical formulas, database schema, source identities, or existing
+result semantics.
+
 `versevad.performance` owns bounded thread-safe preprocessing, module-result,
 visualization-data, and export caches plus stable dependency fingerprints,
 entry validation, timing records, diagnostics, and explicit cache management.

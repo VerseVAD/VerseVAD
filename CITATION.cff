@@ -1,0 +1,20 @@
+cff-version: "1.2.0"
+message: "If you use VerseVAD in research, teaching, or publication, please cite the software using this metadata."
+type: software
+title: "VerseVAD"
+abstract: >-
+  VerseVAD is local, auditable research software for descriptive affective
+  lexicon, lexical-semantic, prosodic, phonological, and poetic-structure
+  analysis of poetry and other literary texts.
+authors:
+  - given-names: "Nicky"
+    family-names: "Bennett"
+version: "1.0.0"
+license: "GPL-3.0-only"
+keywords:
+  - "affective lexicons"
+  - "computational poetics"
+  - "digital humanities"
+  - "literary analysis"
+  - "poetry analysis"
+  - "valence arousal dominance"

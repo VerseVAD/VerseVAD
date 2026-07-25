@@ -958,6 +958,15 @@ review required.
 
 ## Cross-cutting later work - Scholarly diagnostics
 
+## Public release 1.0.0
+
+- [x] Promote package, runtime, and offline-lock metadata to version `1.0.0`.
+- [x] Add root-level Citation File Format 1.2 metadata for Nicky Bennett.
+- [x] Keep repository URL, DOI, affiliation, and release date absent until
+  stable public details exist.
+- [x] Run public-release metadata tests and the complete automated suite.
+- [x] Update release documentation and create the version checkpoint.
+
 ## Pre-release repair - startup, widget state, and theme contrast
 
 - [x] Separate fast checksum-aware startup readiness from first-use structural

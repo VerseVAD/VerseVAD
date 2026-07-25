@@ -485,3 +485,15 @@ contrast at approximately 15.6:1/11.8:1 and Dark contrast at
 14.4:1/9.3:1. At a 390 by 844 viewport the completed Structure report,
 responsive navigation, and VAD-by-POS audit table produced no page-level
 horizontal overflow.
+
+## Version 1.0.0 release metadata
+
+Public-release tests require the package metadata, runtime `__version__`,
+offline lock, and `CITATION.cff` to agree on `1.0.0`. They also verify the
+GPL-3.0-only license, Nicky Bennett authorship, absence of invented repository
+or DOI placeholders, public-package exclusions, and the complete local-
+resource installation contract.
+
+The release suite passed `291 passed` on 2026-07-24. All eleven direct
+synthetic validation modules, all twelve diagnostics, and the 86-package
+offline lock check passed with the runtime reporting VerseVAD `1.0.0`.

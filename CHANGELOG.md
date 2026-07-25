@@ -1,12 +1,15 @@
 # Changelog
 
-All notable VerseVAD changes will be recorded here. The project has not yet
-made a public release.
+All notable VerseVAD changes will be recorded here.
 
-## Unreleased
+## 1.0.0
 
 ### Added
 
+- First public-release version of VerseVAD.
+- Root-level `CITATION.cff` metadata naming Nicky Bennett as the software
+  author. Repository and DOI fields remain intentionally absent until stable
+  public identifiers exist.
 - Source- and analysis-view-specific normalized VAD means inside the one-text
   Part-of-Speech Profile, with token-weighted and type-weighted valence,
   arousal, and dominance shown together; group-level coverage, sparse evidence,

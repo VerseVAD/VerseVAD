@@ -1,10 +1,46 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
+
+
+def test_public_release_version_is_consistent() -> None:
+    metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    package_source = (ROOT / "src" / "versevad" / "__init__.py").read_text(
+        encoding="utf-8"
+    )
+    lock = (ROOT / "uv.lock").read_text(encoding="utf-8")
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+
+    assert metadata["project"]["version"] == "1.0.0"
+    assert re.search(r'^__version__ = "1\.0\.0"$', package_source, re.MULTILINE)
+    assert re.search(
+        r'\[\[package\]\]\s+name = "versevad"\s+version = "1\.0\.0"',
+        lock,
+    )
+    assert re.search(r'^version: "1\.0\.0"$', citation, re.MULTILINE)
+
+
+def test_citation_metadata_names_release_and_author_without_placeholders() -> None:
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+
+    for required in (
+        'cff-version: "1.2.0"',
+        "type: software",
+        'title: "VerseVAD"',
+        'given-names: "Nicky"',
+        'family-names: "Bennett"',
+        'license: "GPL-3.0-only"',
+    ):
+        assert required in citation
+    assert "repository-code:" not in citation
+    assert "doi:" not in citation
+    assert "TODO" not in citation
+    assert "PLACEHOLDER" not in citation
 
 
 def test_public_release_declares_canonical_gpl3_only() -> None:

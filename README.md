@@ -10,6 +10,11 @@ intended, or what a reader experiences.
 
 ## Current status
 
+**VerseVAD 1.0.0 is the first public-release version.** The repository includes
+GPL-3.0-only licensing and root-level citation metadata for scholarly reuse.
+Research lexicons and private texts remain local and excluded from source
+control.
+
 **Phase 5: the local one-poem, corpus, review, and Lexicon Explorer workspaces
 are complete.** The one-poem path now explains VAD, shows token/type weighting,
 top contributors, and cumulative normative lexical loads. Persistent projects
