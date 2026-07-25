@@ -83,5 +83,5 @@ def test_poetry_id_corpus_reuses_modules_and_keeps_compatible_distributions(
             name for name in bundle.namelist() if name.startswith("poetry_id_")
         }
         assert "poetry_id_summary.csv" in names
-        assert "poetry_id_report.txt" in names
+        assert "poetry_id_report.docx" in names
         assert not any(name.endswith(".json") for name in names)

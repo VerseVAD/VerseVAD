@@ -1,8 +1,4 @@
-"""CSV chart-data and plain-text exports for PoetryID results.
-
-PoetryID deliberately has no JSON export. Its bundle uses the same downloadable
-CSV and human-readable text conventions as VerseVAD's other workspaces.
-"""
+"""CSV chart data and narrative Word exports for PoetryID results."""
 
 from __future__ import annotations
 
@@ -10,6 +6,8 @@ import csv
 import io
 from typing import Iterable
 
+from versevad.exports.docx_report import REPORT_PROFILES, build_narrative_report
+from versevad.exports.module_manifest import export_module_manifest_csv
 from versevad.poetry_id import ARCHETYPES, PoetryIDAnalysisResult
 
 
@@ -459,68 +457,14 @@ def export_poetry_id_vad_scales_csv(
     return _csv_bytes(fields, rows)
 
 
-def export_poetry_id_report_txt(result: PoetryIDAnalysisResult) -> bytes:
-    lines = [
-        "VerseVAD PoetryID report",
-        "==========================",
-        "",
-        f"Result status: {result.status}",
-        f"Configuration: {result.configuration.configuration_id}",
-        (
-            "Interpretive rule: PoetryID reports a nearest candidate "
-            "lexical-affective profile, not a poem's emotion."
-        ),
-        "",
-    ]
-    for item in result.assignments:
-        lines.extend(
-            (
-                f"{item.source_lexicon_name} — {item.analysis_view} — "
-                f"{item.weighting_mode} weighting",
-                (
-                    f"VAD: {item.vad.valence:.4f}, {item.vad.arousal:.4f}, "
-                    f"{item.vad.dominance:.4f}"
-                ),
-                (
-                    f"Profile: {item.categorical_archetype.name} "
-                    f"({item.categorical_archetype.short_descriptor})"
-                ),
-                f"Confidence: {item.confidence.label}",
-                item.narrative_summary,
-                (
-                    "Caution: "
-                    + item.categorical_archetype.interpretive_caution
-                ),
-                "",
-            )
-        )
-    for item in result.unavailable:
-        lines.extend(
-            (
-                (
-                    f"Unavailable: {item.source_lexicon_name or 'VAD source'} "
-                    f"{item.analysis_view} {item.weighting_mode}"
-                ).strip(),
-                item.message,
-                "",
-            )
-        )
-    lines.extend(
-        (
-            "Relative affinities are inverse-distance summaries normalized "
-            "across all 27 profiles; they are not probabilities.",
-            "",
-        )
-    )
-    return ("\n".join(lines)).encode("utf-8")
-
-
 def export_poetry_id_bundle(
     result: PoetryIDAnalysisResult,
+    *,
+    text_title: str = "",
 ) -> dict[str, bytes]:
-    """Return PoetryID's complete, intentionally non-JSON export bundle."""
+    """Return PoetryID's complete CSV and narrative Word export bundle."""
 
-    return {
+    bundle = {
         "poetry_id_summary.csv": export_poetry_id_summary_csv(result),
         "poetry_id_neighbors.csv": export_poetry_id_neighbors_csv(result),
         "poetry_id_lexical_character.csv": (
@@ -533,8 +477,57 @@ def export_poetry_id_bundle(
             export_poetry_id_archetype_map_csv(result)
         ),
         "poetry_id_vad_scales.csv": export_poetry_id_vad_scales_csv(result),
-        "poetry_id_report.txt": export_poetry_id_report_txt(result),
+        "poetry_id_manifest.csv": export_module_manifest_csv(result),
     }
+    report_rows = [
+        {
+            "section": (
+                f"{item.source_lexicon_name} · {item.analysis_view} · "
+                f"{item.weighting_mode}"
+            ),
+            "metric": "nearest_candidate_profile",
+            "value": item.categorical_archetype.name,
+            "unit_or_scale": item.categorical_archetype.short_descriptor,
+            "denominator": (
+                f"{item.coverage.matched_token_count} of "
+                f"{item.coverage.eligible_token_count} eligible tokens"
+            ),
+            "note": (
+                f"Confidence: {item.confidence.label}. "
+                f"{item.narrative_summary} "
+                f"{item.categorical_archetype.interpretive_caution}"
+            ),
+        }
+        for item in result.assignments
+    ]
+    report_rows.extend(
+        {
+            "section": "unavailable evidence",
+            "metric": item.analysis_view or "analysis",
+            "value": "unavailable",
+            "unit_or_scale": "",
+            "denominator": "",
+            "note": item.message,
+        }
+        for item in result.unavailable
+    )
+    bundle["poetry_id_report.docx"] = build_narrative_report(
+        profile=REPORT_PROFILES["poetry_id"],
+        summary_rows=report_rows,
+        companion_csv_files=tuple(bundle),
+        text_title=text_title,
+        text_id=result.module_result.text_id,
+        result_id=result.module_result.result_id,
+        warnings=tuple(
+            warning.message for warning in result.module_result.warnings
+        ),
+        additional_paragraphs=(
+            "PoetryID reports a nearest candidate lexical-affective profile, not "
+            "the poem's emotion. Relative affinities are inverse-distance "
+            "summaries, not probabilities.",
+        ),
+    )
+    return bundle
 
 
 __all__ = [
@@ -543,7 +536,6 @@ __all__ = [
     "export_poetry_id_lexical_character_csv",
     "export_poetry_id_methodology_csv",
     "export_poetry_id_neighbors_csv",
-    "export_poetry_id_report_txt",
     "export_poetry_id_summary_csv",
     "export_poetry_id_vad_scales_csv",
 ]

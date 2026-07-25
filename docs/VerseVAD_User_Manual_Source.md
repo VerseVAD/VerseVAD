@@ -1124,7 +1124,7 @@ declaring one corpus-wide identity.
 
 Coverage, unmatched evidence, warnings, configuration IDs, and denominators
 remain visible. **Download module audit ZIP** reconstructs and checksum-checks
-the persisted CSV/JSON bundle for one work and module.
+the persisted CSV/DOCX bundle for one work and module.
 
 ## Corpus Language Profile
 
@@ -1177,9 +1177,15 @@ The legacy unmatched-quality-control panel remains available beneath **Review & 
 
 Under **Analyze & Compare**, choose two completed batches to see like-for-like coverage and VAD deltas. Because each batch remains tied to its exact text versions, lexicons, recipe, stopword policy, software version, scenario version, and decision revisions, this comparison can show how an explicit review scenario changed the result without erasing the baseline.
 
-## Excel Export
+## Export
 
-After a complete batch, download the corpus workbook. It includes a reading guide, both collection weighting views, both stopword views, work-level data, cumulative totals, coverage, separately labeled emotion/sentiment/intensity constructs, unmatched notes, text/version provenance, review decisions when applicable, and the recorded methodology. Optional-module batches add **Module Collection**, **Module Categories**, **Module Work Results**, **Module Structure**, **Module Coverage**, **Module Provenance**, and **Module Warnings** sheets.
+After a complete batch, download the corpus CSV and Word bundle. It includes
+both collection weighting views, both stopword views, work-level data,
+cumulative totals, coverage, separately labeled
+emotion/sentiment/intensity constructs, unmatched notes, text/version
+provenance, review decisions when applicable, the recorded methodology, and
+`corpus_report.docx`. Optional-module results, structure, coverage, provenance,
+and warnings remain in separately named CSV tables.
 
 ## Delete a project
 
@@ -1249,7 +1255,7 @@ An exact phrase entry is shown as published lexical evidence. If no phrase entry
 
 A mapping such as `o'er -> over` is lookup-only. It lets you inspect the mapped entry while preserving the distinction between queried and mapped forms. It does not change poem or corpus analysis.
 
-# 11. Downloads, CSV files, JSON, and Excel
+# 11. Downloads, CSV files, and Word reports
 
 ## One-poem downloads
 
@@ -1257,9 +1263,12 @@ A mapping such as `o'er -> over` is lookup-only. It lets you inspect the mapped 
 |---|---|
 | Scholar summary CSV | Readable overview with plain labels |
 | CSV reading guide | Meaning and recommended use of each detailed file |
+| Narrative Word report | Readable interpretation, denominators, and cautions |
 | Full audit ZIP | Reproducibility, inspection, and machine-readable records |
 
-The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the following detailed files.
+The ZIP contains the summary, guide, comprehensive
+`VerseVAD_analysis_report.docx`,
+module-specific Word reports, and the following detailed CSV files.
 
 | Audit file | Contents |
 |---|---|
@@ -1270,21 +1279,20 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `phase2_emotion_intensity.csv` | Pair prevalence and matched-pair intensity statistics |
 | `phase2_cross_lexicon_comparison.csv` | Source-specific metrics placed side by side without a consensus score |
 | `phase2_manifest.csv` | Software, source hashes, adapters, recipe, scenario, stopword policy, and inclusion metadata |
-| `phase2_results.json` | Complete structured analysis result for machine-readable reuse |
-| `poem_document.json` | Exact original text, poetic/model structure, shared tokens and annotations, orthographic spans, processing configuration/provenance, coverage, and warnings |
+| `processing_*.csv` | Exact original text, poetic/model structure, shared tokens and annotations, orthographic spans, processing configuration/provenance, coverage, and warnings |
 | `concreteness_summary.csv` | Overall source-scale statistics, thresholds, token/type coverage, and source identity when the module is enabled |
 | `concreteness_by_structure.csv` | Physical-line and stanza summaries with eligible/rated counts and coverage |
 | `concreteness_by_pos.csv` | Model-assigned part-of-speech summaries |
 | `concreteness_terms.csv` | Represented source terms, ratings, repetition, ranks, and source-row fields |
 | `concreteness_token_audit.csv` | Every token's eligibility, matching method, group, source row, rating or missing value, and reason |
-| `concreteness_result.json` | Complete structured concreteness result, configuration, warnings, and provenance |
+| `concreteness_report.docx` | Narrative concreteness findings, denominators, coverage, cautions, and companion-file guide |
 | `frequency_summary.csv` | Median-first Zipf summary, dispersion, range, scope, bands, token/type coverage, and source identity |
 | `frequency_distribution.csv` | Distribution-ready Zipf values and configured band counts/proportions |
 | `frequency_by_structure.csv` | Physical-line and stanza summaries with eligible/matched counts and coverage |
 | `frequency_by_pos.csv` | Model-assigned part-of-speech summaries |
 | `frequency_terms.csv` | Represented source terms, Zipf values, corpus counts, repetition, ranks, and source-row fields |
 | `frequency_token_audit.csv` | Every token's eligibility, POS, matching method, source row, Zipf value or missing value, and reason |
-| `frequency_result.json` | Complete structured frequency result, configuration, warnings, and provenance |
+| `frequency_report.docx` | Narrative frequency findings, denominators, coverage, cautions, and companion-file guide |
 | `aoa_summary.csv` | Source-age statistics, thresholds, coverage, response cautions, and source identity |
 | `aoa_distribution.csv` | Distribution-ready ages and configured early/middle/later band counts and proportions |
 | `aoa_by_structure.csv` | Physical-line and stanza summaries with eligible/matched counts and coverage |
@@ -1292,21 +1300,20 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `aoa_terms.csv` | Represented source terms, ages, response evidence, repetition, ranks, and source-row fields |
 | `aoa_relationships.csv` | Optional descriptive unique-surface-type relationships with enabled Frequency and Concreteness results |
 | `aoa_token_audit.csv` | Every token's eligibility, POS, matching method, source row, age or missing value, source-response evidence, and reason |
-| `aoa_result.json` | Complete structured AoA result, configuration, warnings, relationships, and provenance |
+| `aoa_report.docx` | Narrative AoA findings, denominators, coverage, cautions, and companion-file guide |
 | `pronunciation_summary.csv` | Syllable/stress summaries, token/type/line coverage, ambiguity, configuration, and required scope warning |
 | `pronunciation_lines.csv` | Every physical line's exact text, coverage, completeness, syllable total or missing value, and lexical-stress sequence |
 | `pronunciation_types.csv` | Observed forms, token occurrences, statuses, candidate phones, and resolved prosodic fields |
 | `pronunciation_token_audit.csv` | Every token's eligibility, exact candidates, source lines, resolved fields or missing values, categorical resolution label, override note, and reason |
-| `pronunciation_result.json` | Complete structured Stage 5 result, source contracts, configuration, candidates, warnings, and provenance |
+| `pronunciation_report.docx` | Narrative pronunciation findings, denominators, coverage, cautions, and companion-file guide |
 | `meter_summary.csv` | Nearest fixed candidate kind and label, fit, coverage, confidence, and deviations |
 | `meter_candidates.csv` | All 40 fixed pattern-by-foot-count candidates with rank, fit, variation, and matching lines |
 | `meter_lines.csv` | Every physical line's status, nearest fixed template, selected stress path, alignment, and deviations |
 | `meter_alignment_operations.csv` | Every selected syllable-to-template operation, cost, word, model POS, and ending flag |
-| `meter_result.json` | Complete structured Stage 6 configuration, line audit, fixed candidates, metrics, warnings, and provenance |
+| `meter_report.docx` | Narrative meter/scansion findings, denominators, coverage, cautions, and companion-file guide |
 | `meter_realizations.csv` | Performance-aware line readings, syllable decisions, substitutions, component scores, alternatives, and confidence |
 | `meter_stanzas.csv` | Stanza-level primary/alternate candidates, realized score, regularity, line-position pattern, and exceptions |
 | `meter_rhythm_trajectory.csv` | Ordered line-by-line rhythmic trajectory and recurrence evidence |
-| `meter_scansion_report.txt` | Accessible plain-text candidate and performance-aware reading report |
 | `meter_scholar_revisions.csv` | Conditional audit of explicit scholar revisions; created only when at least one revision is supplied |
 | `rhyme_summary.csv` | Whole-poem scheme, ending coverage, rhyme density, pair counts, refrain/internal-rhyme counts, and recurring-sound densities |
 | `rhyme_stanzas.csv` | Stanza schemes, ending coverage, exact/slant pair counts, rhymed lines, and density |
@@ -1314,39 +1321,45 @@ The ZIP begins with `START_HERE.txt` and contains the summary, guide, and the fo
 | `rhyme_pairs.csv` | Within-stanza ending pairs with relationship, rhyme types, graded similarity components, eye-rhyme evidence, and cautions |
 | `rhyme_internal.csv` | Exact dictionary rhyme parts recurring between eligible words within one physical line |
 | `phonological_sounds.csv` | Recurring initial consonants, stressed vowels, and consonants with occurrence and line counts |
-| `rhyme_result.json` | Complete structured Stage 7 configuration, summary, stanza/line/pair evidence, sound families, coverage, warnings, and provenance |
+| `rhyme_report.docx` | Narrative rhyme/sound findings, denominators, coverage, cautions, and companion-file guide |
 | `lexical_style_summary.csv` | Token/type and configured MATTR, HD-D, MTLD, word-length, and structural-count summaries |
 | `lexical_style_word_lengths.csv` | Exact alphabetic-character lengths with token counts and proportions |
 | `lexical_style_lines.csv` | Every preserved physical line with blank status, lexical-token count, surface types, local TTR, and word length |
 | `lexical_style_stanzas.csv` | Every preserved stanza with nonblank-line count, lexical-token count, surface types, local TTR, and word length |
 | `lexical_style_token_audit.csv` | Every token's exact/normalized surface, separate lemma, structural IDs, inclusion, alphabetic length or missing value, and reason |
-| `lexical_style_result.json` | Complete structured Stage 10 configuration, summaries, distribution, audit, coverage, warnings, and provenance |
+| `lexical_style_report.docx` | Narrative lexical-style findings, denominators, cautions, and companion-file guide |
 | `poetry_id_summary.csv` | Source/view/weighting-specific continuous VAD, categorical and nearest-centroid candidates, confidence, boundary, and coverage evidence |
 | `poetry_id_neighbors.csv` | All 27 ranked centroid distances and inverse-distance relative affinities, explicitly not probabilities |
 | `poetry_id_lexical_character.csv` | Optional native-scale concreteness, SUBTLEX-US Zipf, and AoA token/type character |
 | `poetry_id_methodology.csv` | Exact threshold profile, centroids, distance rule, evidence minimums, configuration, and cautions |
 | `poetry_id_archetype_map.csv` | All 27 canonical level combinations, centroids, descriptors, summaries, and cautions |
 | `poetry_id_vad_scales.csv` | Chart-ready continuous scores, levels, boundaries, centroids, and boundary distances |
-| `poetry_id_report.txt` | Compact readable profile, VAD, confidence, narrative, and caution report |
+| `poetry_id_report.docx` | Readable candidate-profile, VAD, confidence, narrative, and caution report |
+| `*_manifest.csv` | Exact optional-module configuration, provenance, resource identity, coverage records, and warnings |
 
-CSV files use UTF-8 with a byte-order mark for compatibility with current Excel versions. The JSON files preserve complementary machine-readable records: `phase2_results.json` contains the complete affective analysis, `poem_document.json` contains its shared processing representation, `concreteness_result.json` contains the optional normative lexical concreteness result, `frequency_result.json` contains the optional SUBTLEX-US result, `aoa_result.json` contains the optional Kuperman result, `pronunciation_result.json` contains every Stage 5 candidate and decision, `meter_result.json` contains every fixed candidate and, when enabled, the nested performance-aware realization, `rhyme_result.json` contains every Stage 7 stanza, line, pair, sound-family, and method record, and `lexical_style_result.json` contains every narrowed Stage 10 configuration, diversity/length summary, structural count, and token decision. At the scholar's direction, PoetryID produces CSV and plain text only and has no JSON export. `poem_document.json` includes the original text, so protect it as research material. Optional module exports retain poem-specific provenance but do not copy any complete research source. The scholar summary is the easiest reading aid.
+CSV files use UTF-8 with a byte-order mark for compatibility with current
+Excel versions. VerseVAD does not generate JSON, TXT, or XLSX analysis
+exports. The `processing_*.csv` set preserves the complete shared processing
+representation, and `processing_source.csv` includes the original text, so
+protect the full bundle as research material. Optional-module CSV exports
+retain poem-specific provenance without copying any complete licensed
+research source. Word reports provide a readable orientation; the CSV files
+remain the complete tabular evidence.
 
-## Corpus Excel workbook
+## Corpus CSV and Word bundle
 
-| Sheet | Contents |
+| File | Contents |
 |---|---|
-| START HERE | Reading order, weighting distinctions, and cautions |
-| Corpus Profiles | Token-weighted and equal-work-weighted collection VAD profiles by analysis view |
-| Work VAD | Work-level means and population standard deviations, token/type weighting, source/normalized scale |
-| Cumulative Load | Length-sensitive totals by work and analysis view |
-| Coverage and Emotion | Coverage plus a `Construct` field separating emotion associations, sentiment associations, and supplied emotion-intensity metrics |
-| Part of Speech | Broad and detailed combined-project/work-level POS counts, lexical-token shares, unique types, examples, denominator, and model |
-| Unmatched QC | Persistent review statuses, notes, and proposed mappings |
-| Review Decisions | Active decision revisions pinned to the exported scenario; present for reviewed runs |
-| Text Metadata | Work IDs, text-version IDs, metadata, paths, and hashes |
-| Methodology | Selected lexicons, phrase policy, stopword source/version/hash, protected terms, and custom changes |
+| `corpus_report.docx` | Narrative collection overview, VAD profiles, denominators, and cautions |
+| `corpus_project.csv` and `corpus_works.csv` | Project metadata plus work IDs, version IDs, paths, and hashes |
+| `corpus_vad_metrics.csv` and `corpus_vad_profiles.csv` | Work-level VAD records and token-/work-weighted collection profiles |
+| `corpus_part_of_speech.csv` | Broad and detailed combined/work-level POS evidence |
+| `corpus_module_*.csv` | Additional-module results, metrics, aggregates, coverage, and warnings |
+| `corpus_unmatched_qc.csv` | Persistent review statuses, notes, and proposed mappings |
+| `corpus_review_decisions.csv` and `corpus_methodology.csv` | Active decision revisions and reproducibility settings |
 
-Excel is a derived report, not the authoritative database. The workbook does not duplicate the complete literary texts.
+The corpus bundle is a derived report, not the authoritative database. It does
+not duplicate the complete literary texts.
 
 # 12. Mathematical formulas
 

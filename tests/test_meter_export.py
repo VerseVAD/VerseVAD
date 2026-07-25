@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import csv
 import io
-import json
 
 from versevad.core import ModuleInput
 from versevad.exports.meter import (
     export_meter_alignment_operations_csv,
     export_meter_bundle,
-    export_meter_json,
     export_meter_lines_csv,
 )
 from versevad.preprocessing import create_text_document
@@ -66,26 +64,27 @@ def test_meter_exports_preserve_fixed_candidates_and_alignment_audit(
     )
 
 
-def test_meter_json_and_bundle_are_complete_and_deterministic(
+def test_meter_word_report_and_bundle_are_complete_and_deterministic(
     tmp_path,
     preprocessor,
 ) -> None:
     result = _result(tmp_path, preprocessor)
 
-    first = export_meter_json(result)
-    second = export_meter_json(result)
-    payload = json.loads(first)
     bundle = export_meter_bundle(result)
+    second = export_meter_bundle(result)
 
-    assert first == second
-    assert payload["summary"]["closest_candidate_kind"] == (
+    assert bundle["meter_report.docx"] == second["meter_report.docx"]
+    assert result.summary.closest_candidate_kind == (
         "fixed pattern and foot count"
     )
-    assert payload["summary"]["closest_candidate_label"] == "Iambic tetrameter"
+    assert result.summary.closest_candidate_label == "Iambic tetrameter"
     assert set(bundle) == {
         "meter_summary.csv",
         "meter_candidates.csv",
         "meter_lines.csv",
         "meter_alignment_operations.csv",
-        "meter_result.json",
+        "meter_manifest.csv",
+        "meter_report.docx",
     }
+    assert bundle["meter_report.docx"].startswith(b"PK")
+    assert not any(name.endswith(".json") for name in bundle)

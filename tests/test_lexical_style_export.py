@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import io
-import json
 
 from versevad.core import ModuleInput
 from versevad.exports.lexical_style import export_lexical_style_bundle
@@ -42,7 +41,8 @@ def test_lexical_style_bundle_is_complete_and_auditable(preprocessor) -> None:
         "lexical_style_lines.csv",
         "lexical_style_stanzas.csv",
         "lexical_style_token_audit.csv",
-        "lexical_style_result.json",
+        "lexical_style_manifest.csv",
+        "lexical_style_report.docx",
     }
     summary = _rows(bundle["lexical_style_summary.csv"])
     assert any(
@@ -61,6 +61,5 @@ def test_lexical_style_bundle_is_complete_and_auditable(preprocessor) -> None:
     audit = _rows(bundle["lexical_style_token_audit.csv"])
     assert audit[0]["surface_form"] == "red"
     assert audit[0]["normalized_surface_type"] == "red"
-    payload = json.loads(bundle["lexical_style_result.json"])
-    assert payload["module_result"]["module_name"] == "lexical_style"
-    assert payload["configuration"]["mattr_window_size"] == 3
+    assert bundle["lexical_style_report.docx"].startswith(b"PK")
+    assert not any(name.endswith(".json") for name in bundle)

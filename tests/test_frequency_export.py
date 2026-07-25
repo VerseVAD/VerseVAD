@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import json
 import math
 import zipfile
 from pathlib import Path
@@ -22,7 +21,6 @@ from versevad.exports.frequency import (
     export_frequency_by_pos_csv,
     export_frequency_by_structure_csv,
     export_frequency_distribution_csv,
-    export_frequency_json,
     export_frequency_summary_csv,
     export_frequency_terms_csv,
     export_frequency_token_audit_csv,
@@ -105,13 +103,8 @@ def test_frequency_exports_are_complete_and_keep_missing_values_empty(
     result = workspace.frequency
     assert result is not None
 
-    payload = json.loads(export_frequency_json(result))
-    assert payload["module_result"]["module_name"] == "lexical_frequency"
-    unmatched = next(
-        row for row in payload["token_audit"] if row["surface_form"] == "quorvax"
-    )
-    assert unmatched["zipf_value"] is None
-    assert payload["summary"]["token_coverage"] == 2 / 3
+    assert result.module_result.module_name == "lexical_frequency"
+    assert result.summary.token_coverage == 2 / 3
 
     summary_rows = list(
         csv.DictReader(
@@ -161,10 +154,11 @@ def test_frequency_only_workspace_and_full_bundle(
             "frequency_by_pos.csv",
             "frequency_terms.csv",
             "frequency_token_audit.csv",
-            "frequency_result.json",
-            "poem_document.json",
-            "START_HERE.txt",
+            "frequency_report.docx",
+            "processing_source.csv",
+            "processing_tokens.csv",
+            "VerseVAD_analysis_report.docx",
         }
         assert not any(name.startswith("phase2_") for name in names)
-        start_here = bundle.read("START_HERE.txt").decode("utf-8")
-        assert "SUBTLEX-US Zipf" in start_here
+        assert not any(name.endswith((".json", ".txt", ".xlsx")) for name in names)
+        assert bundle.read("frequency_report.docx").startswith(b"PK")

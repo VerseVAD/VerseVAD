@@ -146,7 +146,7 @@ def test_corpus_workspace_exposes_phase5_review_scenarios(
         "Language Profile",
         "Analyze & Compare",
         "Review & Scenarios",
-        "Excel Export",
+        "Export",
         "Project Settings",
     ]
     assert "Review scenario" in [field.label for field in app.selectbox]
@@ -274,6 +274,7 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert not {
         "Download readable summary",
         "Download CSV reading guide",
+        "Download narrative report",
         "Download full audit bundle",
     } <= {button.label for button in app.get("download_button")}
     _button(app, "Prepare downloads").click()
@@ -340,7 +341,7 @@ def test_interface_renders_poetry_id_maps_scales_and_non_json_downloads() -> Non
         if button.label.startswith("Download poetry_id_")
     }
     assert "Download poetry_id_summary.csv" in labels
-    assert "Download poetry_id_report.txt" in labels
+    assert "Download poetry_id_report.docx" in labels
     assert not any(label.endswith(".json") for label in labels)
 
 

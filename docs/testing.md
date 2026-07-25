@@ -176,14 +176,14 @@ hand-calculated cumulative midpoint loads, Warriner exact phrase activation and
 uncertainty fields, folder decoding, SQLite migrations and closed connections,
 text version preservation, extensible metadata, immutable batch publication,
 persistent unmatched notes, mixed-length token/work collection means, an
-end-to-end two-work corpus run, Excel workbook structure, Lexicon Explorer
+end-to-end two-work corpus run, corpus CSV/DOCX bundle structure, Lexicon Explorer
 exact/phrase/lemma/mapped/component behavior, and all three Streamlit workspace
 entry paths.
 
 Phase 4.1 brings the full suite to 87 passing tests. The added coverage verifies
 dual all-matched/stopword-excluded aggregation; pinned, protected, and custom
 stopword behavior; exact phrase retention; midpoint-centered contribution
-formulas; both result views in CSV/JSON/SQLite/Excel; schema-version-2
+formulas; both result views in CSV/DOCX/SQLite; schema-version-2
 migration; exact-confirmation project deletion; top workspace tabs; stale
 Explorer recovery; and the comprehensive Word manual's package structure,
 required content, page geometry, real numbering, and fixed-DXA table geometry.

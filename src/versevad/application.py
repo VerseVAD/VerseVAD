@@ -37,12 +37,15 @@ from versevad.core.resources import (
 )
 from versevad.exports.aoa import export_aoa_bundle
 from versevad.exports.concreteness import export_concreteness_bundle
+from versevad.exports.docx_report import (
+    build_narrative_report_from_summary_csv,
+)
 from versevad.exports.frequency import export_frequency_bundle
 from versevad.exports.lexical_style import export_lexical_style_bundle
 from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
 from versevad.exports.phonology import export_phonological_bundle
-from versevad.exports.poem_document_json import export_poem_document_json
+from versevad.exports.poem_document_csv import export_poem_document_csv_bundle
 from versevad.exports.pronunciation import export_pronunciation_bundle
 from versevad.exports.poetry_id import export_poetry_id_bundle
 from versevad.lexical_semantic.concreteness import (
@@ -3207,17 +3210,6 @@ def csv_reading_guide() -> bytes:
             ),
         },
         {
-            "file": "poetry_id_report.txt",
-            "what_it_answers": (
-                "What is a compact human-readable PoetryID report?"
-            ),
-            "start_with": "profile, continuous VAD, confidence, narrative, and caution.",
-            "important_caution": (
-                "This is the only non-tabular PoetryID export; no PoetryID JSON "
-                "file is generated."
-            ),
-        },
-        {
             "file": "concreteness_summary.csv",
             "what_it_answers": "What is the matched normative lexical concreteness profile?",
             "start_with": "mean, median, dispersion, rated-token coverage, and rated unique-word coverage.",
@@ -3246,12 +3238,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "How was every token included, matched, excluded, or left unmatched?",
             "start_with": "surface_form, match_method, matched_source_term, rating, and reason.",
             "important_caution": "Phrase components share a match_group_id; unmatched and ineligible rows carry no rating.",
-        },
-        {
-            "file": "concreteness_result.json",
-            "what_it_answers": "Can software reproduce the complete concreteness result and method?",
-            "start_with": "module_result, configuration, summary, structural summaries, token_audit, and resource provenance.",
-            "important_caution": "Thresholds are configurable VerseVAD orientation aids, not categories validated by the source paper.",
         },
         {
             "file": "frequency_summary.csv",
@@ -3288,12 +3274,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "How was every token included, matched, excluded, or left unmatched?",
             "start_with": "surface_form, part_of_speech, eligible, match_method, matched_source_term, and zipf_value.",
             "important_caution": "Lemma fallbacks are explicit; unmatched and ineligible rows carry no Zipf value.",
-        },
-        {
-            "file": "frequency_result.json",
-            "what_it_answers": "Can software reproduce the complete frequency result and method?",
-            "start_with": "module_result, configuration, summary, bands, structural summaries, token_audit, and resource provenance.",
-            "important_caution": "No wordfreq value or alternate corpus is substituted for SUBTLEX-US.",
         },
         {
             "file": "aoa_summary.csv",
@@ -3336,12 +3316,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "How was every token included, matched, excluded, source-unrated, or left unmatched?",
             "start_with": "surface_form, part_of_speech, match_method, mean_age, response count, and reason.",
             "important_caution": "Lemma fallbacks are explicit; unmatched, source-unrated, and ineligible rows carry no mean age.",
-        },
-        {
-            "file": "aoa_result.json",
-            "what_it_answers": "Can software reproduce the complete AoA result and method?",
-            "start_with": "module_result, configuration, summary, bands, relationships, token_audit, and resource provenance.",
-            "important_caution": "The official Kuperman source is kept separate from derivative and test-based AoA workbooks.",
         },
         {
             "file": "lexical_style_summary.csv",
@@ -3417,21 +3391,6 @@ def csv_reading_guide() -> bytes:
             ),
         },
         {
-            "file": "lexical_style_result.json",
-            "what_it_answers": (
-                "Can software reproduce the complete lexical-style result, "
-                "configuration, provenance, coverage, and warnings?"
-            ),
-            "start_with": (
-                "module_result, configuration, summary, distribution, structural "
-                "summaries, and token audit."
-            ),
-            "important_caution": (
-                "A lexical-diversity statistic is a configured textual descriptor, "
-                "not a judgment of literary quality or reader ability."
-            ),
-        },
-        {
             "file": "pronunciation_summary.csv",
             "what_it_answers": "What dictionary-based syllable, lexical-stress, and coverage summaries are available?",
             "start_with": "resolved-token coverage, complete-line coverage, syllables per word and line, and stress density.",
@@ -3454,12 +3413,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "What pronunciation candidates and decisions apply to every token occurrence?",
             "start_with": "surface_form, status, candidate phones/stresses/syllables, resolved fields, and reason.",
             "important_caution": "Confidence labels are categorical source-resolution descriptions, not calibrated probabilities.",
-        },
-        {
-            "file": "pronunciation_result.json",
-            "what_it_answers": "Can software reproduce the complete pronunciation/prosody-foundation result and method?",
-            "start_with": "module_result, configuration, resource validation, summaries, and token audit.",
-            "important_caution": "Scholar overrides are poem-specific and remain distinct from dictionary candidates.",
         },
         {
             "file": "meter_summary.csv",
@@ -3486,12 +3439,6 @@ def csv_reading_guide() -> bytes:
             "important_caution": "Function-word flexibility and secondary stress use explicit configured costs; the alignment is not performed rhythm.",
         },
         {
-            "file": "meter_result.json",
-            "what_it_answers": "Can software reproduce the complete fixed-template meter comparison, line audit, and method?",
-            "start_with": "module_result, configuration, line_results, candidate_summaries, and summary.",
-            "important_caution": "Pronunciation alternatives are explored as candidate paths without rewriting the Stage 5 pronunciation audit.",
-        },
-        {
             "file": "meter_realizations.csv",
             "what_it_answers": "How does the optional performance-aware layer rerank primary and alternate line readings?",
             "start_with": "raw lexical stress, candidate template, realized scansion, separate component scores, substitutions, and pronunciation path.",
@@ -3508,12 +3455,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "How do realized score, syllable count, beats, substitutions, and caesura evidence vary by line?",
             "start_with": "line number, stanza, candidate, realized score, syllables, beats, and substitutions.",
             "important_caution": "The trajectory is descriptive textual evidence, not a recording of performed timing.",
-        },
-        {
-            "file": "meter_scansion_report.txt",
-            "what_it_answers": "What accessible, line-by-line account explains the optional realized readings?",
-            "start_with": "notation guide, raw lexical stress, fixed-layer candidate, realized scansion, alternatives, methodology, and warnings.",
-            "important_caution": "Promotion, demotion, caesura, and substitution labels remain inspectable proposals rather than altered dictionary stress.",
         },
         {
             "file": "meter_scholar_revisions.csv",
@@ -3556,12 +3497,6 @@ def csv_reading_guide() -> bytes:
             "what_it_answers": "Which initial consonants, stressed vowels, and consonants recur most strongly?",
             "start_with": "category, phoneme, occurrence count, line count, and within-category share.",
             "important_caution": "Counts derive from retained dictionary pronunciations rather than a recorded reading.",
-        },
-        {
-            "file": "rhyme_result.json",
-            "what_it_answers": "Can software reproduce the complete Stage 7 configuration, evidence, provenance, coverage, and warnings?",
-            "start_with": "module_result, configuration, summary, stanza_summaries, line_results, pair_results, and sound_families.",
-            "important_caution": "CMUdict support is evidence for possible textual sound patterns, not a dialect-neutral performance transcription.",
         },
         {
             "file": "phase2_coverage.csv",
@@ -3611,19 +3546,63 @@ def csv_reading_guide() -> bytes:
             "start_with": "text/source hashes, versions, model, scenario, phrase policy, and stopword-list metadata.",
             "important_caution": "This is provenance rather than a results table; reviewed runs also list exact decision revisions.",
         },
-        {
-            "file": "phase2_results.json",
-            "what_it_answers": "Can software read the complete nested result and methodology?",
-            "start_with": "results, comparison, review_rules, stopword_policy, stopword_coverage, and vad_summary.",
-            "important_caution": "All-matched and stopword-excluded fields are separate views of the same audited matches.",
-        },
-        {
-            "file": "poem_document.json",
-            "what_it_answers": "What exact structure and linguistic processing representation supported this run?",
-            "start_with": "source, configuration, preprocessing, structural_units, coverage, and warnings.",
-            "important_caution": "POS, lemma, sentence, dependency, and optional entity records are model outputs, not corrected ground truth.",
-        },
     ]
+    rows.extend(
+        (
+            {
+                "file": "VerseVAD_analysis_report.docx",
+                "what_it_answers": (
+                    "What are the principal results in a readable narrative?"
+                ),
+                "start_with": (
+                    "Scope and interpretation, key findings, coverage and cautions."
+                ),
+                "important_caution": (
+                    "The Word report is an orientation; retain the companion CSV "
+                    "files for complete values and audit evidence."
+                ),
+            },
+            {
+                "file": "*_report.docx",
+                "what_it_answers": (
+                    "What does each optional analysis report in plain language?"
+                ),
+                "start_with": (
+                    "The module-specific scope, findings, denominators, and cautions."
+                ),
+                "important_caution": (
+                    "Narrative reports do not replace their module CSV files."
+                ),
+            },
+            {
+                "file": "*_manifest.csv",
+                "what_it_answers": (
+                    "Which exact module configuration, provenance, resource "
+                    "identity, coverage records, and warnings supported the result?"
+                ),
+                "start_with": "path and value.",
+                "important_caution": (
+                    "Manifest rows are reproducibility evidence; interpretive "
+                    "results remain in the summary and audit CSV files."
+                ),
+            },
+            {
+                "file": "processing_*.csv",
+                "what_it_answers": (
+                    "What exact text, structure, annotations, configuration, "
+                    "coverage, and warnings supported the analyses?"
+                ),
+                "start_with": (
+                    "processing_source.csv, processing_tokens.csv, and "
+                    "processing_configuration.csv."
+                ),
+                "important_caution": (
+                    "POS, lemma, sentence, dependency, and optional entity records "
+                    "are model outputs, not corrected ground truth."
+                ),
+            },
+        )
+    )
     return _csv_bytes(fields, rows)
 
 
@@ -3637,123 +3616,63 @@ def _build_detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
             if workspace.results
             else ()
         )
+        export_files = {
+            path.name: path.read_bytes()
+            for path in paths
+        }
+        title = workspace.document.title
+        optional_results = (
+            (workspace.concreteness, export_concreteness_bundle),
+            (workspace.frequency, export_frequency_bundle),
+            (workspace.aoa, export_aoa_bundle),
+            (workspace.pronunciation, export_pronunciation_bundle),
+            (workspace.meter, export_meter_bundle),
+            (workspace.phonology, export_phonological_bundle),
+            (workspace.lexical_style, export_lexical_style_bundle),
+            (workspace.poetry_id, export_poetry_id_bundle),
+        )
+        for result, exporter in optional_results:
+            if result is not None:
+                export_files.update(exporter(result, text_title=title))
+        if workspace.poem_document is not None:
+            export_files.update(
+                export_poem_document_csv_bundle(workspace.poem_document)
+            )
+        if vad_part_of_speech_views(workspace):
+            export_files["vad_by_part_of_speech.csv"] = (
+                vad_part_of_speech_csv(workspace)
+            )
+        summary_csv = scholar_summary_csv(workspace)
+        export_files["scholar_summary.csv"] = summary_csv
+        export_files["csv_reading_guide.csv"] = csv_reading_guide()
+        warning_messages = [
+            warning
+            for result in workspace.results
+            for warning in result.warnings
+        ]
+        if workspace.poem_document is not None:
+            warning_messages.extend(
+                warning.message for warning in workspace.poem_document.warnings
+            )
+        export_files["VerseVAD_analysis_report.docx"] = (
+            build_narrative_report_from_summary_csv(
+                "phase2",
+                summary_csv,
+                companion_csv_files=tuple(
+                    name
+                    for name in export_files
+                    if name.endswith(".csv")
+                ),
+                text_title=workspace.document.title,
+                text_id=workspace.document.text_id,
+                result_id=workspace.document.text_version_id,
+                warnings=tuple(dict.fromkeys(warning_messages)),
+            )
+        )
         archive = io.BytesIO()
         with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
-            for path in paths:
-                bundle.write(path, arcname=path.name)
-            if workspace.concreteness is not None:
-                for filename, content in export_concreteness_bundle(
-                    workspace.concreteness
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.frequency is not None:
-                for filename, content in export_frequency_bundle(
-                    workspace.frequency
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.aoa is not None:
-                for filename, content in export_aoa_bundle(
-                    workspace.aoa
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.pronunciation is not None:
-                for filename, content in export_pronunciation_bundle(
-                    workspace.pronunciation
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.meter is not None:
-                for filename, content in export_meter_bundle(
-                    workspace.meter
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.phonology is not None:
-                for filename, content in export_phonological_bundle(
-                    workspace.phonology
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.lexical_style is not None:
-                for filename, content in export_lexical_style_bundle(
-                    workspace.lexical_style
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.poetry_id is not None:
-                for filename, content in export_poetry_id_bundle(
-                    workspace.poetry_id
-                ).items():
-                    bundle.writestr(filename, content)
-            if workspace.poem_document is not None:
-                bundle.writestr(
-                    "poem_document.json",
-                    export_poem_document_json(workspace.poem_document),
-                )
-            if vad_part_of_speech_views(workspace):
-                bundle.writestr(
-                    "vad_by_part_of_speech.csv",
-                    vad_part_of_speech_csv(workspace),
-                )
-            bundle.writestr("scholar_summary.csv", scholar_summary_csv(workspace))
-            bundle.writestr("csv_reading_guide.csv", csv_reading_guide())
-            bundle.writestr(
-                "START_HERE.txt",
-                "Start with scholar_summary.csv and csv_reading_guide.csv.\n"
-                "The remaining files preserve the detailed audit trail.\n"
-                "poem_document.json preserves the exact text, poetic structure, "
-                "shared processing configuration, model annotations, coverage, "
-                "and warnings used by every selected lexicon.\n"
-                "When VAD evidence is present, vad_by_part_of_speech.csv reports "
-                "source- and view-specific token-weighted and type-weighted "
-                "means, model-assigned broad POS groups, coverage, original-scale "
-                "means, normalization provenance, and a separate mixed-POS "
-                "phrase row where needed.\n"
-                "When present, the concreteness files report normative lexical "
-                "concreteness, line/stanza and part-of-speech summaries, term "
-                "rankings, token matching, resource provenance, and configuration.\n"
-                "When present, the frequency files report SUBTLEX-US Zipf "
-                "statistics, distribution bands, line/stanza and part-of-speech "
-                "summaries, rare-word rankings, token matching, scope, resource "
-                "provenance, and configuration.\n"
-                "When present, the age-of-acquisition files report retrospective "
-                "normative source means in years, response evidence, configured "
-                "bands, line/stanza and part-of-speech summaries, optional "
-                "descriptive type-level relationships, token matching, resource "
-                "provenance, and configuration. These results are not "
-                "diagnostic of cognitive impairment.\n"
-                "When present, the pronunciation files report exact observed-form "
-                "CMUdict candidates, resolved dictionary syllables and lexical "
-                "stress, complete-line summaries, ambiguity, out-of-dictionary "
-                "coverage, scholar overrides, and resource provenance. They do "
-                "not classify meter, rhyme, or performed scansion.\n"
-                "When present, the meter files compare five recurring stress "
-                "patterns at one through eight feet, retaining line fits, alternative "
-                "pronunciation paths, alignment costs, substitutions, "
-                "inversions, extra or omitted syllables, and coverage. These "
-                "are nearest configured candidates, not definitive scansion. "
-                "When the optional performance-aware layer is selected, added "
-                "files retain realized readings, separate scoring components, "
-                "stanza recurrence, trajectory, alternatives, and a plain-text "
-                "report without changing source lexical stress.\n"
-                "When present, the rhyme and phonological files report robust "
-                "perfect/identical end-rhyme schemes, masculine/feminine and "
-                "multisyllabic evidence, graded slant and eye-rhyme comparisons, "
-                "internal rhyme, refrains, alliteration, assonance, consonance, "
-                "coverage, line-level evidence, and configuration. They derive "
-                "from dictionary pronunciations and spelling, not a performed "
-                "reading or definitive rhyme judgment.\n"
-                "When present, the lexical-style files report normalized observed "
-                "surface-form diversity, alphabetic-character word lengths, and "
-                "lexical-token counts for every preserved physical line and stanza. "
-                "MATTR, HD-D, and MTLD retain their exact configured parameters, "
-                "and unavailable short-text values remain missing.\n"
-                "When present, the PoetryID files report source-specific, "
-                "view-specific token/type VAD profiles, categorical and "
-                "nearest-centroid candidates, all 27 distances, relative "
-                "affinities, confidence and boundary evidence, coverage, "
-                "secondary lexical character, chart data, and methodology. "
-                "PoetryID has CSV and plain-text exports only; relative "
-                "affinities are not probabilities.\n"
-                "Results describe lexical evidence under the selected policy; "
-                "they do not determine the emotion of a poem.\n",
-            )
+            for filename, content in export_files.items():
+                bundle.writestr(filename, content)
         return archive.getvalue()
 
 

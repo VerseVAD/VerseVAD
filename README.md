@@ -19,8 +19,8 @@ control.
 are complete.** The one-poem path now explains VAD, shows token/type weighting,
 top contributors, and cumulative normative lexical loads. Persistent projects
 can import an entire folder as separate works, preserve text versions and
-metadata, compare works, create named/versioned review scenarios, and export a
-readable Excel workbook. Flags, exclusions, and approved mappings are scoped,
+metadata, compare works, create named/versioned review scenarios, and export
+CSV research tables with a readable Word report. Flags, exclusions, and approved mappings are scoped,
 reversible, auditable, and applied only through an exact scenario version.
 Collection VAD reports both a token-weighted volume profile and an
 equal-work-weighted profile so long poems do not determine the only result.
@@ -41,7 +41,7 @@ section/stanza/line structure, separate model sentences, shared token and
 linguistic records, explicit configuration, coverage, and warnings. Each
 one-poem request is processed once for all selected lexicons, the Language
 Profile exposes the shared processing record, and the full audit ZIP includes
-`poem_document.json`. Stage 2 adds optional local normative lexical
+the complete `processing_*.csv` representation. Stage 2 adds optional local normative lexical
 concreteness analysis from the user-supplied Brysbaert, Warriner, and Kuperman
 workbook, with exact/lemma/phrase audits, token/type coverage, descriptive
 statistics, structural views, configurable orientation bands, and six
@@ -87,8 +87,8 @@ profiles and centroid distances, nearest alternatives, non-probabilistic
 relative affinities and confidence, coverage/boundary evidence, optional
 concreteness/frequency/AoA character, Single Poem maps/scales, and compatible
 corpus distributions. Every source, all-matched/stopword-excluded view, and
-token/type weighting remains separate. PoetryID uses CSV and plain-text
-exports only; it has no JSON export.
+token/type weighting remains separate. PoetryID uses CSV data and a narrative
+Word report.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
@@ -246,6 +246,6 @@ numbers, limitations, and removal instructions.
 Double-click `test_phase2.bat`. The test verifies all five source checksums,
 reproduces the hand-calculated phrase, category, and intensity examples, then
 runs one short invented text independently through all five lexicons. It writes
-the auditable CSV files plus a machine-readable JSON result to
+the auditable CSV files to
 `phase2_demo_output/` and creates no consensus score. See
 [the Phase 2 validation report](docs/phase2-validation.md).

@@ -346,7 +346,7 @@ The second view uses a content-focused coverage denominator containing eligible
 non-stopword tokens. Published phrase entries stay intact. Open the methodology
 settings to see the pinned list source, version, active count, and hash; select
 custom mode to add or remove words, import a plain-text list, or download the
-active list. Every exclusion and its surface/lemma reason remains visible under
+active list as CSV. Every exclusion and its surface/lemma reason remains visible under
 **Evidence** and in the audit exports.
 
 ### Associations versus intensity
@@ -384,7 +384,7 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
    occurrence/work/project/global scope.
 9. Rerun with that scenario and compare the new immutable batch with the
    unreviewed baseline.
-10. Download the Excel workbook under **Excel Export**.
+10. Download the CSV and Word research bundle under **Export**.
 
 Additional modules are off by default. Frequency and AoA each retain a
 non-default **content words only** setting under **Advanced batch methodology**.
@@ -399,9 +399,9 @@ work-level MATTR, HD-D, or MTLD. Meter and rhyme remain work-level candidates;
 VerseVAD does not invent one corpus-wide meter or rhyme scheme.
 
 Use **Download module audit ZIP** to obtain one persisted work/module bundle.
-The Excel workbook adds separate Module Collection, Module Categories, Module
-Work Results, Module Structure, Module Coverage, Module Provenance, and Module
-Warnings sheets.
+The corpus export ZIP adds separate CSV tables for collection summaries, work
+results, structure, coverage, provenance, warnings, methodology, review
+decisions, and part-of-speech evidence, plus `corpus_report.docx`.
 
 To delete a project, open **Project Settings**, read the warning, and type the
 project title exactly—including capitalization—before clicking **Delete this
@@ -419,7 +419,7 @@ VerseVAD reports two collection VAD views:
   Every poem contributes one score regardless of length.
 
 Neither is the universally correct view; they answer different questions. The
-dashboard and Excel workbook show their signed difference. A divergence may be
+dashboard and corpus CSV/Word bundle show their signed difference. A divergence may be
 an important result. A work with no eligible score is reported as omitted and
 never assigned a neutral value.
 
@@ -429,9 +429,9 @@ never assigned a neutral value.
 contribute more to the combined grammatical profile. **Work-by-Work
 Comparison** reports each work's count and within-work share separately. Use
 the latter when comparing relative grammatical composition across differently
-sized works. Broad and detailed profile levels are both available. The Excel
-workbook includes the same rows and a **Profile Level** field in **Part of
-Speech**.
+sized works. Broad and detailed profile levels are both available.
+`corpus_part_of_speech.csv` includes the same rows and a **Profile Level**
+field.
 
 ### Review scenarios
 
@@ -483,57 +483,31 @@ emotion-association, sentiment-association, and intensity rows with plain
 labels and denominator notes. `VerseVAD_CSV_reading_guide.csv` explains what
 each detailed file is for.
 
-The full audit ZIP begins with `START_HERE.txt` and includes those two friendly
-files plus:
+The full audit ZIP contains the friendly CSV files,
+`VerseVAD_analysis_report.docx`, module-specific `*_report.docx` files, and:
 
-- `phase2_match_audit.csv` — token/span structure, surface and processing forms,
-  POS, lemma, plus included, unmatched, ineligible, and suppressed match
-  decisions with source values and provenance;
-- `phase2_coverage.csv` — eligible, matched, and unmatched counts and rates;
-- `phase2_vad_summary.csv` — source-scale and derived VAD statistics;
-- `vad_by_part_of_speech.csv` — source- and view-specific broad-POS coverage,
-  token-weighted and type-weighted VAD means on both normalized and original
-  scales, phrase counts, sparsity, and normalization provenance;
-- `phase2_emotion_associations.csv` — category counts, rates, denominators, and
-  contributors;
-- `phase2_emotion_intensity.csv` — prevalence and matched-pair intensity
-  summaries;
-- `phase2_cross_lexicon_comparison.csv` — source-specific metrics placed side by
-  side, with no consensus score;
-- `phase2_manifest.csv` — software, source hashes, adapter and recipe details,
-  inclusion decisions, and other reproducibility metadata.
-- `phase2_results.json` — the structured analysis result, including the complete
-  stopword policy and both VAD views, for machine-readable reuse.
-- `poem_document.json` — exact original text, stanza/line and model-sentence
-  structure, shared tokens and annotations, orthographic spans, processing
-  configuration/provenance, coverage, and warnings.
-- six `concreteness_*` CSV/JSON files when the optional module is enabled:
-  summary, structure, POS, terms, token audit, and complete result.
-- seven `frequency_*` CSV/JSON files when the optional module is enabled:
-  summary, distribution, structure, POS, terms, token audit, and complete
-  result.
-- eight `aoa_*` CSV/JSON files when the optional module is enabled: summary,
-  distribution, structure, POS, terms, relationships, token audit, and
-  complete result.
-- five `pronunciation_*` CSV/JSON files when the optional module is enabled:
-  summary, physical lines, observed types, complete token/candidate audit, and
-  structured result.
-- six `meter_*` CSV/JSON files when candidate meter is enabled: readable
-  summary, all 40 fixed candidates, physical lines, operation-level alignment
-  audit, and structured result.
-- seven Stage 7 CSV/JSON files when rhyme and phonological patterns are enabled:
-  summary, stanzas, lines, ending pairs, internal rhyme, sound families, and
-  structured result.
+- `phase2_match_audit.csv`, `phase2_coverage.csv`,
+  `phase2_vad_summary.csv`, `phase2_emotion_associations.csv`,
+  `phase2_emotion_intensity.csv`, `phase2_cross_lexicon_comparison.csv`, and
+  `phase2_manifest.csv` for affective evidence and reproducibility;
+- `vad_by_part_of_speech.csv` for source- and view-specific token- and
+  type-weighted VAD means by broad POS;
+- `processing_source.csv`, `processing_configuration.csv`,
+  `processing_structure.csv`, `processing_sentences.csv`,
+  `processing_tokens.csv`, `processing_dependencies.csv`,
+  `processing_entities.csv`, `processing_orthographic_spans.csv`,
+  `processing_coverage.csv`, and `processing_warnings.csv` for the exact shared
+  processing representation;
+- module CSV sets for concreteness, frequency, AoA, pronunciation, meter,
+  rhyme/sound, lexical style, and PoetryID when enabled.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
-open them correctly. Both JSON files are local machine-readable records.
-`poem_document.json` contains the original text, so protect it as research
-material. The concreteness exports retain source-row provenance but do not copy
-the full ratings workbook. The frequency exports likewise retain source-row
-provenance without copying the 74,286-row workbook. AoA exports retain
-poem-specific source-row and response evidence without copying the 31,124-row
-workbook. The full ZIP is the reproducibility record; the friendly summary is
-the reading aid.
+open them correctly. VerseVAD does not generate JSON, TXT, or XLSX analysis
+exports. `processing_source.csv` contains the original text, so protect the
+full bundle as research material. Optional-module CSV files retain
+poem-specific evidence and source-row provenance without copying the complete
+licensed lexicon workbooks. The full ZIP is the reproducibility record; the
+Word reports and scholar summary are the reading aids.
 
 ## Pronunciation & Prosody foundation
 
@@ -758,7 +732,7 @@ Read the PoetryID tab in this order:
 6. nearest alternatives and all 27 distances;
 7. optional secondary concreteness, SUBTLEX-US Zipf frequency, and AoA
    character;
-8. methodology, cautions, and CSV/TXT downloads.
+8. methodology, cautions, CSV data, and a narrative Word report.
 
 Profile names are interpretive labels for normative lexical neighborhoods.
 They do not identify the emotion of the poem, speaker, author, or reader.
@@ -773,5 +747,4 @@ VAD lexicon. The module view shows compatible profile distributions, 3x3 map
 counts, continuous work positions, and token/type sensitivity. Filter to one
 source/view/weighting combination before interpreting a distribution.
 
-PoetryID downloads are six CSV files and one plain-text report. There is no
-PoetryID JSON export.
+PoetryID downloads are six CSV files and one narrative Word report.

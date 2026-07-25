@@ -1,15 +1,14 @@
-"""Stable UTF-8 CSV and JSON exports for Stage 6 meter evidence."""
+"""Stable UTF-8 CSV and narrative Word meter exports."""
 
 from __future__ import annotations
 
 import csv
 import io
-import json
 from dataclasses import asdict
-from enum import Enum
-from pathlib import Path
 from typing import Iterable
 
+from versevad.exports.docx_report import build_narrative_report_from_summary_csv
+from versevad.exports.module_manifest import export_module_manifest_csv
 from versevad.prosody.meter import MeterAnalysisResult
 
 
@@ -22,27 +21,6 @@ def _csv_bytes(
     writer.writeheader()
     writer.writerows(rows)
     return b"\xef\xbb\xbf" + output.getvalue().encode("utf-8")
-
-
-def _json_default(value: object) -> object:
-    if isinstance(value, Enum):
-        return value.value
-    if isinstance(value, Path):
-        return str(value)
-    raise TypeError(f"Not JSON serializable: {type(value)!r}")
-
-
-def export_meter_json(result: MeterAnalysisResult) -> bytes:
-    return (
-        json.dumps(
-            asdict(result),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-            default=_json_default,
-        )
-        + "\n"
-    ).encode("utf-8")
 
 
 def export_meter_summary_csv(result: MeterAnalysisResult) -> bytes:
@@ -492,7 +470,7 @@ def export_meter_scholar_revisions_csv(result: MeterAnalysisResult) -> bytes:
     return _csv_bytes(fields, rows)
 
 
-def export_meter_scansion_report(result: MeterAnalysisResult) -> bytes:
+def _meter_scansion_narrative(result: MeterAnalysisResult) -> bytes:
     """Return an accessible plain-text performance-aware scansion report."""
 
     performance = result.performance_aware
@@ -608,7 +586,11 @@ def export_meter_scansion_report(result: MeterAnalysisResult) -> bytes:
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
-def export_meter_bundle(result: MeterAnalysisResult) -> dict[str, bytes]:
+def export_meter_bundle(
+    result: MeterAnalysisResult,
+    *,
+    text_title: str = "",
+) -> dict[str, bytes]:
     bundle = {
         "meter_summary.csv": export_meter_summary_csv(result),
         "meter_candidates.csv": export_meter_candidates_csv(result),
@@ -616,7 +598,7 @@ def export_meter_bundle(result: MeterAnalysisResult) -> dict[str, bytes]:
         "meter_alignment_operations.csv": (
             export_meter_alignment_operations_csv(result)
         ),
-        "meter_result.json": export_meter_json(result),
+        "meter_manifest.csv": export_module_manifest_csv(result),
     }
     if result.performance_aware is not None:
         bundle.update(
@@ -626,13 +608,21 @@ def export_meter_bundle(result: MeterAnalysisResult) -> dict[str, bytes]:
                 "meter_rhythm_trajectory.csv": (
                     export_meter_rhythm_trajectory_csv(result)
                 ),
-                "meter_scansion_report.txt": export_meter_scansion_report(
-                    result
-                ),
             }
         )
         if result.performance_aware.scholar_revisions:
             bundle["meter_scholar_revisions.csv"] = (
                 export_meter_scholar_revisions_csv(result)
             )
+    bundle["meter_report.docx"] = build_narrative_report_from_summary_csv(
+        "meter",
+        bundle["meter_summary.csv"],
+        companion_csv_files=tuple(bundle),
+        text_title=text_title,
+        text_id=result.module_result.text_id,
+        result_id=result.module_result.result_id,
+        warnings=tuple(
+            warning.message for warning in result.module_result.warnings
+        ),
+    )
     return bundle

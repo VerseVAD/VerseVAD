@@ -145,9 +145,12 @@ def render_stopword_settings(key_prefix: str) -> StopwordUiSettings:
         st.code("\n".join(policy.active_words) or "(no active exclusions)")
         st.download_button(
             "Export active stopword list",
-            data=("\n".join(policy.active_words) + "\n").encode("utf-8"),
-            file_name="VerseVAD_active_stopwords.txt",
-            mime="text/plain",
+            data=(
+                "\ufeffstopword\n"
+                + "".join(f"{word}\n" for word in policy.active_words)
+            ).encode("utf-8"),
+            file_name="VerseVAD_active_stopwords.csv",
+            mime="text/csv",
             key=f"{key_prefix}_export_stopwords",
         )
     return StopwordUiSettings(

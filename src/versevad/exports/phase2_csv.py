@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from dataclasses import asdict
 from enum import Enum
 from pathlib import Path
@@ -60,40 +58,13 @@ def _score(scores: object, dimension: str) -> float | str:
 
 
 def _json_default(value: object) -> object:
+    """Encode nested values stored inside otherwise tabular CSV cells."""
+
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, Path):
         return str(value)
-    raise TypeError(f"Not JSON serializable: {type(value)!r}")
-
-
-def _atomic_write_json(destination: Path, payload: object) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary_name = ""
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            newline="\n",
-            prefix=f".{destination.stem}-",
-            suffix=".tmp",
-            dir=destination.parent,
-            delete=False,
-        ) as temporary:
-            temporary_name = temporary.name
-            json.dump(
-                payload,
-                temporary,
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
-                default=_json_default,
-            )
-            temporary.write("\n")
-        os.replace(temporary_name, destination)
-    finally:
-        if temporary_name and os.path.exists(temporary_name):
-            os.unlink(temporary_name)
+    raise TypeError(f"Not serializable for a CSV cell: {type(value)!r}")
 
 
 def _match_rows(results: tuple[Phase2AnalysisResult, ...]) -> Iterable[dict[str, object]]:
@@ -404,7 +375,6 @@ def export_phase2_csv(
         "intensity": output_directory / "phase2_emotion_intensity.csv",
         "comparison": output_directory / "phase2_cross_lexicon_comparison.csv",
         "manifest": output_directory / "phase2_manifest.csv",
-        "json": output_directory / "phase2_results.json",
     }
     _atomic_write_csv(paths["matches"], MATCH_FIELDS, _match_rows(result_tuple))
     coverage = _coverage_rows(result_tuple)
@@ -438,9 +408,4 @@ def export_phase2_csv(
     _atomic_write_csv(paths["comparison"], list(comparison_rows[0]), comparison_rows)
     manifest = _manifest_rows(result_tuple)
     _atomic_write_csv(paths["manifest"], list(manifest[0]), manifest)
-    payload = {
-        "results": [asdict(result) for result in result_tuple],
-        "comparison": asdict(comparison),
-    }
-    _atomic_write_json(paths["json"], payload)
     return tuple(paths.values())

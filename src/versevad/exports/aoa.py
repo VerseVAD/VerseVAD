@@ -1,15 +1,14 @@
-"""Stable UTF-8 CSV and JSON exports for age-of-acquisition results."""
+"""Stable UTF-8 CSV and narrative Word exports for AoA results."""
 
 from __future__ import annotations
 
 import csv
 import io
-import json
 from dataclasses import asdict
-from enum import Enum
-from pathlib import Path
 from typing import Iterable
 
+from versevad.exports.docx_report import build_narrative_report_from_summary_csv
+from versevad.exports.module_manifest import export_module_manifest_csv
 from versevad.lexical_semantic.aoa import AoAAnalysisResult
 
 
@@ -22,27 +21,6 @@ def _csv_bytes(
     writer.writeheader()
     writer.writerows(rows)
     return b"\xef\xbb\xbf" + output.getvalue().encode("utf-8")
-
-
-def _json_default(value: object) -> object:
-    if isinstance(value, Enum):
-        return value.value
-    if isinstance(value, Path):
-        return str(value)
-    raise TypeError(f"Not JSON serializable: {type(value)!r}")
-
-
-def export_aoa_json(result: AoAAnalysisResult) -> bytes:
-    return (
-        json.dumps(
-            asdict(result),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-            default=_json_default,
-        )
-        + "\n"
-    ).encode("utf-8")
 
 
 def export_aoa_summary_csv(result: AoAAnalysisResult) -> bytes:
@@ -404,8 +382,12 @@ def export_aoa_token_audit_csv(result: AoAAnalysisResult) -> bytes:
     return _csv_bytes(fields, rows)
 
 
-def export_aoa_bundle(result: AoAAnalysisResult) -> dict[str, bytes]:
-    return {
+def export_aoa_bundle(
+    result: AoAAnalysisResult,
+    *,
+    text_title: str = "",
+) -> dict[str, bytes]:
+    bundle = {
         "aoa_summary.csv": export_aoa_summary_csv(result),
         "aoa_distribution.csv": export_aoa_distribution_csv(result),
         "aoa_by_structure.csv": export_aoa_by_structure_csv(result),
@@ -413,5 +395,17 @@ def export_aoa_bundle(result: AoAAnalysisResult) -> dict[str, bytes]:
         "aoa_terms.csv": export_aoa_terms_csv(result),
         "aoa_relationships.csv": export_aoa_relationships_csv(result),
         "aoa_token_audit.csv": export_aoa_token_audit_csv(result),
-        "aoa_result.json": export_aoa_json(result),
+        "aoa_manifest.csv": export_module_manifest_csv(result),
     }
+    bundle["aoa_report.docx"] = build_narrative_report_from_summary_csv(
+        "aoa",
+        bundle["aoa_summary.csv"],
+        companion_csv_files=tuple(bundle),
+        text_title=text_title,
+        text_id=result.module_result.text_id,
+        result_id=result.module_result.result_id,
+        warnings=tuple(
+            warning.message for warning in result.module_result.warnings
+        ),
+    )
+    return bundle

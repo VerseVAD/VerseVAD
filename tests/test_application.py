@@ -1,6 +1,5 @@
 import csv
 import io
-import json
 import zipfile
 from dataclasses import replace
 
@@ -196,7 +195,8 @@ def test_workspace_poetry_id_reuses_completed_vad_and_has_no_json_export(
             "poetry_id_methodology.csv",
             "poetry_id_archetype_map.csv",
             "poetry_id_vad_scales.csv",
-            "poetry_id_report.txt",
+            "poetry_id_manifest.csv",
+            "poetry_id_report.docx",
         }
         assert not any(name.endswith(".json") for name in poetry_id_files)
 
@@ -553,25 +553,26 @@ def test_detailed_download_starts_with_friendly_files_and_retains_audit(
     archive = detailed_export_zip(synthetic_workspace)
     with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
         names = set(bundle.namelist())
-        assert "START_HERE.txt" in names
+        assert "VerseVAD_analysis_report.docx" in names
         assert "scholar_summary.csv" in names
         assert "csv_reading_guide.csv" in names
         assert "phase2_match_audit.csv" in names
         assert "phase2_manifest.csv" in names
-        assert "phase2_results.json" in names
-        assert "poem_document.json" in names
+        assert "processing_source.csv" in names
+        assert "processing_tokens.csv" in names
+        assert "processing_configuration.csv" in names
         assert "vad_by_part_of_speech.csv" in names
-        poem_document = json.loads(bundle.read("poem_document.json"))
-        assert poem_document["source"]["original_text"] == "Fear joy dark night."
-        assert poem_document["configuration"]["preserve_original_text"] is True
-        assert poem_document["coverage"]["total_token_count"] > 0
-        assert any(
-            unit["kind"] == "line"
-            for unit in poem_document["structural_units"]
-        )
-        start_here = bundle.read("START_HERE.txt").decode("utf-8")
-        assert "lexical evidence" in start_here
-        assert "poem_document.json" in start_here
+        assert not any(name.endswith((".json", ".txt", ".xlsx")) for name in names)
+        source = _csv_rows(bundle.read("processing_source.csv"))[0]
+        assert source["original_text"] == "Fear joy dark night."
+        configuration = _csv_rows(
+            bundle.read("processing_configuration.csv")
+        )[0]
+        assert configuration["preserve_original_text"] == "True"
+        coverage = _csv_rows(bundle.read("processing_coverage.csv"))[0]
+        assert int(coverage["total_token_count"]) > 0
+        structure = _csv_rows(bundle.read("processing_structure.csv"))
+        assert any(unit["kind"] == "line" for unit in structure)
 
 
 def test_workspace_can_run_pronunciation_without_an_affective_lexicon(
@@ -605,7 +606,8 @@ def test_workspace_can_run_pronunciation_without_an_affective_lexicon(
         assert "pronunciation_summary.csv" in names
         assert "pronunciation_lines.csv" in names
         assert "pronunciation_token_audit.csv" in names
-        assert "pronunciation_result.json" in names
+        assert "pronunciation_report.docx" in names
+        assert not any(name.endswith(".json") for name in names)
 
 
 def test_workspace_can_run_meter_and_automatically_include_pronunciation(
@@ -642,7 +644,8 @@ def test_workspace_can_run_meter_and_automatically_include_pronunciation(
         assert "meter_schemes.csv" not in names
         assert "meter_lines.csv" in names
         assert "meter_alignment_operations.csv" in names
-        assert "meter_result.json" in names
+        assert "meter_report.docx" in names
+        assert not any(name.endswith(".json") for name in names)
 
 
 def test_workspace_can_run_phonology_and_automatically_include_pronunciation(
@@ -683,7 +686,7 @@ def test_workspace_can_run_phonology_and_automatically_include_pronunciation(
             "rhyme_pairs.csv",
             "rhyme_internal.csv",
             "phonological_sounds.csv",
-            "rhyme_result.json",
+            "rhyme_report.docx",
         } <= names
 
 
@@ -724,5 +727,5 @@ def test_workspace_can_run_lexical_style_without_external_resources(
             "lexical_style_lines.csv",
             "lexical_style_stanzas.csv",
             "lexical_style_token_audit.csv",
-            "lexical_style_result.json",
+            "lexical_style_report.docx",
         } <= set(bundle.namelist())

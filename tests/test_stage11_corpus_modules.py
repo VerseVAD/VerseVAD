@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import csv
 import io
 import zipfile
 
 import pytest
-from openpyxl import load_workbook
 
 from versevad.corpus import (
     CorpusAnalysisCancelled,
@@ -19,7 +19,7 @@ from versevad.db import (
     ProjectRepository,
 )
 from versevad.lexical_style import LexicalStyleConfiguration
-from versevad.exports.corpus_excel import build_corpus_workbook
+from versevad.exports.corpus_csv import build_corpus_export_bundle
 from versevad.prosody import MeterAnalysisMode, MeterConfiguration
 
 
@@ -120,7 +120,8 @@ def test_optional_module_only_corpus_batch_persists_auditable_results(
         "lexical_style_lines.csv",
         "lexical_style_stanzas.csv",
         "lexical_style_token_audit.csv",
-        "lexical_style_result.json",
+        "lexical_style_manifest.csv",
+        "lexical_style_report.docx",
     }
     bundle = repository.build_module_artifact_zip(
         first.run_id,
@@ -146,7 +147,7 @@ def test_optional_module_only_corpus_batch_persists_auditable_results(
     assert pooled["lexical_style.pooled.mattr"].value == pytest.approx(1.0)
     assert pooled["lexical_style.pooled.hdd"].value == pytest.approx(0.9)
 
-    workbook_bytes = build_corpus_workbook(
+    corpus_bundle = build_corpus_export_bundle(
         project,
         repository.list_texts(project.project_id),
         (),
@@ -157,16 +158,32 @@ def test_optional_module_only_corpus_batch_persists_auditable_results(
         module_aggregates=aggregates,
         module_warnings=warnings,
     )
-    workbook = load_workbook(io.BytesIO(workbook_bytes), data_only=False)
-    assert workbook["Module Work Results"]["A5"].value in {"First", "Second"}
-    assert workbook["Module Structure"]["K5"].value != "document"
-    collection_methods = {
-        row[10].value
-        for row in workbook["Module Collection"].iter_rows(min_row=5)
-        if row[10].value
-    }
-    assert "ordered_pooled_token_sequence" in collection_methods
-    assert workbook["Module Provenance"]["J5"].value
+    with zipfile.ZipFile(io.BytesIO(corpus_bundle)) as archive:
+        assert "corpus_report.docx" in archive.namelist()
+        metric_rows = list(
+            csv.DictReader(
+                io.StringIO(
+                    archive.read("corpus_module_metrics.csv").decode(
+                        "utf-8-sig"
+                    )
+                )
+            )
+        )
+        aggregate_rows = list(
+            csv.DictReader(
+                io.StringIO(
+                    archive.read("corpus_module_aggregates.csv").decode(
+                        "utf-8-sig"
+                    )
+                )
+            )
+        )
+        assert {row["title"] for row in metric_rows} == {"First", "Second"}
+        assert any(row["scope"] != "document" for row in metric_rows)
+        assert any(
+            row["aggregation_method"] == "ordered_pooled_token_sequence"
+            for row in aggregate_rows
+        )
 
 
 def test_corpus_uses_same_optional_performance_aware_meter_engine(
@@ -236,7 +253,7 @@ def test_corpus_uses_same_optional_performance_aware_meter_engine(
         "meter_realizations.csv",
         "meter_stanzas.csv",
         "meter_rhythm_trajectory.csv",
-        "meter_scansion_report.txt",
+        "meter_report.docx",
     } <= artifacts
 
 

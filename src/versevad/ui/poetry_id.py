@@ -311,13 +311,15 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
                 mime=(
                     "text/csv"
                     if filename.endswith(".csv")
-                    else "text/plain"
+                    else (
+                        "application/vnd.openxmlformats-officedocument."
+                        "wordprocessingml.document"
+                    )
                 ),
                 key=f"download_{filename}",
             )
         st.caption(
-            "PoetryID intentionally exports CSV chart data and a plain-text "
-            "report only; no JSON export is generated."
+            "PoetryID exports CSV chart data and a narrative Word report."
         )
 
     st.warning(assignment.categorical_archetype.interpretive_caution)

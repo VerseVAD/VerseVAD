@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import importlib
 import os
 import sys
+import zipfile
 from dataclasses import asdict
 from pathlib import Path
 
@@ -207,14 +209,13 @@ if _explorer_was_reloaded:
     importlib.reload(_explorer_ui_services)
     st.session_state["_explorer_runtime_revision"] = _EXPLORER_RUNTIME_REVISION
 
-# Corpus Excel gained a methodology argument after the persistent workspace
-# first shipped. An already-open Streamlit process can otherwise retain the
-# four-argument exporter while loading the newer five-argument corpus page.
-_CORPUS_RUNTIME_REVISION = "2026-07-24-poetry-id-1"
-import versevad.exports.corpus_excel as _corpus_excel_services
+# Keep an already-open development server aligned with the current corpus
+# CSV/DOCX exporter and corpus page.
+_CORPUS_RUNTIME_REVISION = "2026-07-25-csv-docx-1"
+import versevad.exports.corpus_csv as _corpus_export_services
 
 _corpus_was_reloaded = (
-    getattr(_corpus_excel_services, "CORPUS_WORKBOOK_API_VERSION", 0) < 6
+    getattr(_corpus_export_services, "CORPUS_EXPORT_API_VERSION", 0) < 1
     or (
         _DEVELOPMENT_HOT_RELOAD
         and st.session_state.get("_corpus_runtime_revision")
@@ -222,7 +223,7 @@ _corpus_was_reloaded = (
     )
 )
 if _corpus_was_reloaded:
-    importlib.reload(_corpus_excel_services)
+    importlib.reload(_corpus_export_services)
     if "versevad.ui.corpus" in sys.modules:
         importlib.reload(sys.modules["versevad.ui.corpus"])
     st.session_state["_corpus_runtime_revision"] = _CORPUS_RUNTIME_REVISION
@@ -5486,17 +5487,23 @@ if workspace_page in {"Single Poem", "Other Text"}:
             ),
         ):
             with st.spinner("Preparing complete local exports..."):
+                audit_bundle = detailed_export_zip(
+                    workspace,
+                    use_cache=st.session_state.get(
+                        "analysis_cache_enabled",
+                        True,
+                    ),
+                )
+                with zipfile.ZipFile(io.BytesIO(audit_bundle)) as archive:
+                    narrative_report = archive.read(
+                        "VerseVAD_analysis_report.docx"
+                    )
                 prepared_exports = {
                     "signature": export_signature,
                     "summary": scholar_summary_csv(workspace),
                     "guide": csv_reading_guide(),
-                    "bundle": detailed_export_zip(
-                        workspace,
-                        use_cache=st.session_state.get(
-                            "analysis_cache_enabled",
-                            True,
-                        ),
-                    ),
+                    "report": narrative_report,
+                    "bundle": audit_bundle,
                 }
                 st.session_state["prepared_workspace_exports"] = (
                     prepared_exports
@@ -5505,7 +5512,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             prepared_exports
             and prepared_exports.get("signature") == export_signature
         ):
-            column1, column2, column3 = st.columns(3)
+            column1, column2, column3, column4 = st.columns(4)
             column1.download_button(
                 "Download readable summary",
                 data=prepared_exports["summary"],
@@ -5523,6 +5530,17 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 key="download_guide",
             )
             column3.download_button(
+                "Download narrative report",
+                data=prepared_exports["report"],
+                file_name=f"{safe_stem}_VerseVAD_report.docx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                ),
+                width="stretch",
+                key="download_narrative_report",
+            )
+            column4.download_button(
                 "Download full audit bundle",
                 data=prepared_exports["bundle"],
                 file_name=f"{safe_stem}_VerseVAD_audit.zip",
@@ -5536,26 +5554,12 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "large audit bundles during ordinary interface interactions."
             )
         st.info(
-            "The full bundle contains START_HERE.txt, the readable summary, the CSV "
-            "guide, match audit, coverage, VAD, association, intensity, comparison, "
-            "reproducibility-manifest, shared poem document, and complete JSON "
-            "result files. When concreteness is selected, it also includes its "
-            "summary, structural, POS, term, token-audit, and JSON files. When "
-            "frequency is selected, it includes its summary, distribution, "
-            "structural, POS, term, token-audit, and JSON files. When Age of "
-            "Acquisition is selected, it includes summary, distribution, "
-            "structural, POS, term, relationship, token-audit, and JSON files. "
-            "When Pronunciation & Prosody is selected, it includes summary, "
-            "line, observed-type, candidate/token-audit, and JSON files. When "
-            "Meter & Rhythm is selected, it also includes the 40 fixed "
-            "candidates, line and alignment audits, summary, and JSON files. "
-            "Performance-aware runs additionally include realized readings, "
-            "stanza recurrence, trajectory, and a plain-text scansion report. "
-            "When Rhyme & Sound is selected, it includes whole-poem and stanza "
-            "schemes, line and ending-pair evidence, internal rhyme, recurring "
-            "sound families, coverage, summary, and JSON files. When Lexical "
-            "Style is selected, it includes diversity and word-length summaries, "
-            "line and stanza word counts, token audit, and JSON files."
+            "The full bundle contains the narrative Word report, readable CSV "
+            "summary and guide, shared processing CSVs, and complete module CSV "
+            "audit tables. Each selected optional module also includes its own "
+            "narrative Word report. ZIP is used only to keep the related CSV and "
+            "DOCX files together; VerseVAD no longer generates JSON, TXT, or XLSX "
+            "analysis exports."
         )
 
     with help_tab:

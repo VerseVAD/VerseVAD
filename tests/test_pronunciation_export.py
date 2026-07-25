@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import csv
 import io
-import json
 from pathlib import Path
 
 from versevad.core import ModuleInput
 from versevad.exports.pronunciation import (
     export_pronunciation_bundle,
-    export_pronunciation_json,
     export_pronunciation_lines_csv,
     export_pronunciation_token_audit_csv,
 )
@@ -54,23 +52,26 @@ def test_pronunciation_exports_preserve_candidates_and_missing_values(
     assert lines[1]["syllable_count"] == "2"
 
 
-def test_pronunciation_json_and_bundle_are_complete_and_deterministic(
+def test_pronunciation_word_report_and_bundle_are_complete_and_deterministic(
     tmp_path: Path,
     preprocessor,
 ) -> None:
     result = _result(tmp_path, preprocessor)
-    first = export_pronunciation_json(result)
-    second = export_pronunciation_json(result)
-    payload = json.loads(first)
     bundle = export_pronunciation_bundle(result)
+    second = export_pronunciation_bundle(result)
 
-    assert first == second
-    assert payload["module_result"]["module_name"] == "pronunciation_prosody_foundation"
-    assert payload["token_audit"][1]["status"] == "unmatched"
+    assert bundle["pronunciation_report.docx"] == second[
+        "pronunciation_report.docx"
+    ]
+    assert result.module_result.module_name == "pronunciation_prosody_foundation"
+    assert result.token_audit[1].status.value == "unmatched"
     assert set(bundle) == {
         "pronunciation_summary.csv",
         "pronunciation_lines.csv",
         "pronunciation_types.csv",
         "pronunciation_token_audit.csv",
-        "pronunciation_result.json",
+        "pronunciation_manifest.csv",
+        "pronunciation_report.docx",
     }
+    assert bundle["pronunciation_report.docx"].startswith(b"PK")
+    assert not any(name.endswith(".json") for name in bundle)

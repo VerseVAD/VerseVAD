@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed export-policy overhaul
+
+- [x] Standardize visible analysis downloads on UTF-8 CSV data and narrative
+  DOCX reports, using ZIP only as a multi-file container.
+- [x] Replace JSON/TXT result artifacts, the nested poem-document JSON, and the
+  corpus XLSX workbook with complete CSV audit tables.
+- [x] Add a comprehensive one-text report, module-specific reports, and a
+  corpus report; update the interface, documentation, and regression coverage.
+
 Last updated: 2026-07-24
 
 Status markers: `[x]` complete, `[ ]` pending, `[~]` in progress, `[?]` human

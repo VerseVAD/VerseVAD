@@ -11,7 +11,7 @@ from versevad.poetry_id import (
 from versevad.preprocessing import create_text_document
 
 
-def test_poetry_id_bundle_is_csv_and_text_only() -> None:
+def test_poetry_id_bundle_is_csv_and_word_only() -> None:
     document = create_text_document("export-test", "Export Test", "Invented.")
     module_input = ModuleInput(
         document=document,
@@ -54,8 +54,10 @@ def test_poetry_id_bundle_is_csv_and_text_only() -> None:
         "poetry_id_methodology.csv",
         "poetry_id_archetype_map.csv",
         "poetry_id_vad_scales.csv",
-        "poetry_id_report.txt",
+        "poetry_id_manifest.csv",
+        "poetry_id_report.docx",
     }
-    assert not any(name.endswith(".json") for name in bundle)
+    assert not any(name.endswith((".json", ".txt", ".xlsx")) for name in bundle)
+    assert bundle["poetry_id_report.docx"].startswith(b"PK")
     assert b"The Survivor" in bundle["poetry_id_summary.csv"]
     assert b"not probabilities" in bundle["poetry_id_methodology.csv"]

@@ -4,6 +4,15 @@ All notable VerseVAD changes will be recorded here.
 
 ## 1.0.0
 
+### Changed
+
+- Standardized user-facing analysis exports on UTF-8 CSV data and narrative
+  DOCX reports. JSON, TXT, and corpus XLSX analysis exports were replaced by
+  complete CSV audit tables; ZIP remains a container for related files.
+- Replaced the nested poem-document JSON with explicit `processing_*.csv`
+  tables and added a comprehensive one-text report, module-specific reports,
+  and a corpus narrative report.
+
 ### Added
 
 - First public-release version of VerseVAD.

@@ -150,7 +150,7 @@ def run_demo(output_directory: Path) -> tuple[Path, ...]:
             f"{result.coverage.matched_token_count}/"
             f"{result.coverage.total_lexical_tokens} lexical tokens ({percentage})"
         )
-    print("Created auditable Phase 2 CSV and JSON files:")
+    print("Created auditable Phase 2 CSV files:")
     for path in paths:
         print(f"- {path.resolve()}")
     return paths

@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import json
 import zipfile
 from pathlib import Path
 
@@ -19,7 +18,6 @@ from versevad.core import ResourceSpec
 from versevad.exports.concreteness import (
     export_concreteness_by_pos_csv,
     export_concreteness_by_structure_csv,
-    export_concreteness_json,
     export_concreteness_summary_csv,
     export_concreteness_terms_csv,
     export_concreteness_token_audit_csv,
@@ -90,13 +88,8 @@ def test_concreteness_exports_are_complete_and_keep_missing_values_empty(
     result = workspace.concreteness
     assert result is not None
 
-    payload = json.loads(export_concreteness_json(result))
-    assert payload["module_result"]["module_name"] == "concreteness"
-    unmatched = next(
-        row for row in payload["token_audit"] if row["surface_form"] == "quorvax"
-    )
-    assert unmatched["rating"] is None
-    assert payload["summary"]["token_coverage"] == 2 / 3
+    assert result.module_result.module_name == "concreteness"
+    assert result.summary.token_coverage == 2 / 3
 
     summary_rows = list(
         csv.DictReader(
@@ -143,10 +136,11 @@ def test_concreteness_only_workspace_and_full_bundle(
             "concreteness_by_pos.csv",
             "concreteness_terms.csv",
             "concreteness_token_audit.csv",
-            "concreteness_result.json",
-            "poem_document.json",
-            "START_HERE.txt",
+            "concreteness_report.docx",
+            "processing_source.csv",
+            "processing_tokens.csv",
+            "VerseVAD_analysis_report.docx",
         }
         assert not any(name.startswith("phase2_") for name in names)
-        start_here = bundle.read("START_HERE.txt").decode("utf-8")
-        assert "normative lexical concreteness" in start_here
+        assert not any(name.endswith((".json", ".txt", ".xlsx")) for name in names)
+        assert bundle.read("concreteness_report.docx").startswith(b"PK")

@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 from dataclasses import asdict
 
 import pandas as pd
 import streamlit as st
 
-import versevad.exports.corpus_excel as corpus_excel_exports
 from versevad.application import (
     LEXICON_SPECS,
     ResourceReadiness,
@@ -19,6 +17,7 @@ from versevad.application import (
     load_lexicon,
     part_of_speech_views_for_tokens,
 )
+from versevad.exports.corpus_csv import build_corpus_export_bundle
 from versevad.corpus import (
     CorpusAnalysisConfiguration,
     analyze_corpus,
@@ -2364,22 +2363,17 @@ def _render_export_tab(
     module_warnings = repository.list_latest_module_warnings(project_id)
     module_results = repository.list_latest_module_results(project_id)
     module_aggregates = repository.list_latest_module_aggregates(project_id)
-    st.subheader("Excel Research Workbook")
+    st.subheader("CSV and Word Research Bundle")
     st.write(
-        "The workbook begins with a reading guide and includes both collection "
-        "weightings, individual-work token/type means, cumulative load, coverage, "
-        "emotion metrics, unmatched review notes, and provenance metadata."
+        "The ZIP includes machine-readable CSV tables plus a narrative Word "
+        "report. It retains collection weightings, work-level results, coverage, "
+        "unmatched review notes, methodology, and provenance."
     )
     if not metrics and not module_metrics:
-        st.info("Complete a corpus analysis before exporting a workbook.")
+        st.info("Complete a corpus analysis before exporting the research bundle.")
         return
-    # A Streamlit process can remain open while VerseVAD is updated. Resolve
-    # the exporter through its module and refresh it if that process retained
-    # the pre-methodology four-argument API.
-    if getattr(corpus_excel_exports, "CORPUS_WORKBOOK_API_VERSION", 0) < 5:
-        importlib.reload(corpus_excel_exports)
     methodology = repository.latest_methodology(project_id)
-    workbook = corpus_excel_exports.build_corpus_workbook(
+    export_bundle = build_corpus_export_bundle(
         project,
         texts,
         metrics,
@@ -2394,15 +2388,16 @@ def _render_export_tab(
         module_aggregates=module_aggregates,
     )
     st.download_button(
-        "Download corpus Excel workbook",
-        data=workbook,
-        file_name=f"{_safe_filename(project.title)}_VerseVAD_corpus.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Download corpus CSV and Word bundle",
+        data=export_bundle,
+        file_name=f"{_safe_filename(project.title)}_VerseVAD_corpus.zip",
+        mime="application/zip",
         type="primary",
         key=f"download_corpus_{project_id}",
     )
     st.caption(
-        "The workbook does not duplicate the full literary texts; it records text/version IDs, source paths, and SHA-256 hashes."
+        "The bundle does not duplicate the full literary texts; it records "
+        "text/version IDs, source paths, and SHA-256 hashes."
     )
 
 
@@ -2427,7 +2422,7 @@ def render_corpus_workspace(
         "Project / Corpus",
         "Import a folder as separate works, add metadata, compare complete analysis "
         "batches across affective and optional lexical/prosodic modules, build "
-        "versioned review scenarios, and export a readable Excel workbook.",
+        "versioned review scenarios, and export CSV data with a readable Word report.",
         kicker="Private corpus research workspace",
         status="Persistent",
     )
@@ -2487,7 +2482,7 @@ def render_corpus_workspace(
             "Language Profile",
             "Analyze & Compare",
             "Review & Scenarios",
-            "Excel Export",
+            "Export",
             "Project Settings",
         ]
     )

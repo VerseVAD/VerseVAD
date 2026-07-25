@@ -9,7 +9,6 @@ from versevad.core import ModuleInput
 from versevad.exports.meter import (
     export_meter_bundle,
     export_meter_realizations_csv,
-    export_meter_scansion_report,
 )
 from versevad.preprocessing import create_text_document
 from versevad.prosody.meter import (
@@ -217,22 +216,20 @@ def test_performance_exports_are_auditable_and_exclude_named_common_meter(
 
     bundle = export_meter_bundle(result)
     rows = _rows(export_meter_realizations_csv(result))
-    report = export_meter_scansion_report(result).decode("utf-8")
 
     assert {
         "meter_realizations.csv",
         "meter_stanzas.csv",
         "meter_rhythm_trajectory.csv",
-        "meter_scansion_report.txt",
+        "meter_report.docx",
     } <= set(bundle)
+    assert not any(name.endswith((".json", ".txt", ".xlsx")) for name in bundle)
     assert rows
     assert {"primary", "alternate"} <= {
         row["reading_role"] for row in rows
     }
     assert "candidate_fit" in rows[0]
     assert "contextual_fit" in rows[0]
-    assert "source lexical stress remains" in report.casefold()
-    assert "common meter" not in report.casefold()
 
 
 def test_performance_mode_retains_missing_evidence_as_missing(

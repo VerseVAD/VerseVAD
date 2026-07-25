@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import json
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -12,7 +11,6 @@ from versevad.core import ModuleInput, ResourceSpec
 from versevad.exports.aoa import (
     export_aoa_bundle,
     export_aoa_distribution_csv,
-    export_aoa_json,
     export_aoa_summary_csv,
     export_aoa_terms_csv,
     export_aoa_token_audit_csv,
@@ -86,23 +84,21 @@ def test_aoa_csv_exports_preserve_missing_values_and_response_evidence(
     assert sum(int(row["token_count"]) for row in bands) == 2
 
 
-def test_aoa_json_and_bundle_are_complete_and_deterministic(
+def test_aoa_word_report_and_bundle_are_complete_and_deterministic(
     tmp_path: Path,
     preprocessor,
 ) -> None:
     result = _result(tmp_path, preprocessor)
 
-    first = export_aoa_json(result)
-    second = export_aoa_json(result)
-    payload = json.loads(first)
     bundle = export_aoa_bundle(result)
+    second = export_aoa_bundle(result)
 
-    assert first == second
-    assert payload["module_result"]["module_name"] == "age_of_acquisition"
-    assert payload["summary"]["statistics"]["mean"] == 8.0
+    assert bundle["aoa_report.docx"] == second["aoa_report.docx"]
+    assert result.module_result.module_name == "age_of_acquisition"
+    assert result.summary.statistics.mean == 8.0
     assert any(
-        warning["code"] == "aoa_non_diagnostic"
-        for warning in payload["module_result"]["warnings"]
+        warning.code == "aoa_non_diagnostic"
+        for warning in result.module_result.warnings
     )
     assert set(bundle) == {
         "aoa_summary.csv",
@@ -112,5 +108,8 @@ def test_aoa_json_and_bundle_are_complete_and_deterministic(
         "aoa_terms.csv",
         "aoa_relationships.csv",
         "aoa_token_audit.csv",
-        "aoa_result.json",
+        "aoa_manifest.csv",
+        "aoa_report.docx",
     }
+    assert bundle["aoa_report.docx"].startswith(b"PK")
+    assert not any(name.endswith(".json") for name in bundle)

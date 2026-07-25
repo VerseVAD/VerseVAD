@@ -1,5 +1,4 @@
 import csv
-import json
 from pathlib import Path
 
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
@@ -28,7 +27,7 @@ def test_phase2_bundle_is_traceable_and_contains_no_consensus(preprocessor, tmp_
     )
     comparison = compare_lexicons(results)
     paths = export_phase2_csv(results, comparison, tmp_path)
-    assert len(paths) == 8
+    assert len(paths) == 7
     assert all(path.is_file() for path in paths)
     assert all(
         path.read_bytes().startswith(b"\xef\xbb\xbf")
@@ -59,14 +58,7 @@ def test_phase2_bundle_is_traceable_and_contains_no_consensus(preprocessor, tmp_
         "spaCy English STOP_WORDS"
     }
 
-    payload = json.loads((tmp_path / "phase2_results.json").read_text(encoding="utf-8"))
-    assert payload["results"][0]["stopword_policy"]["active_list_sha256"]
-    assert (
-        payload["results"][0]["vad_summary"][
-            "stopword_excluded_token_weighted_normalized"
-        ]
-        is not None
-    )
+    assert not any(path.suffix == ".json" for path in paths)
 
     comparison_rows = _rows(tmp_path / "phase2_cross_lexicon_comparison.csv")
     assert comparison_rows

@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import csv
 import io
-import json
 
 from versevad.core import ModuleInput
 from versevad.exports.phonology import (
     export_phonological_bundle,
-    export_phonological_json,
     export_phonological_sounds_csv,
     export_phonological_summary_csv,
     export_rhyme_lines_csv,
@@ -68,19 +66,17 @@ def test_phonological_csv_exports_preserve_scheme_pairs_and_sounds(
     }
 
 
-def test_phonological_json_and_bundle_are_complete_and_deterministic(
+def test_phonological_word_report_and_bundle_are_complete_and_deterministic(
     tmp_path,
     preprocessor,
 ) -> None:
     result = _result(tmp_path, preprocessor)
 
-    first = export_phonological_json(result)
-    second = export_phonological_json(result)
-    payload = json.loads(first)
     bundle = export_phonological_bundle(result)
+    second = export_phonological_bundle(result)
 
-    assert first == second
-    assert payload["summary"]["whole_poem_rhyme_scheme"] == "ABAB"
+    assert bundle["rhyme_report.docx"] == second["rhyme_report.docx"]
+    assert result.summary.whole_poem_rhyme_scheme == "ABAB"
     assert set(bundle) == {
         "rhyme_summary.csv",
         "rhyme_stanzas.csv",
@@ -88,5 +84,8 @@ def test_phonological_json_and_bundle_are_complete_and_deterministic(
         "rhyme_pairs.csv",
         "rhyme_internal.csv",
         "phonological_sounds.csv",
-        "rhyme_result.json",
+        "rhyme_manifest.csv",
+        "rhyme_report.docx",
     }
+    assert bundle["rhyme_report.docx"].startswith(b"PK")
+    assert not any(name.endswith(".json") for name in bundle)

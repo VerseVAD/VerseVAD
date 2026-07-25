@@ -741,7 +741,7 @@ source/view scope, and weighting match. Profile prevalence, 3x3 map counts,
 continuous work positions, and token/type differences remain descriptive
 work-level evidence and do not create a corpus-wide identity.
 
-At the scholar's direction, PoetryID exports seven UTF-8 CSV/plain-text files
+PoetryID exports six UTF-8 CSV files and one narrative DOCX report
 and no JSON file.
 
 ## Stage 13 interface-only invariants

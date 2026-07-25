@@ -20,7 +20,8 @@ The initial technology choices are:
 - pandas for tabular analysis and interchange;
 - spaCy with a pinned English pipeline for POS-sensitive lemmatization;
 - Altair through Streamlit for current interactive charts;
-- openpyxl or XlsxWriter for Excel exports after export requirements are tested;
+- openpyxl for reading the user-supplied XLSX normative resources;
+- python-docx for local narrative Word reports;
 - pytest for engine, adapter, migration, export, and interface smoke tests;
 - Jinja templates for local HTML methods reports;
 - `uv` as the project-local dependency and Python manager.
@@ -46,7 +47,7 @@ page only presents those services. Workspaces and downloads are in memory in
 this phase.
 
 Phase 4 adds the persistent SQLite repository, immutable complete corpus
-batches, dual collection weighting, and Excel export. Phase 4.1 adds the
+batches, dual collection weighting, and CSV/DOCX export. Phase 4.1 adds the
 versioned dual stopword reporting policy. Phase 5 advances the development
 package to `0.6.0.dev0`, migrates the database to schema version 3, and adds
 named/versioned review scenarios, append-only decisions, occurrence evidence,
@@ -75,7 +76,7 @@ tokens, morphology and dependency annotations, optional entities,
 orthographic spans, configuration, coverage, and warnings. A one-poem request
 is processed once and the same tokens are reused across all selected lexicons.
 The common document is available to Stage 0 module inputs and is exported
-locally as `poem_document.json`. Stage 1 does not change database schema 3 or
+locally as explicit `processing_*.csv` tables. Stage 1 does not change database schema 3 or
 existing affective calculations. See
 [`poetic-fingerprint-stage1.md`](poetic-fingerprint-stage1.md).
 
@@ -398,7 +399,7 @@ numeric and categorical keys so separate VAD sources and views cannot merge.
 The corpus workbook exposes the same scope identity.
 
 PoetryID's export boundary is intentionally different from older module
-bundles: it emits six CSV files and one plain-text report, with no PoetryID
+bundles: it emits six CSV files and one narrative DOCX report, with no PoetryID
 JSON. Existing module exports are unchanged.
 
 ## Expansion Stage 13 interface architecture
