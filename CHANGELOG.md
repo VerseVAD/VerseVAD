@@ -16,6 +16,10 @@ All notable VerseVAD changes will be recorded here.
 ### Added
 
 - First public-release version of VerseVAD.
+- A dedicated PoetryID corpus table comparing every poem's threshold-based
+  categorical profile with its nearest continuous centroid, including
+  agreement, both distances, rule-based confidence, and VAD coordinates for
+  the selected compatible source/view/weighting group.
 - Root-level `CITATION.cff` metadata naming Nicky Bennett as the software
   author, linking the canonical VerseVAD source repository, and recording the
   2026-07-24 release date. The DOI remains intentionally absent until a stable

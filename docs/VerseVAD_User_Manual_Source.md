@@ -1119,8 +1119,11 @@ created.
 PoetryID corpus views group only matching source, all-matched or
 stopword-excluded view, token/type weighting, module version, and
 configuration. They show profile prevalence, three map-count tables,
-continuous work-level VAD positions, and token/type sensitivity without
-declaring one corpus-wide identity.
+continuous work-level VAD positions, a per-poem comparison of categorical and
+nearest-centroid results, and token/type sensitivity without declaring one
+corpus-wide identity. The comparison table keeps both profile names, their
+agreement, nearest and categorical centroid distances, rule-based confidence,
+and continuous VAD coordinates together for each work.
 
 Coverage, unmatched evidence, warnings, configuration IDs, and denominators
 remain visible. **Download module audit ZIP** reconstructs and checksum-checks

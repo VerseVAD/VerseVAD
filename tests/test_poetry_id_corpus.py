@@ -10,6 +10,7 @@ from versevad.corpus import (
 )
 from versevad.db import CorpusTextImport, ProjectRepository
 from versevad.poetry_id import PoetryIDConfiguration
+from versevad.ui.corpus import _poetry_id_work_comparison_rows
 
 
 def test_poetry_id_corpus_reuses_modules_and_keeps_compatible_distributions(
@@ -73,6 +74,25 @@ def test_poetry_id_corpus_reuses_modules_and_keeps_compatible_distributions(
     assert {row.scope_id for row in archetype_rows} == {
         "nrc_vad_v1:all_matched"
     }
+
+    comparisons = _poetry_id_work_comparison_rows(
+        metrics,
+        ("nrc_vad_v1:all_matched", "token"),
+    )
+    assert {row["Work"] for row in comparisons} == {"First", "Second"}
+    assert all(row["Categorical profile"] for row in comparisons)
+    assert all(row["Nearest centroid"] for row in comparisons)
+    assert all(row["Same profile"] in {"Yes", "No"} for row in comparisons)
+    assert all(
+        row["Nearest distance"] <= row["Categorical distance"]
+        for row in comparisons
+    )
+    assert all(
+        0 <= row[dimension] <= 1
+        for row in comparisons
+        for dimension in ("Valence", "Arousal", "Dominance")
+    )
+    assert all(row["Confidence"] for row in comparisons)
 
     archive = repository.build_module_artifact_zip(
         results[0].run_id,

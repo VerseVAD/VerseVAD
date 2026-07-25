@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed PoetryID corpus comparison
+
+- [x] Add a selected-group per-poem table that keeps the categorical PoetryID
+  profile and nearest continuous centroid side by side.
+- [x] Report agreement, nearest and categorical distances, rule-based
+  confidence, and continuous VAD coordinates without presenting either result
+  as a definitive emotional identity.
+- [x] Add focused regression coverage and align the user documentation.
+
 ## Completed export-policy overhaul
 
 - [x] Standardize visible analysis downloads on UTF-8 CSV data and narrative
@@ -9,7 +18,7 @@
 - [x] Add a comprehensive one-text report, module-specific reports, and a
   corpus report; update the interface, documentation, and regression coverage.
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 Status markers: `[x]` complete, `[ ]` pending, `[~]` in progress, `[?]` human
 review required.

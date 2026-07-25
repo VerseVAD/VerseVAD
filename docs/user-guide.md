@@ -744,7 +744,11 @@ implemented.
 
 In **Project / Corpus**, add PoetryID to a batch after selecting at least one
 VAD lexicon. The module view shows compatible profile distributions, 3x3 map
-counts, continuous work positions, and token/type sensitivity. Filter to one
-source/view/weighting combination before interpreting a distribution.
+counts, continuous work positions, a per-poem comparison of categorical and
+nearest-centroid results, and token/type sensitivity. The comparison table
+reports both profile names, whether they agree, the nearest and categorical
+centroid distances, rule-based confidence, and the poem's continuous VAD
+coordinates. Filter to one source/view/weighting combination before
+interpreting a distribution or comparison.
 
 PoetryID downloads are six CSV files and one narrative Word report.

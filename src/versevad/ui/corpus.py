@@ -69,6 +69,112 @@ def _records_frame(records) -> pd.DataFrame:
     return pd.DataFrame([asdict(record) for record in records])
 
 
+def _poetry_id_work_comparison_rows(
+    metrics,
+    selected_group: tuple[str, str],
+) -> tuple[dict[str, object], ...]:
+    """Build one readable categorical/centroid comparison row per work."""
+
+    scope_id, weighting = selected_group
+    document_metric_ids = {
+        "poetry_id.valence",
+        "poetry_id.arousal",
+        "poetry_id.dominance",
+        "poetry_id.categorical_archetype_id",
+        "poetry_id.categorical_archetype_name",
+        "poetry_id.nearest_centroid_archetype_id",
+        "poetry_id.categorical_centroid_match",
+        "poetry_id.centroid_distance",
+        "poetry_id.confidence_label",
+    }
+    nearest_scope_id = f"{scope_id}:{weighting}:1"
+    by_work: dict[str, dict[str, object]] = {}
+    for row in metrics:
+        is_selected_document_metric = (
+            row.scope == "document"
+            and row.scope_id == scope_id
+            and row.weighting == weighting
+            and row.metric_id in document_metric_ids
+        )
+        is_nearest_distance = (
+            row.scope == "neighbor"
+            and row.scope_id == nearest_scope_id
+            and row.weighting == weighting
+            and row.metric_id == "poetry_id.neighbor_distance"
+        )
+        if not (is_selected_document_metric or is_nearest_distance):
+            continue
+        values = by_work.setdefault(
+            row.text_id,
+            {
+                "text_id": row.text_id,
+                "title": row.title,
+                "metrics": {},
+            },
+        )
+        values["metrics"][row.metric_id] = row.value
+
+    rows = []
+    for values in sorted(
+        by_work.values(),
+        key=lambda item: (str(item["title"]).casefold(), str(item["text_id"])),
+    ):
+        work_metrics = values["metrics"]
+        categorical_id = work_metrics.get(
+            "poetry_id.categorical_archetype_id"
+        )
+        categorical_name = work_metrics.get(
+            "poetry_id.categorical_archetype_name"
+        )
+        if not categorical_name and isinstance(categorical_id, str):
+            archetype = ARCHETYPE_BY_ID.get(categorical_id)
+            categorical_name = archetype.name if archetype else categorical_id
+
+        nearest_id = work_metrics.get(
+            "poetry_id.nearest_centroid_archetype_id"
+        )
+        nearest_name = None
+        if isinstance(nearest_id, str):
+            archetype = ARCHETYPE_BY_ID.get(nearest_id)
+            nearest_name = archetype.name if archetype else nearest_id
+
+        match = work_metrics.get("poetry_id.categorical_centroid_match")
+        if isinstance(match, bool):
+            match_label = "Yes" if match else "No"
+        elif str(match).strip().casefold() in {"true", "1", "yes"}:
+            match_label = "Yes"
+        elif str(match).strip().casefold() in {"false", "0", "no"}:
+            match_label = "No"
+        else:
+            match_label = None
+
+        confidence = work_metrics.get("poetry_id.confidence_label")
+        confidence_label = (
+            str(confidence).replace("_", " ").title()
+            if confidence is not None
+            else None
+        )
+        rows.append(
+            {
+                "Work": values["title"],
+                "Categorical profile": categorical_name,
+                "Nearest centroid": nearest_name,
+                "Same profile": match_label,
+                "Nearest distance": work_metrics.get(
+                    "poetry_id.neighbor_distance"
+                ),
+                "Categorical distance": work_metrics.get(
+                    "poetry_id.centroid_distance"
+                ),
+                "Confidence": confidence_label,
+                "Valence": work_metrics.get("poetry_id.valence"),
+                "Arousal": work_metrics.get("poetry_id.arousal"),
+                "Dominance": work_metrics.get("poetry_id.dominance"),
+            }
+        )
+    return tuple(rows)
+
+
 def _corpus_part_of_speech_rows(
     repository: ProjectRepository,
     project_id: str,
@@ -638,6 +744,37 @@ def _render_corpus_modules(
                     pd.DataFrame(scatter_rows),
                     hide_index=True,
                     width="stretch",
+                )
+
+            comparison_rows = _poetry_id_work_comparison_rows(
+                selected,
+                selected_group,
+            )
+            if comparison_rows:
+                st.markdown(
+                    "**Per-poem categorical and nearest-centroid comparison**"
+                )
+                st.dataframe(
+                    pd.DataFrame(comparison_rows).style.format(
+                        {
+                            "Nearest distance": "{:.4f}",
+                            "Categorical distance": "{:.4f}",
+                            "Valence": "{:.3f}",
+                            "Arousal": "{:.3f}",
+                            "Dominance": "{:.3f}",
+                        },
+                        na_rep="-",
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                    height=360,
+                )
+                st.caption(
+                    "The categorical profile comes from the configured low, "
+                    "moderate, and high VAD thresholds. The nearest centroid is "
+                    "the closest of all 27 continuous VAD centroids under "
+                    "Euclidean distance. They may differ near a boundary. "
+                    "Confidence is rule-based evidence, not a probability."
                 )
 
             by_work_scope: dict[
