@@ -6,6 +6,10 @@ import pandas as pd
 import streamlit as st
 
 from versevad.explorer import LexiconExplorerResult, explore_lexicons
+from versevad.exports.lexicon_explorer import (
+    export_lexicon_explorer_docx,
+    lexicon_explorer_report_filename,
+)
 from versevad.preprocessing import TextPreprocessor
 from versevad.ui.dataframes import heterogeneous_display_value
 from versevad.ui.design import render_empty_state, render_workspace_header
@@ -497,6 +501,20 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
     _render_components(result)
     _render_supplementary(result)
     _render_provenance(result)
+    st.download_button(
+        "Download printable Word report",
+        data=export_lexicon_explorer_docx(result),
+        file_name=lexicon_explorer_report_filename(result.query),
+        mime=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        key="download_lexicon_explorer_docx",
+    )
+    st.caption(
+        "The Word report includes the lookup details, all available evidence, "
+        "comparisons, notices, and source provenance shown for this query."
+    )
     st.warning(
         "A lookup reports decontextualized normative ratings or associations. It does "
         "not resolve polysemy, historical sense, irony, metaphor, or contextual meaning."

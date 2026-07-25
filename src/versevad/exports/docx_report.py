@@ -101,6 +101,20 @@ REPORT_PROFILES: Mapping[str, NarrativeReportProfile] = {
         "judgment of poetic identity, authorship, quality, or genre.",
         ("Interpret every value with its denominator and method information.",),
     ),
+    "lexicon_explorer": NarrativeReportProfile(
+        "Lexicon Explorer Report",
+        "This report records one local word-or-phrase lookup across the installed "
+        "VerseVAD lexical and pronunciation resources.",
+        "The values are decontextualized source ratings, associations, corpus "
+        "frequency evidence, retrospective norms, or dictionary pronunciation "
+        "candidates. They support inspection rather than determine contextual "
+        "meaning.",
+        (
+            "Missing or unavailable evidence remains missing rather than receiving a neutral value.",
+            "Normalized VAD comparisons do not make source samples interchangeable.",
+            "Pronunciation entries are dictionary candidates, not definitive poetic performances.",
+        ),
+    ),
     "phase2": NarrativeReportProfile(
         "VerseVAD Analysis Report",
         "This report brings together the principal results available for the "

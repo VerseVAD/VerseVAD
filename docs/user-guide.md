@@ -454,6 +454,8 @@ version and decision revisions used, so the baseline is never overwritten.
 4. Leave **Original and normalized** selected to retain source ratings and the
    separate derived 0-1 comparison together.
 5. Expand variation/provenance panels when investigating a surprising entry.
+6. Select **Download printable Word report** to save the complete lookup,
+   including available evidence, comparisons, notices, and source provenance.
 
 The **Additional Lexical Evidence** section searches installed concreteness,
 SUBTLEX-US, Kuperman AoA, and CMUdict resources. It reports source-supplied
@@ -474,6 +476,13 @@ An optional user mapping can display, for example, `o'er → over`, but it is a
 lookup-only fallback and does not alter poem or corpus analysis. Persistent,
 scenario-controlled mappings are created separately under **Review &
 Scenarios**.
+
+The Explorer Word report is a printable record of the current lookup. It
+includes affective ratings and associations, original and normalized VAD,
+source uncertainty where available, supplementary lexical evidence,
+pronunciation alternatives, derived comparisons, missing-resource statuses,
+and provenance. It does not alter or replace the CSV audit exports produced by
+poem and corpus analyses.
 
 ## Downloads and the audit bundle
 

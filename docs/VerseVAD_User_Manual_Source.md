@@ -1208,6 +1208,8 @@ The button remains unavailable until the title matches exactly. Deletion removes
 2. Enter one word or phrase.
 3. Optionally enter a user-supplied mapping.
 4. Click **Search installed lexicons**.
+5. Select **Download printable Word report** to save the complete current
+   lookup with its evidence, notices, comparisons, and provenance.
 
 ## Match labels
 
@@ -1257,6 +1259,16 @@ An exact phrase entry is shown as published lexical evidence. If no phrase entry
 ## User mapping
 
 A mapping such as `o'er -> over` is lookup-only. It lets you inspect the mapped entry while preserving the distinction between queried and mapped forms. It does not change poem or corpus analysis.
+
+## Printable Word report
+
+The Explorer can export the current lookup as a narrative `.docx` report. The
+report includes query processing, match methods, affective ratings and
+associations, original and normalized VAD, source uncertainty where available,
+derived component averages and cross-lexicon spread, concreteness, frequency,
+AoA, every pronunciation variant, missing-resource statuses, notices,
+suggestions, and source provenance. It is designed for reading and printing;
+poem and corpus CSV audit exports remain separate.
 
 # 11. Downloads, CSV files, and Word reports
 

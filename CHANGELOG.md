@@ -20,6 +20,10 @@ All notable VerseVAD changes will be recorded here.
   categorical profile with its nearest continuous centroid, including
   agreement, both distances, rule-based confidence, and VAD coordinates for
   the selected compatible source/view/weighting group.
+- A deterministic printable Lexicon Explorer Word report containing the
+  current lookup, match methods, all available lexical and pronunciation
+  evidence, derived comparisons, notices, missing-resource states, and source
+  provenance.
 - Root-level `CITATION.cff` metadata naming Nicky Bennett as the software
   author, linking the canonical VerseVAD source repository, and recording the
   2026-07-24 release date. The DOI remains intentionally absent until a stable

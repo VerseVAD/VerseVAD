@@ -208,6 +208,27 @@ def test_interface_opens_lexicon_explorer() -> None:
     assert "Search installed lexicons" in [button.label for button in app.button]
 
 
+def test_lexicon_explorer_offers_printable_word_report() -> None:
+    app = AppTest.from_file(str(APP_PATH), default_timeout=60).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Lexicon Explorer")
+    app.run(timeout=60)
+
+    query = next(
+        field for field in app.text_input if field.label == "Word or phrase"
+    )
+    query.input("bright")
+    _button(app, "Search installed lexicons").click()
+    app.run(timeout=60)
+
+    assert not app.exception
+    downloads = {
+        button.label: button
+        for button in app.get("download_button")
+    }
+    assert "Download printable Word report" in downloads
+
+
 def test_interface_reuses_single_text_workflow_for_other_text() -> None:
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]

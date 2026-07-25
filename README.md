@@ -102,6 +102,8 @@ SUBTLEX-US, Kuperman AoA, and CMUdict for exact entries, phrases, explicitly
 labeled lemma-derived or user-mapped lookups, ratings, frequency fields,
 pronunciation/stress candidates, emotion associations/intensities, Warriner
 uncertainty fields, source provenance, and derived normalized comparisons.
+Each completed lookup can be downloaded as a printable narrative Word report
+containing all available evidence and provenance shown for that query.
 Warriner's 102 and NRC VAD v1's 132
 whitespace-containing source entries now participate as exact phrase candidates
 under the selected policy.

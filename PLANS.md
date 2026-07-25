@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed Lexicon Explorer Word export
+
+- [x] Add a deterministic printable DOCX report for the current Explorer
+  lookup.
+- [x] Include all available affective, supplementary, pronunciation,
+  comparison, notice, missingness, and provenance evidence.
+- [x] Add a direct download control, focused regression coverage, and aligned
+  documentation.
+
 ## Completed PoetryID corpus comparison
 
 - [x] Add a selected-group per-poem table that keeps the categorical PoetryID
