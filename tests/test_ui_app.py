@@ -196,6 +196,35 @@ def test_interface_deletes_only_exactly_confirmed_project(tmp_path, monkeypatch)
     ]
 
 
+def test_interface_recovers_from_a_stale_deleted_project_selection(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "versevad.sqlite3"
+    monkeypatch.setenv("VERSEVAD_DATABASE_PATH", str(database_path))
+    repository = ProjectRepository(database_path)
+    disposable = repository.create_project("Deleted outside this rerun")
+    keeper = repository.create_project("Remaining project")
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    navigation = app.get("button_group")[0]
+    navigation.set_value("Project / Corpus")
+    app.run(timeout=30)
+    app.session_state["active_corpus_project"] = disposable.project_id
+
+    repository.delete_project(
+        disposable.project_id,
+        confirmation_title=disposable.title,
+    )
+    app.run(timeout=30)
+
+    assert not app.exception
+    active_project = next(
+        field for field in app.selectbox if field.label == "Active project"
+    )
+    assert active_project.value == keeper.project_id
+
+
 def test_interface_opens_lexicon_explorer() -> None:
     app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
     navigation = app.get("button_group")[0]

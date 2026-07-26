@@ -582,3 +582,13 @@ passed, and the 88-package locked/offline dry run would make no environment
 changes. The rebuilt Word manual passed package/content checks and its
 accessibility audit reported zero findings. PNG visual rendering was
 unavailable because LibreOffice is not installed on the Windows host.
+
+## Project / Corpus deletion rerun repair
+
+The deletion regression set verifies exact case-sensitive title confirmation,
+project-scoped database cascades, callback-based deletion before the next
+full-page render, success messaging, selection of a remaining project, and
+recovery from a deliberately stale deleted-project ID. The completion pass on
+2026-07-26 passed all `301` automated tests. The focused deletion set passed
+three tests, and the broader Project/Corpus, design, and cross-platform
+interface set passed thirty tests.

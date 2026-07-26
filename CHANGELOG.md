@@ -6,6 +6,10 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Repaired Project / Corpus deletion so the destructive action runs in the
+  button callback before expensive tab rendering, clears the deleted selector
+  state, and reruns onto another project or the empty-project view without an
+  `Unknown project` error.
 - Expanded Project / Corpus VAD reporting with a pooled matched-token
   population standard deviation, a separate population standard deviation
   across poem means, poem-mean median/range, and side-by-side within-poem VAD

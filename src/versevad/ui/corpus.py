@@ -1921,6 +1921,7 @@ def _render_project_settings_tab(
     project_id: str,
 ) -> None:
     project = repository.get_project(project_id)
+    confirmation_key = f"delete_project_confirmation_{project_id}"
     st.subheader("Project Settings")
     st.warning(
         "Deleting this project permanently removes only this project's imported "
@@ -1930,26 +1931,35 @@ def _render_project_settings_tab(
     )
     confirmation = st.text_input(
         f'Type the exact project title to confirm: "{project.title}"',
-        key=f"delete_project_confirmation_{project_id}",
+        key=confirmation_key,
     )
-    if st.button(
+
+    def delete_confirmed_project() -> None:
+        try:
+            repository.delete_project(
+                project_id,
+                confirmation_title=str(
+                    st.session_state.get(confirmation_key, "")
+                ),
+            )
+            st.session_state.pop("active_corpus_project", None)
+            st.session_state.pop(confirmation_key, None)
+            st.session_state.pop("corpus_project_error", None)
+            st.session_state["corpus_project_flash"] = (
+                f'Project "{project.title}" was deleted from this computer.'
+            )
+        except (KeyError, ValueError, RuntimeError) as error:
+            st.session_state["corpus_project_error"] = (
+                f"The project was not deleted: {error}"
+            )
+
+    st.button(
         "Delete this project",
         type="primary",
         disabled=confirmation != project.title,
         key=f"delete_project_{project_id}",
-    ):
-        try:
-            repository.delete_project(
-                project_id,
-                confirmation_title=confirmation,
-            )
-            st.session_state.pop("active_corpus_project", None)
-            st.session_state["corpus_project_flash"] = (
-                f'Project "{project.title}" was deleted from this computer.'
-            )
-            st.rerun()
-        except (KeyError, ValueError, RuntimeError) as error:
-            st.error(f"The project was not deleted: {error}")
+        on_click=delete_confirmed_project,
+    )
 
 
 def _render_review_tab(
@@ -2636,6 +2646,9 @@ def render_corpus_workspace(
     project_flash = st.session_state.pop("corpus_project_flash", None)
     if project_flash:
         st.success(project_flash)
+    project_error = st.session_state.pop("corpus_project_error", None)
+    if project_error:
+        st.error(project_error)
     projects = repository.list_projects()
     _create_project(repository, expanded=not projects)
     if not projects:
@@ -2646,9 +2659,12 @@ def render_corpus_workspace(
             "Use Create a research project above to begin.",
         )
         return
+    project_ids = [project.project_id for project in projects]
+    if st.session_state.get("active_corpus_project") not in project_ids:
+        st.session_state.pop("active_corpus_project", None)
     project_id = st.selectbox(
         "Active project",
-        options=[project.project_id for project in projects],
+        options=project_ids,
         format_func=lambda item: next(
             project.title for project in projects if project.project_id == item
         ),

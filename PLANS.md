@@ -1,5 +1,13 @@
 # VerseVAD Implementation Plan
 
+## Completed Project / Corpus deletion repair
+
+- [x] Move confirmed deletion into the pre-rerun button callback.
+- [x] Clear and defensively reject stale active-project IDs.
+- [x] Preserve exact-title confirmation and project-scoped database deletion.
+- [x] Add repository, callback, and stale-browser-selection regression
+  coverage.
+
 ## Completed corpus VAD dispersion and safe-update guidance
 
 - [x] Reconstruct the pooled matched-token population standard deviation from
