@@ -136,6 +136,14 @@ Use this order:
 7. **Export & Help** — download the readable summary, tables, module exports,
    or full audit ZIP, then open the methodology/how-to-read section as needed.
 
+The selected report section is retained when a lexicon, token/type weighting,
+all-matched/stopword-excluded view, or other display control refreshes the
+Streamlit page. **Prepare downloads** likewise leaves **Export & Help**
+selected. The same stateful behavior applies to the six **Project / Corpus**
+sections. A long section may shift slightly as its contents change, but the
+interface no longer returns to **Overview** or **Works & Metadata** merely
+because a control reran the page.
+
 The **Other Text** workspace reuses this sequence with **Analyze Text**
 terminology. Meter and rhyme remain available there but are visibly marked as
 experimental for non-lineated prose.
@@ -721,9 +729,10 @@ cache hit/miss reason, wall time, and bounded cache counts. Clearing a cache or
 releasing a loaded resource cannot delete a project, source file, or saved
 result; the next relevant action simply recomputes or reloads it.
 
-The export tab now waits for **Prepare downloads**. This avoids rebuilding a
+The export section waits for **Prepare downloads**. This avoids rebuilding a
 large ZIP during unrelated interface reruns. An unchanged prepared export is
-reused safely.
+reused safely, and the active section remains **Export & Help** while the
+downloads are prepared.
 
 Under **Installation Check**, click **Run self-test** in the app sidebar at any
 time. A fully provisioned installation shows `12/12 checks passed`. You can

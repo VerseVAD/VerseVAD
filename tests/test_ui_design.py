@@ -47,6 +47,8 @@ def test_stylesheet_uses_semantic_tokens_and_accessibility_modes() -> None:
         assert '[data-testid="stTextAreaRootElement"]' in sheet
         assert '[data-testid="stTextInputRootElement"]' in sheet
         assert '[data-testid="stBaseButton-primary"]' in sheet
+        assert '[aria-label="Report section"]' in sheet
+        assert '[aria-label="Project section"]' in sheet
         assert "-webkit-text-fill-color" in sheet
         assert "caret-color" in sheet
         assert "::placeholder" in sheet

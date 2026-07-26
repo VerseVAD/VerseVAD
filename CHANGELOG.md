@@ -6,6 +6,10 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Replaced rerun-resetting one-text report tabs and Project / Corpus tabs with
+  state-backed, responsive section controls. Lexicon, token-scope, weighting,
+  and other display changes now retain the active section, and preparing
+  downloads remains in Export & Help without browser-specific scripting.
 - Added independent PoetryID VAD-source, token-scope, and token/type-weighting
   result selectors. New one-text and corpus configurations select both
   all-matched and stopword-excluded evidence by default while preserving

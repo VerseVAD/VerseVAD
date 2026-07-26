@@ -44,6 +44,9 @@ automatic pre-migration backups.
 
 Test the beginner path, warnings, disabled actions, empty states, downloads,
 and the built-in self-test. Calculation assertions remain in engine tests.
+The interface suite also changes the state-backed one-text and corpus section
+controls, reruns display selectors, and prepares exports to verify that the
+active section is retained rather than reset to the first section.
 
 ### Visual checks
 

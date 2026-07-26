@@ -95,6 +95,12 @@ Word report. The one-text and corpus interfaces request both token scopes by
 default, and the one-text result provides independent VAD source, token-scope,
 and weighting selectors.
 
+State-backed report and project-section navigation preserves the selected
+section across Streamlit refreshes. Changing a view, weighting, lexicon, or
+token scope therefore keeps the current report family active, and preparing
+downloads remains in **Export & Help**. The wrapping controls are shared by
+Windows, Safari, and Chrome rather than relying on browser-specific scripting.
+
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,
 versioned English list, protects meaning-changing terms such as `not`, `never`,

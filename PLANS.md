@@ -1,5 +1,15 @@
 # VerseVAD Implementation Plan
 
+## Completed rerun-stable section navigation
+
+- [x] Replace native report and Project / Corpus tabs, whose selected state was
+  unavailable to Streamlit, with session-backed section controls.
+- [x] Retain the active section through lexicon, weighting, token-scope, display,
+  analysis, and export-preparation reruns.
+- [x] Use wrapping, accessible controls without browser-specific JavaScript and
+  add Single Poem, corpus, export, Safari/Chrome, and documentation regression
+  coverage.
+
 ## Completed PoetryID token-scope selection
 
 - [x] Request all-matched and stopword-excluded PoetryID evidence by default in
@@ -59,7 +69,7 @@
 - [x] Add a comprehensive one-text report, module-specific reports, and a
   corpus report; update the interface, documentation, and regression coverage.
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 Status markers: `[x]` complete, `[ ]` pending, `[~]` in progress, `[?]` human
 review required.

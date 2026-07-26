@@ -8,6 +8,7 @@ from typing import Mapping, Sequence
 
 import altair as alt
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 
 from versevad import __version__
 from versevad.ui.preferences import (
@@ -361,6 +362,32 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       color: inherit !important;
     }}
     [role="radiogroup"][aria-label="Workspace"] button[data-selected="true"] {{
+      background: var(--color-accent-soft) !important;
+      border-color: var(--color-accent) !important;
+      color: var(--color-accent-strong) !important;
+    }}
+    [role="radiogroup"][aria-label="Report section"],
+    [role="radiogroup"][aria-label="Project section"] {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      width: 100%;
+    }}
+    [role="radiogroup"][aria-label="Report section"] button,
+    [role="radiogroup"][aria-label="Project section"] button {{
+      background: var(--color-surface) !important;
+      border-color: var(--color-border) !important;
+      color: var(--color-text-secondary) !important;
+      flex: 1 1 9rem;
+      min-height: 2.6rem;
+      white-space: normal;
+    }}
+    [role="radiogroup"][aria-label="Report section"] button p,
+    [role="radiogroup"][aria-label="Project section"] button p {{
+      color: inherit !important;
+    }}
+    [role="radiogroup"][aria-label="Report section"] button[data-selected="true"],
+    [role="radiogroup"][aria-label="Project section"] button[data-selected="true"] {{
       background: var(--color-accent-soft) !important;
       border-color: var(--color-accent) !important;
       color: var(--color-accent-strong) !important;
@@ -755,3 +782,58 @@ def render_section_intro(title: str, purpose: str, *, status: str = "Complete") 
         f'<p class="versevad-section-intro">{escape(purpose)}</p>',
         unsafe_allow_html=True,
     )
+
+
+def render_stateful_section_navigation(
+    label: str,
+    options: Sequence[str],
+    *,
+    state_key: str,
+    container_key_prefix: str,
+    default: str | None = None,
+    help_text: str | None = None,
+) -> tuple[str, dict[str, DeltaGenerator]]:
+    """Render rerun-stable section navigation and keyed content containers."""
+
+    section_options = tuple(options)
+    if not section_options or len(set(section_options)) != len(section_options):
+        raise ValueError("Section navigation requires unique, non-empty options.")
+    selected_default = default or section_options[0]
+    if selected_default not in section_options:
+        raise ValueError("The default section must be one of the options.")
+    if not container_key_prefix.replace("_", "").isalnum():
+        raise ValueError(
+            "The section container prefix may contain only letters, numbers, "
+            "and underscores."
+        )
+    if st.session_state.get(state_key) not in section_options:
+        st.session_state[state_key] = selected_default
+
+    selected = st.segmented_control(
+        label,
+        options=section_options,
+        selection_mode="single",
+        key=state_key,
+        help=help_text,
+    )
+    active_section = selected or selected_default
+    container_keys = {
+        section: f"{container_key_prefix}_{index}"
+        for index, section in enumerate(section_options)
+    }
+    hidden_selectors = ",\n".join(
+        f".st-key-{container_key}" for container_key in container_keys.values()
+    )
+    active_selector = f".st-key-{container_keys[active_section]}"
+    st.markdown(
+        "<style>"
+        f"{hidden_selectors} {{ display: none; }}"
+        f"{active_selector} {{ display: block; }}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    containers = {
+        section: st.container(key=container_keys[section])
+        for section in section_options
+    }
+    return active_section, containers

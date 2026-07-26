@@ -30,6 +30,13 @@
 
 > QUICK ORIENTATION: Read **Overview** first, then use the seven report families: **Affective Evidence**, **Lexical Character**, **Sound & Form**, **Structure**, **Evidence & Diagnostics**, and **Export & Help**. Each analytical module is a large collapsible section with a visible status. Download the readable summary for ordinary review and the full audit bundle when you need reproducibility. If a term is unfamiliar, use the separate `VerseVAD_Values_and_Terminology_Guide.docx`, which includes plain-language definitions, formulas, worked examples, and reporting templates.
 
+The report-family and Project / Corpus section controls remember the selected
+section during Streamlit refreshes. Changing a lexicon, token/type weighting,
+all-matched/stopword-excluded view, or another display control no longer sends
+the interface back to the first section. **Prepare downloads** keeps **Export &
+Help** selected. Content added during a refresh may shift the precise position
+slightly within a long section, but the active section remains stable.
+
 # 1. Purpose, privacy, and scholarly scope
 
 ## What VerseVAD does
@@ -1053,7 +1060,7 @@ Download:
 - the CSV reading guide;
 - the full audit ZIP.
 
-Single-text results are temporary, so download anything you need before closing the application.
+Single-text results are temporary, so download anything you need before closing the application. Preparing downloads leaves **Export & Help** selected during the refresh.
 
 ## Export & Help: Methodology and How to Read
 

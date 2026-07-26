@@ -53,6 +53,7 @@ from versevad.ui.design import (
     MODULE_PRESETS,
     preset_widget_state,
     render_empty_state,
+    render_stateful_section_navigation,
     render_workspace_header,
 )
 from versevad.ui.stopwords import render_stopword_settings
@@ -2703,23 +2704,33 @@ def render_corpus_workspace(
         project_id,
         preprocessor,
     )
-    (
-        texts_tab,
-        language_tab,
-        analysis_tab,
-        review_tab,
-        export_tab,
-        settings_tab,
-    ) = st.tabs(
-        [
-            "Works & Metadata",
-            "Language Profile",
-            "Analyze & Compare",
-            "Review & Scenarios",
-            "Export",
-            "Project Settings",
-        ]
+    project_sections = (
+        "Works & Metadata",
+        "Language Profile",
+        "Analyze & Compare",
+        "Review & Scenarios",
+        "Export",
+        "Project Settings",
     )
+    project_state_key = f"corpus_project_section_{project_id}"
+    _, project_containers = render_stateful_section_navigation(
+        "Project section",
+        project_sections,
+        state_key=project_state_key,
+        container_key_prefix=project_state_key.replace("-", "_"),
+        default="Works & Metadata",
+        help_text=(
+            "The selected project section is retained when controls, analyses, "
+            "or prepared exports refresh the page."
+        ),
+    )
+    texts_tab = project_containers["Works & Metadata"]
+    language_tab = project_containers["Language Profile"]
+    analysis_tab = project_containers["Analyze & Compare"]
+    review_tab = project_containers["Review & Scenarios"]
+    export_tab = project_containers["Export"]
+    settings_tab = project_containers["Project Settings"]
+
     with texts_tab:
         _render_texts_tab(repository, project_id)
     with language_tab:

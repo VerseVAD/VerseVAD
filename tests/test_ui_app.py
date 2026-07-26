@@ -8,7 +8,7 @@ from versevad.ui.preferences import AppearanceMode, load_preferences
 
 
 APP_PATH = Path(__file__).parents[1] / "src" / "versevad" / "ui" / "app.py"
-REPORT_TABS = [
+REPORT_SECTIONS = [
     "Overview",
     "Affective Evidence",
     "Lexical Character",
@@ -17,10 +17,26 @@ REPORT_TABS = [
     "Evidence & Diagnostics",
     "Export & Help",
 ]
+CORPUS_SECTIONS = [
+    "Works & Metadata",
+    "Language Profile",
+    "Analyze & Compare",
+    "Review & Scenarios",
+    "Export",
+    "Project Settings",
+]
 
 
 def _button(app: AppTest, label: str):
     return next(button for button in app.button if button.label == label)
+
+
+def _section_navigation(app: AppTest, label: str):
+    return next(
+        control
+        for control in app.get("button_group")
+        if control.label == label
+    )
 
 
 def test_interface_starts_with_beginner_input_workflow() -> None:
@@ -141,14 +157,15 @@ def test_corpus_workspace_exposes_phase5_review_scenarios(
     app.run(timeout=30)
 
     assert not app.exception
-    assert [tab.label for tab in app.tabs] == [
-        "Works & Metadata",
-        "Language Profile",
-        "Analyze & Compare",
-        "Review & Scenarios",
-        "Export",
-        "Project Settings",
-    ]
+    project_navigation = _section_navigation(app, "Project section")
+    assert project_navigation.options == CORPUS_SECTIONS
+    assert project_navigation.value == "Works & Metadata"
+    project_navigation.set_value("Review & Scenarios")
+    app.run(timeout=30)
+    assert _section_navigation(app, "Project section").value == (
+        "Review & Scenarios"
+    )
+    assert not app.tabs
     assert "Review scenario" in [field.label for field in app.selectbox]
     assert "Scenario to edit" in [field.label for field in app.selectbox]
     assert "Create review scenario" in [button.label for button in app.button]
@@ -317,7 +334,10 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
 
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
-    assert [tab.label for tab in app.tabs] == REPORT_TABS
+    report_navigation = _section_navigation(app, "Report section")
+    assert report_navigation.options == REPORT_SECTIONS
+    assert report_navigation.value == "Overview"
+    assert not app.tabs
     assert ("Lexicons analyzed", "3") in [
         (metric.label, metric.value) for metric in app.metric
     ]
@@ -327,8 +347,12 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Download narrative report",
         "Download full audit bundle",
     } <= {button.label for button in app.get("download_button")}
+    report_navigation.set_value("Export & Help")
+    app.run(timeout=60)
+    assert _section_navigation(app, "Report section").value == "Export & Help"
     _button(app, "Prepare downloads").click()
     app.run(timeout=60)
+    assert _section_navigation(app, "Report section").value == "Export & Help"
     downloads = app.get("download_button")
     assert {button.label for button in downloads} >= {
         "Download readable summary",
@@ -405,6 +429,19 @@ def test_interface_renders_poetry_id_maps_scales_and_non_json_downloads() -> Non
         "Token-weighted",
         "Type-weighted",
     ]
+    report_navigation = _section_navigation(app, "Report section")
+    report_navigation.set_value("Affective Evidence")
+    app.run(timeout=60)
+    token_scope = next(
+        field
+        for field in app.selectbox
+        if field.label == "PoetryID token scope"
+    )
+    token_scope.set_value("stopwords_excluded")
+    app.run(timeout=60)
+    assert _section_navigation(app, "Report section").value == (
+        "Affective Evidence"
+    )
     labels = {
         button.label
         for button in app.get("download_button")
@@ -477,7 +514,10 @@ def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -
 
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
-    assert [tab.label for tab in app.tabs] == REPORT_TABS
+    assert _section_navigation(app, "Report section").options == (
+        REPORT_SECTIONS
+    )
+    assert not app.tabs
     assert any(
         heading.value == "Normative Lexical Concreteness"
         for heading in app.subheader
@@ -525,7 +565,10 @@ def test_interface_runs_optional_frequency_profile_and_content_scope_if_present(
 
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
-    assert [tab.label for tab in app.tabs] == REPORT_TABS
+    assert _section_navigation(app, "Report section").options == (
+        REPORT_SECTIONS
+    )
+    assert not app.tabs
     assert any(
         heading.value == "SUBTLEX-US Lexical Frequency & Rarity"
         for heading in app.subheader

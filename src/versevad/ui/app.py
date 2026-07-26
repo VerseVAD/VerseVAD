@@ -179,6 +179,7 @@ from versevad.ui.design import (
     render_app_shell,
     render_empty_state,
     render_section_intro,
+    render_stateful_section_navigation,
     render_workspace_header,
 )
 
@@ -231,7 +232,7 @@ if _corpus_was_reloaded:
 # Stage 13 centralizes the shell and appearance tokens. Reload the presentation
 # modules once in an already-open local server so theme and workspace changes
 # do not require the scholar to restart VerseVAD manually.
-_DESIGN_RUNTIME_REVISION = "2026-07-24-design-3"
+_DESIGN_RUNTIME_REVISION = "2026-07-26-design-4"
 _design_was_reloaded = (
     _DEVELOPMENT_HOT_RELOAD
     and st.session_state.get("_design_runtime_revision")
@@ -252,6 +253,9 @@ if _design_was_reloaded:
     render_app_shell = _design_services.render_app_shell
     render_empty_state = _design_services.render_empty_state
     render_section_intro = _design_services.render_section_intro
+    render_stateful_section_navigation = (
+        _design_services.render_stateful_section_navigation
+    )
     render_workspace_header = _design_services.render_workspace_header
     render_poetry_id = _poetry_id_ui_services.render_poetry_id
     st.session_state["_design_runtime_revision"] = _DESIGN_RUNTIME_REVISION
@@ -1862,25 +1866,39 @@ if workspace_page in {"Single Poem", "Other Text"}:
     if bibliographic_details:
         st.caption("Bibliographic notes · " + " · ".join(bibliographic_details))
 
-    (
-        overview_tab,
-        affective_tab,
-        lexical_tab,
-        sound_tab,
-        structure_tab,
-        evidence_diagnostics_tab,
-        export_help_tab,
-    ) = st.tabs(
-        [
-            "Overview",
-            "Affective Evidence",
-            "Lexical Character",
-            "Sound & Form",
-            "Structure",
-            "Evidence & Diagnostics",
-            "Export & Help",
-        ]
+    report_sections = (
+        "Overview",
+        "Affective Evidence",
+        "Lexical Character",
+        "Sound & Form",
+        "Structure",
+        "Evidence & Diagnostics",
+        "Export & Help",
     )
+    report_state_key = (
+        "other_text_report_section"
+        if is_other_text
+        else "single_poem_report_section"
+    )
+    _, report_containers = render_stateful_section_navigation(
+        "Report section",
+        report_sections,
+        state_key=report_state_key,
+        container_key_prefix=report_state_key,
+        default="Overview",
+        help_text=(
+            "The selected report family is retained when a view, weighting, "
+            "lexicon, or prepared export causes the page to refresh."
+        ),
+    )
+    overview_tab = report_containers["Overview"]
+    affective_tab = report_containers["Affective Evidence"]
+    lexical_tab = report_containers["Lexical Character"]
+    sound_tab = report_containers["Sound & Form"]
+    structure_tab = report_containers["Structure"]
+    evidence_diagnostics_tab = report_containers["Evidence & Diagnostics"]
+    export_help_tab = report_containers["Export & Help"]
+
     def _section_label(label: str, available: bool) -> str:
         return f"{label} · {'Complete' if available else 'Not selected'}"
 
