@@ -553,3 +553,32 @@ browser-control surface was unavailable during this pass, and Safari cannot
 run on Windows, so no Safari or pixel-level Chrome visual claim is made. The
 real-Mac checklist remains explicit rather than being represented as
 automatically complete.
+
+## Corpus VAD dispersion and in-place update documentation
+
+The corpus VAD regression fixture uses two invented poems with hand-calculated
+normalized valence statistics. It verifies the pooled population variance
+identity
+`sum(n_j * (s_j^2 + (m_j - M)^2)) / sum(n_j)`, the distinct population
+standard deviation across poem means, median, minimum, maximum, and exact
+pairing of every work mean with its matching within-work SD. A second fixture
+removes one work-level SD and confirms that the pooled SD stays missing while
+the across-poem SD remains available.
+
+Export regression coverage checks that `corpus_vad_profiles.csv` contains both
+dispersion levels and that `corpus_report.docx` names them separately. The
+existing complete Streamlit and cross-platform suites cover the shared
+Windows/macOS Python path and responsive corpus tables. `docs/updating.md`
+documents GitHub Desktop and terminal pulls without changing ignored
+lexicons, resources, projects, or operating-system-specific environments.
+
+The completion pass on 2026-07-26 passed all `300` automated tests, including
+`58` focused application, release, manual, responsive-style, cross-platform,
+and Streamlit tests. Ten lightweight direct synthetic demonstrations passed;
+the separate full five-source Phase 2 demonstration was intentionally not
+repeated, following the scholar's earlier request to avoid another
+unnecessary complete lexicon traversal. All runtime-only diagnostic checks
+passed, and the 88-package locked/offline dry run would make no environment
+changes. The rebuilt Word manual passed package/content checks and its
+accessibility audit reported zero findings. PNG visual rendering was
+unavailable because LibreOffice is not installed on the Windows host.

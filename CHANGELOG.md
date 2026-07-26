@@ -6,6 +6,13 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Expanded Project / Corpus VAD reporting with a pooled matched-token
+  population standard deviation, a separate population standard deviation
+  across poem means, poem-mean median/range, and side-by-side within-poem VAD
+  means/SDs. Corpus CSV and Word exports retain the same distinctions.
+- Added a cross-platform in-place update guide for GitHub Desktop and Terminal,
+  including clone detection, guarded fast-forward pulls, locked dependency
+  synchronization, preservation of ignored local data, and ZIP migration.
 - Standardized user-facing analysis exports on UTF-8 CSV data and narrative
   DOCX reports. JSON, TXT, and corpus XLSX analysis exports were replaced by
   complete CSV audit tables; ZIP remains a container for related files.

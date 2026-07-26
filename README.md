@@ -24,6 +24,9 @@ CSV research tables with a readable Word report. Flags, exclusions, and approved
 reversible, auditable, and applied only through an exact scenario version.
 Collection VAD reports both a token-weighted volume profile and an
 equal-work-weighted profile so long poems do not determine the only result.
+It now keeps pooled lexical-rating standard deviation separate from the
+standard deviation of poem-level means, and the poem comparison pairs each VAD
+mean with its within-poem population standard deviation.
 
 The new Language Profile reports model-assigned part-of-speech counts and
 relative shares independently of affective-lexicon coverage, both for one poem
@@ -139,6 +142,7 @@ See:
 - [Stage 14 performance report](docs/stage14-performance-report.md)
 - [Public resource installation guide](docs/resource-installation.md)
 - [macOS installation and browser guide](docs/macos-installation.md)
+- [Safe in-place update guide](docs/updating.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)
@@ -229,6 +233,12 @@ older browser before troubleshooting VerseVAD. See the
 [macOS installation and browser guide](docs/macos-installation.md) for
 first-run permissions, diagnostics, and browser checks.
 
+For later releases, do not replace a working installation. A Git clone can be
+updated in place with GitHub Desktop or `git pull`; ignored lexicons, research
+resources, projects, exports, and runtime files remain local. Follow the
+[safe in-place update guide](docs/updating.md), including its separate check
+for a folder originally obtained with **Download ZIP**.
+
 On either operating system, ordinary startup and analysis use the installed
 local files and do not upload the poem or results.
 
@@ -240,7 +250,7 @@ also provides persistent Light, Dark, and System appearance modes:
 2. **Project / Corpus** creates persistent local projects, imports a folder of
    `.txt` works, analyzes complete affective and optional-module batches,
    compares collection and part-of-speech views, records versioned review
-   scenarios, and exports Excel plus module audit bundles.
+   scenarios, and exports CSV data plus narrative Word reports.
 3. **Other Text** reuses the single-text report pattern for prose and other
    non-poetic material while marking poetry-specific sound/form modules as
    experimental.

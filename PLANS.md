@@ -1,5 +1,20 @@
 # VerseVAD Implementation Plan
 
+## Completed corpus VAD dispersion and safe-update guidance
+
+- [x] Reconstruct the pooled matched-token population standard deviation from
+  compatible work means, population SDs, and observation counts.
+- [x] Report the distinct population SD, median, minimum, and maximum across
+  poem-level token means without treating missing values as zero.
+- [x] Pair normalized valence, arousal, and dominance means with within-poem
+  population SDs in the individual-work corpus comparison.
+- [x] Add both dispersion levels to corpus CSV and narrative Word exports with
+  explicit interpretive boundaries.
+- [x] Document safe in-place updates through GitHub Desktop and Terminal on
+  Windows and macOS, including clone detection and ZIP migration.
+- [x] Add hand-calculated, missingness, export, interface, and documentation
+  regression coverage.
+
 ## Completed Lexicon Explorer Word export
 
 - [x] Add a deterministic printable DOCX report for the current Explorer

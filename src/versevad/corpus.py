@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import math
 import statistics
 from dataclasses import asdict, dataclass
 from pathlib import PurePosixPath
@@ -57,7 +58,7 @@ class CorpusImportSummary:
 
 @dataclass(frozen=True)
 class CorpusVadProfile:
-    """Two defensible collection means kept side by side."""
+    """Collection means and their distinct descriptive dispersion measures."""
 
     lexicon_id: str
     lexicon: str
@@ -68,9 +69,37 @@ class CorpusVadProfile:
     matched_observations: int
     lexical_tokens: int
     token_weighted_volume_mean: float
+    pooled_lexical_rating_standard_deviation: float | None
     work_weighted_volume_mean: float
+    poem_mean_standard_deviation: float
+    poem_mean_median: float
+    poem_mean_minimum: float
+    poem_mean_maximum: float
     work_minus_token_difference: float
     volume_coverage: float | None
+
+
+@dataclass(frozen=True)
+class CorpusVadWorkComparison:
+    """One work-level VAD mean paired with its within-work population SD."""
+
+    run_id: str
+    text_id: str
+    text_version_id: str
+    title: str
+    author: str
+    collection: str
+    date_label: str
+    genre: str
+    lexicon_id: str
+    lexicon: str
+    analysis_view: str
+    dimension: str
+    weighting: str
+    observations: int
+    coverage: float | None
+    mean: float
+    population_standard_deviation: float | None
 
 
 @dataclass(frozen=True)
@@ -297,11 +326,16 @@ def corpus_vad_profiles(
     *,
     total_works: int | None = None,
 ) -> tuple[CorpusVadProfile, ...]:
-    """Compute token- and work-weighted collection VAD profiles.
+    """Compute collection VAD means and two non-interchangeable dispersions.
 
     Token-weighted collection means reconstruct a pooled matched-observation mean.
     Work-weighted means average the eligible poem-level token means. Missing poem
     scores stay missing and are reported as omitted, never changed to 0.5 or zero.
+
+    The pooled lexical-rating population SD is reconstructed from every included
+    work's mean, population SD, and observation count. It is withheld if any
+    matching work-level SD is absent or inconsistent. The poem-mean population SD
+    instead describes variation among the included work-level means.
     """
 
     selected = tuple(
@@ -315,6 +349,24 @@ def corpus_vad_profiles(
     )
     if total_works is None:
         total_works = len({row.text_id for row in metrics})
+    standard_deviations = {
+        (
+            row.run_id,
+            row.text_id,
+            row.text_version_id,
+            row.lexicon_id,
+            row.analysis_view,
+            row.dimension,
+            row.weighting,
+            row.scale,
+        ): row
+        for row in metrics
+        if row.metric == "vad_standard_deviation"
+        and row.weighting == "token"
+        and row.scale == "normalized_0_1"
+        and row.value is not None
+        and row.observations > 0
+    }
     grouped: dict[tuple[str, str, str, str], list[CorpusMetricRecord]] = {}
     for row in selected:
         grouped.setdefault(
@@ -324,9 +376,41 @@ def corpus_vad_profiles(
     profiles = []
     for (lexicon_id, lexicon, analysis_view, dimension), rows in grouped.items():
         observations = sum(row.observations for row in rows)
-        work_mean = sum(float(row.value) for row in rows) / len(rows)
+        work_values = tuple(float(row.value) for row in rows)
+        work_mean = statistics.fmean(work_values)
         token_mean = (
             sum(float(row.value) * row.observations for row in rows) / observations
+        )
+        pooled_variance_total = 0.0
+        pooled_standard_deviation_available = True
+        for row in rows:
+            standard_deviation = standard_deviations.get(
+                (
+                    row.run_id,
+                    row.text_id,
+                    row.text_version_id,
+                    row.lexicon_id,
+                    row.analysis_view,
+                    row.dimension,
+                    row.weighting,
+                    row.scale,
+                )
+            )
+            if (
+                standard_deviation is None
+                or standard_deviation.observations != row.observations
+                or float(standard_deviation.value) < 0
+            ):
+                pooled_standard_deviation_available = False
+                break
+            pooled_variance_total += row.observations * (
+                float(standard_deviation.value) ** 2
+                + (float(row.value) - token_mean) ** 2
+            )
+        pooled_standard_deviation = (
+            math.sqrt(max(pooled_variance_total / observations, 0.0))
+            if pooled_standard_deviation_available
+            else None
         )
         lexical_tokens = sum(row.lexical_tokens for row in rows)
         matched_tokens = sum(row.matched_tokens for row in rows)
@@ -342,7 +426,14 @@ def corpus_vad_profiles(
                 matched_observations=observations,
                 lexical_tokens=lexical_tokens,
                 token_weighted_volume_mean=token_mean,
+                pooled_lexical_rating_standard_deviation=(
+                    pooled_standard_deviation
+                ),
                 work_weighted_volume_mean=work_mean,
+                poem_mean_standard_deviation=statistics.pstdev(work_values),
+                poem_mean_median=statistics.median(work_values),
+                poem_mean_minimum=min(work_values),
+                poem_mean_maximum=max(work_values),
                 work_minus_token_difference=work_mean - token_mean,
                 volume_coverage=coverage,
             )
@@ -354,6 +445,92 @@ def corpus_vad_profiles(
                 row.lexicon.casefold(),
                 row.analysis_view,
                 row.dimension,
+            ),
+        )
+    )
+
+
+def corpus_vad_work_comparisons(
+    metrics: Sequence[CorpusMetricRecord],
+) -> tuple[CorpusVadWorkComparison, ...]:
+    """Pair each normalized work-level VAD mean with its matching population SD."""
+
+    standard_deviations = {
+        (
+            row.run_id,
+            row.text_id,
+            row.text_version_id,
+            row.lexicon_id,
+            row.analysis_view,
+            row.dimension,
+            row.weighting,
+            row.scale,
+        ): row
+        for row in metrics
+        if row.metric == "vad_standard_deviation"
+        and row.scale == "normalized_0_1"
+        and row.value is not None
+        and row.observations > 0
+    }
+    comparisons = []
+    for row in metrics:
+        if (
+            row.metric != "vad_mean"
+            or row.scale != "normalized_0_1"
+            or row.value is None
+            or row.observations <= 0
+        ):
+            continue
+        standard_deviation = standard_deviations.get(
+            (
+                row.run_id,
+                row.text_id,
+                row.text_version_id,
+                row.lexicon_id,
+                row.analysis_view,
+                row.dimension,
+                row.weighting,
+                row.scale,
+            )
+        )
+        deviation_value = None
+        if (
+            standard_deviation is not None
+            and standard_deviation.observations == row.observations
+            and float(standard_deviation.value) >= 0
+        ):
+            deviation_value = float(standard_deviation.value)
+        comparisons.append(
+            CorpusVadWorkComparison(
+                run_id=row.run_id,
+                text_id=row.text_id,
+                text_version_id=row.text_version_id,
+                title=row.title,
+                author=row.author,
+                collection=row.collection,
+                date_label=row.date_label,
+                genre=row.genre,
+                lexicon_id=row.lexicon_id,
+                lexicon=row.lexicon,
+                analysis_view=row.analysis_view,
+                dimension=row.dimension,
+                weighting=row.weighting,
+                observations=row.observations,
+                coverage=row.coverage,
+                mean=float(row.value),
+                population_standard_deviation=deviation_value,
+            )
+        )
+    return tuple(
+        sorted(
+            comparisons,
+            key=lambda item: (
+                item.lexicon.casefold(),
+                item.weighting,
+                item.analysis_view,
+                item.title.casefold(),
+                item.text_id,
+                item.dimension,
             ),
         )
     )

@@ -154,6 +154,21 @@ start_versevad.command diagnose_macos.command` from the VerseVAD folder. See
 `docs/macos-installation.md` for exact Finder/Terminal steps, Gatekeeper
 guidance, and browser troubleshooting.
 
+## Updating an existing installation
+
+A VerseVAD folder cloned with Git can be updated in place. Close VerseVAD,
+inspect tracked local changes, and use GitHub Desktop **Fetch origin** followed
+by **Pull origin**, or run `git fetch origin` and `git pull --ff-only origin
+main` from the repository. Then rerun `setup_windows.bat` or `bash
+setup_macos.command`. The setup helper synchronizes only the locked dependency
+changes that are needed. It preserves ignored lexicons, resources, projects,
+exports, backups, runtime downloads, caches, and a compatible environment.
+
+Do not delete the working folder or use Git clean or hard reset as an update
+method. A folder obtained with GitHub's **Download ZIP** has no Git history and
+cannot pull. Use `docs/updating.md` for exact Windows and macOS commands, a
+clone check, and the one-time safe migration from a ZIP folder to a real clone.
+
 ## Start VerseVAD
 
 1. On Windows, double-click `start_versevad.bat`. On macOS, double-click
@@ -1111,6 +1126,25 @@ VerseVAD reports two collection profiles:
 
 Neither is universally correct. Their difference can itself be important evidence.
 
+VerseVAD reports two different population standard deviations beside these
+means:
+
+- **Pooled lexical-rating SD** describes the spread of all included matched
+  token ratings around the token-weighted volume mean. It is reconstructed
+  from each poem's matched count, mean, and within-poem population SD. If any
+  required SD is unavailable or inconsistent, this corpus value remains
+  unavailable.
+- **Across-poem mean SD** describes the spread of poem-level token means around
+  the work-weighted volume mean. It answers how much the included poem means
+  vary, not how much individual word ratings vary inside each poem.
+
+The same table reports the poem-mean median, minimum, and maximum. **Compare
+Individual Works** places each poem's normalized valence, arousal, and
+dominance means beside its own within-poem population SD for the selected
+source, analysis view, and token/type weighting. None of these SDs is a
+confidence interval, source-rater uncertainty, or a declaration of the poem's
+emotion.
+
 ## Cumulative corpus results
 
 Length-sensitive cumulative totals remain separate from means. Use them when the number and repetition of matched ratings across a work or volume is substantively relevant, while retaining the warning that they are normative lexical totals rather than measured reader impact.
@@ -1378,9 +1412,9 @@ remain the complete tabular evidence.
 
 | File | Contents |
 |---|---|
-| `corpus_report.docx` | Narrative collection overview, VAD profiles, denominators, and cautions |
+| `corpus_report.docx` | Narrative collection overview, VAD means, pooled and across-poem dispersion, denominators, and cautions |
 | `corpus_project.csv` and `corpus_works.csv` | Project metadata plus work IDs, version IDs, paths, and hashes |
-| `corpus_vad_metrics.csv` and `corpus_vad_profiles.csv` | Work-level VAD records and token-/work-weighted collection profiles |
+| `corpus_vad_metrics.csv` and `corpus_vad_profiles.csv` | Work-level VAD means/SDs and token-/work-weighted collection means with pooled and across-poem dispersion |
 | `corpus_part_of_speech.csv` | Broad and detailed combined/work-level POS evidence |
 | `corpus_module_*.csv` | Additional-module results, metrics, aggregates, coverage, and warnings |
 | `corpus_unmatched_qc.csv` | Persistent review statuses, notes, and proposed mappings |
@@ -1416,6 +1450,36 @@ Let `x_i` be the normalized VAD value for included matched observation `i`, `N` 
 `SD_population = sqrt(sum((x_i - mean_token)^2) / N)`
 
 The type-weighted dispersion uses the analogous formula over distinct entries.
+
+## Corpus VAD means and dispersion
+
+Let poem `j` contribute `n_j` included matched token observations, token mean
+`m_j`, and within-poem population standard deviation `s_j`. Let `K` be the
+number of included poems.
+
+**Token-weighted volume mean**
+
+`M_token = sum(n_j * m_j) / sum(n_j)`
+
+**Pooled lexical-rating population standard deviation**
+
+`SD_pooled = sqrt(sum(n_j * (s_j^2 + (m_j - M_token)^2)) / sum(n_j))`
+
+This reconstruction combines within-poem and between-poem rating variation. It
+is reported only when every included poem supplies a compatible `s_j` and
+count.
+
+**Work-weighted volume mean**
+
+`M_work = sum(m_j) / K`
+
+**Across-poem mean population standard deviation**
+
+`SD_poem_means = sqrt(sum((m_j - M_work)^2) / K)`
+
+The first SD describes matched lexical ratings pooled across the volume. The
+second describes variation among poem means. Neither estimates uncertainty in
+the original human ratings.
 
 ## Coverage
 

@@ -267,6 +267,24 @@ def build_corpus_export_bundle(
                 },
                 {
                     "section": section,
+                    "metric": "pooled lexical rating population standard deviation",
+                    "value": (
+                        f"{profile.pooled_lexical_rating_standard_deviation:.4f}"
+                        if profile.pooled_lexical_rating_standard_deviation
+                        is not None
+                        else "unavailable"
+                    ),
+                    "unit_or_scale": "normalized 0-1",
+                    "denominator": (
+                        f"{profile.matched_observations} matched observations"
+                    ),
+                    "note": (
+                        "Spread of pooled matched token ratings; withheld if a "
+                        "required work-level standard deviation is unavailable."
+                    ),
+                },
+                {
+                    "section": section,
                     "metric": "work weighted volume mean",
                     "value": f"{profile.work_weighted_volume_mean:.4f}",
                     "unit_or_scale": "normalized 0-1",
@@ -275,6 +293,36 @@ def build_corpus_export_bundle(
                         f"{profile.works_omitted} omitted"
                     ),
                     "note": "Each included work contributes one mean.",
+                },
+                {
+                    "section": section,
+                    "metric": "across poem mean population standard deviation",
+                    "value": f"{profile.poem_mean_standard_deviation:.4f}",
+                    "unit_or_scale": "normalized 0-1",
+                    "denominator": f"{profile.works_included} included works",
+                    "note": (
+                        "Spread of poem-level token means, not source-rater "
+                        "uncertainty or a confidence interval."
+                    ),
+                },
+                {
+                    "section": section,
+                    "metric": "poem mean median",
+                    "value": f"{profile.poem_mean_median:.4f}",
+                    "unit_or_scale": "normalized 0-1",
+                    "denominator": f"{profile.works_included} included works",
+                    "note": "Median of the included poem-level token means.",
+                },
+                {
+                    "section": section,
+                    "metric": "poem mean range",
+                    "value": (
+                        f"{profile.poem_mean_minimum:.4f} to "
+                        f"{profile.poem_mean_maximum:.4f}"
+                    ),
+                    "unit_or_scale": "normalized 0-1",
+                    "denominator": f"{profile.works_included} included works",
+                    "note": "Lowest and highest included poem-level token means.",
                 },
             )
         )

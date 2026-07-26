@@ -4,9 +4,10 @@ import csv
 import io
 import zipfile
 
+import pytest
 from docx import Document
 
-from versevad.db import CorpusTextRecord, ProjectRecord
+from versevad.db import CorpusMetricRecord, CorpusTextRecord, ProjectRecord
 from versevad.exports.corpus_csv import build_corpus_export_bundle
 
 
@@ -69,3 +70,113 @@ def test_corpus_export_contains_csv_data_and_word_report_only() -> None:
         assert "VerseVAD Corpus Report" in text_content
         assert "Scope and interpretation" in text_content
         assert "Companion data files" in text_content
+
+
+def test_corpus_export_reports_both_vad_dispersion_levels() -> None:
+    project = ProjectRecord(
+        project_id="project-dispersion",
+        title="Dispersion Project",
+        description="Synthetic dispersion fixture",
+        researcher="Researcher",
+        created_at="2026-07-26T00:00:00+00:00",
+        updated_at="2026-07-26T00:00:00+00:00",
+    )
+    texts = tuple(
+        CorpusTextRecord(
+            text_id=text_id,
+            text_version_id=f"{text_id}:v1",
+            project_id=project.project_id,
+            title=title,
+            source_name=f"{text_id}.txt",
+            relative_path=f"{text_id}.txt",
+            author="",
+            collection="",
+            date_label="",
+            genre="",
+            notes="",
+            custom_metadata={},
+            original_text="Fixture.",
+            text_sha256=character * 64,
+            imported_at="2026-07-26T00:00:00+00:00",
+            updated_at="2026-07-26T00:00:00+00:00",
+        )
+        for text_id, title, character in (
+            ("first", "First", "a"),
+            ("second", "Second", "b"),
+        )
+    )
+
+    def metric(
+        text: CorpusTextRecord,
+        metric_name: str,
+        value: float,
+        observations: int,
+    ) -> CorpusMetricRecord:
+        return CorpusMetricRecord(
+            run_id=f"run-{text.text_id}",
+            text_id=text.text_id,
+            text_version_id=text.text_version_id,
+            title=text.title,
+            author="",
+            collection="",
+            date_label="",
+            genre="",
+            lexicon_id="fixture-vad",
+            lexicon="Fixture VAD",
+            value_kind="vad",
+            metric=metric_name,
+            dimension="valence",
+            category="",
+            weighting="token",
+            scale="normalized_0_1",
+            denominator=f"{observations} included matched observations",
+            value=value,
+            observations=observations,
+            matched_tokens=observations,
+            lexical_tokens=observations,
+            coverage=1.0,
+            completed_at="2026-07-26T00:00:00+00:00",
+            analysis_view="all_matched",
+        )
+
+    metrics = (
+        metric(texts[0], "vad_mean", 0.2, 2),
+        metric(texts[0], "vad_standard_deviation", 0.1, 2),
+        metric(texts[1], "vad_mean", 0.8, 3),
+        metric(texts[1], "vad_standard_deviation", 0.2, 3),
+    )
+    archive_bytes = build_corpus_export_bundle(
+        project,
+        texts,
+        metrics,
+        (),
+    )
+
+    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
+        profile_rows = list(
+            csv.DictReader(
+                io.StringIO(
+                    archive.read("corpus_vad_profiles.csv").decode("utf-8-sig")
+                )
+            )
+        )
+        assert profile_rows[0][
+            "pooled_lexical_rating_standard_deviation"
+        ] != ""
+        assert float(
+            profile_rows[0]["poem_mean_standard_deviation"]
+        ) == pytest.approx(0.3)
+        report = Document(io.BytesIO(archive.read("corpus_report.docx")))
+        report_text = "\n".join(
+            [
+                *(paragraph.text for paragraph in report.paragraphs),
+                *(
+                    cell.text
+                    for table in report.tables
+                    for row in table.rows
+                    for cell in row.cells
+                ),
+            ]
+        ).casefold()
+        assert "pooled lexical rating population standard deviation" in report_text
+        assert "across poem mean population standard deviation" in report_text

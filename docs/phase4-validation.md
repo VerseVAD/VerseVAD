@@ -78,10 +78,13 @@ whitespace entries does not appear. The source checksum must remain unchanged.
 6. Wait for the complete-batch message.
 
 Confirm that **Collection VAD** reports a token-weighted volume mean, a
-work-weighted volume mean, and their signed difference for valence, arousal,
-and dominance. Switch the within-work control between token and type. Confirm
-that cumulative-load rows remain separate from means. Use collection, author,
-or genre filters to narrow the completed batch.
+pooled lexical-rating SD, work-weighted volume mean, across-poem mean SD,
+poem-mean median/range, and the signed difference between means for valence,
+arousal, and dominance. Under **Compare Individual Works**, switch the
+within-work control between token and type and confirm that every poem row
+shows VAD means beside within-poem population SDs. Confirm that
+cumulative-load rows remain separate from means. Use collection, author, or
+genre filters to narrow the completed batch.
 
 ## Beginner test 4: unmatched quality-control notes
 
@@ -94,17 +97,18 @@ Confirm that the note persists. The interface must state that the note does not
 change analysis results. Reanalysis may change which observations are current,
 but the note remains keyed to project, work, lexicon, and normalized form.
 
-## Beginner test 5: Excel workbook
+## Beginner test 5: CSV and Word bundle
 
-1. Open **Excel export** and download the corpus workbook.
-2. Open it in Excel.
+1. Open **Export** and download the corpus CSV and Word bundle.
+2. Extract the ZIP, open `corpus_report.docx`, and inspect
+   `corpus_vad_profiles.csv` and `corpus_vad_metrics.csv`.
 
-Confirm the sheets **START HERE**, **Corpus Profiles**, **Work VAD**,
-**Cumulative load**, **Coverage and emotion**, **Unmatched QC**, and **Text
-metadata**. The first sheet explains the weighting distinctions. The workbook
-contains filters, frozen headers, readable number formats, and the quality-
-control note. It includes text/version IDs and hashes but does not duplicate
-the complete literary texts.
+Confirm that the narrative report names pooled lexical-rating SD and
+across-poem mean SD separately. Confirm that the profiles CSV contains both
+dispersion levels and poem-mean summary fields, while the metrics CSV retains
+the work-level `vad_mean` and `vad_standard_deviation` rows. The bundle
+includes text/version IDs and hashes but does not duplicate the complete
+literary texts.
 
 ## Beginner test 6: Lexicon Explorer
 

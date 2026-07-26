@@ -67,6 +67,27 @@ Setup checks the core application with invented local fixtures, so it can
 finish before separately licensed research files are installed. It never
 assigns substitute data to a missing resource.
 
+## Update an existing clone
+
+You do not need to delete the Mac installation or reinstall its lexicons and
+projects. Close VerseVAD, open the repository in GitHub Desktop, select `main`,
+click **Fetch origin**, and then click **Pull origin**. Alternatively, from
+Terminal in `~/Documents/VerseVAD`, run:
+
+```bash
+git status
+git fetch origin
+git pull --ff-only origin main
+bash setup_macos.command
+```
+
+Read `git status` before pulling and do not discard tracked local edits. The
+setup helper reuses its local environment and cache, changing packages only
+when the locked dependencies require it. Ignored research resources, projects,
+exports, and backups remain in place. If `git status` says the folder is not a
+Git repository, it was probably downloaded as a ZIP and needs the one-time
+migration in [updating.md](updating.md).
+
 ## Start and stop
 
 After setup, double-click `start_versevad.command` in Finder. You can also run:

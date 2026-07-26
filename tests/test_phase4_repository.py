@@ -7,8 +7,13 @@ import pytest
 
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.application import AnalysisRequest, WorkspaceAnalysis
-from versevad.corpus import analyze_corpus, corpus_vad_profiles, decode_corpus_files
-from versevad.db import CorpusTextImport, ProjectRepository
+from versevad.corpus import (
+    analyze_corpus,
+    corpus_vad_profiles,
+    corpus_vad_work_comparisons,
+    decode_corpus_files,
+)
+from versevad.db import CorpusMetricRecord, CorpusTextImport, ProjectRepository
 from versevad.models import PhrasePolicy
 from versevad.phase2_validation import phase2_synthetic_vad_lexicon
 from versevad.preprocessing import create_text_document
@@ -35,6 +40,125 @@ def _workspace(text, preprocessor) -> WorkspaceAnalysis:
         text_version_id=text.text_version_id,
     )
     return WorkspaceAnalysis(request, document, (result,), compare_lexicons((result,)))
+
+
+def _vad_metric(
+    *,
+    text_id: str,
+    title: str,
+    metric: str,
+    value: float,
+    observations: int,
+) -> CorpusMetricRecord:
+    return CorpusMetricRecord(
+        run_id=f"run-{text_id}",
+        text_id=text_id,
+        text_version_id=f"{text_id}:v1",
+        title=title,
+        author="",
+        collection="Fixture collection",
+        date_label="",
+        genre="poem",
+        lexicon_id="fixture-vad",
+        lexicon="Fixture VAD",
+        value_kind="vad",
+        metric=metric,
+        dimension="valence",
+        category="",
+        weighting="token",
+        scale="normalized_0_1",
+        denominator=f"{observations} included matched observations",
+        value=value,
+        observations=observations,
+        matched_tokens=observations,
+        lexical_tokens=observations,
+        coverage=1.0,
+        completed_at="2026-07-26T00:00:00+00:00",
+        analysis_view="all_matched",
+    )
+
+
+def test_corpus_vad_dispersion_keeps_pooled_ratings_and_poem_means_distinct() -> None:
+    metrics = (
+        _vad_metric(
+            text_id="a",
+            title="First",
+            metric="vad_mean",
+            value=0.2,
+            observations=2,
+        ),
+        _vad_metric(
+            text_id="a",
+            title="First",
+            metric="vad_standard_deviation",
+            value=0.1,
+            observations=2,
+        ),
+        _vad_metric(
+            text_id="b",
+            title="Second",
+            metric="vad_mean",
+            value=0.8,
+            observations=3,
+        ),
+        _vad_metric(
+            text_id="b",
+            title="Second",
+            metric="vad_standard_deviation",
+            value=0.2,
+            observations=3,
+        ),
+    )
+
+    profile = corpus_vad_profiles(metrics, total_works=2)[0]
+    assert profile.token_weighted_volume_mean == pytest.approx(0.56)
+    assert profile.pooled_lexical_rating_standard_deviation == pytest.approx(
+        (0.1144) ** 0.5
+    )
+    assert profile.work_weighted_volume_mean == pytest.approx(0.5)
+    assert profile.poem_mean_standard_deviation == pytest.approx(0.3)
+    assert profile.poem_mean_median == pytest.approx(0.5)
+    assert profile.poem_mean_minimum == pytest.approx(0.2)
+    assert profile.poem_mean_maximum == pytest.approx(0.8)
+
+    comparisons = corpus_vad_work_comparisons(metrics)
+    assert [row.population_standard_deviation for row in comparisons] == [
+        pytest.approx(0.1),
+        pytest.approx(0.2),
+    ]
+
+
+def test_corpus_vad_pooled_dispersion_stays_missing_when_a_work_sd_is_missing() -> None:
+    metrics = (
+        _vad_metric(
+            text_id="a",
+            title="First",
+            metric="vad_mean",
+            value=0.2,
+            observations=2,
+        ),
+        _vad_metric(
+            text_id="a",
+            title="First",
+            metric="vad_standard_deviation",
+            value=0.1,
+            observations=2,
+        ),
+        _vad_metric(
+            text_id="b",
+            title="Second",
+            metric="vad_mean",
+            value=0.8,
+            observations=3,
+        ),
+    )
+
+    profile = corpus_vad_profiles(metrics, total_works=2)[0]
+    assert profile.pooled_lexical_rating_standard_deviation is None
+    assert profile.poem_mean_standard_deviation == pytest.approx(0.3)
+    comparisons = corpus_vad_work_comparisons(metrics)
+    assert comparisons[0].population_standard_deviation == pytest.approx(0.1)
+    assert comparisons[1].population_standard_deviation is None
 
 
 def test_folder_decode_preserves_relative_paths_and_text() -> None:

@@ -25,6 +25,7 @@ from versevad.corpus import (
     corpus_module_profiles,
     corpus_scenario_deltas,
     corpus_vad_profiles,
+    corpus_vad_work_comparisons,
     decode_corpus_files,
 )
 from versevad.db import SCHEMA_VERSION, ProjectRepository, default_database_path
@@ -487,7 +488,14 @@ def _render_profiles(metrics, total_works: int) -> None:
                 "Matched observations": row.matched_observations,
                 "Volume coverage": row.volume_coverage,
                 "Token-weighted volume mean": row.token_weighted_volume_mean,
+                "Pooled lexical-rating SD": (
+                    row.pooled_lexical_rating_standard_deviation
+                ),
                 "Work-weighted volume mean": row.work_weighted_volume_mean,
+                "Across-poem mean SD": row.poem_mean_standard_deviation,
+                "Poem-mean median": row.poem_mean_median,
+                "Lowest poem mean": row.poem_mean_minimum,
+                "Highest poem mean": row.poem_mean_maximum,
                 "Work minus token": row.work_minus_token_difference,
             }
             for row in profiles
@@ -498,9 +506,15 @@ def _render_profiles(metrics, total_works: int) -> None:
             {
                 "Volume coverage": "{:.1%}",
                 "Token-weighted volume mean": "{:.3f}",
+                "Pooled lexical-rating SD": "{:.3f}",
                 "Work-weighted volume mean": "{:.3f}",
+                "Across-poem mean SD": "{:.3f}",
+                "Poem-mean median": "{:.3f}",
+                "Lowest poem mean": "{:.3f}",
+                "Highest poem mean": "{:.3f}",
                 "Work minus token": "{:+.3f}",
-            }
+            },
+            na_rep="—",
         ),
         hide_index=True,
         width="stretch",
@@ -520,7 +534,12 @@ def _render_profiles(metrics, total_works: int) -> None:
         height=320,
     )
     st.caption(
-        "Only eligible work scores enter either mean. Works with missing scores are reported as omitted, not assigned a neutral value."
+        "Pooled lexical-rating SD describes the spread of all included matched "
+        "token ratings around the token-weighted volume mean. Across-poem mean SD "
+        "describes variation among poem-level token means around the work-weighted "
+        "mean. Neither is a confidence interval, source-rater uncertainty, or an "
+        "emotion declaration. Missing work scores stay omitted rather than receiving "
+        "a neutral value."
     )
 
 
@@ -1605,11 +1624,7 @@ def _render_analysis_tab(
     _render_profiles(metrics, len({row.text_id for row in metrics}))
 
     st.subheader("Compare Individual Works")
-    vad = [
-        row
-        for row in metrics
-        if row.metric == "vad_mean" and row.scale == "normalized_0_1"
-    ]
+    vad = corpus_vad_work_comparisons(metrics)
     if vad:
         selected_lexicon = st.selectbox(
             "Comparison lexicon",
@@ -1627,33 +1642,88 @@ def _render_analysis_tab(
             horizontal=True,
             key=f"comparison_weighting_{project_id}",
         )
-        chosen = [
+        chosen = tuple(
             row
             for row in vad
             if row.lexicon == selected_lexicon and row.weighting == selected_weighting
-        ]
-        work_frame = pd.DataFrame(
-            [
+        )
+        work_rows: dict[tuple[str, str], dict[str, object]] = {}
+        for row in chosen:
+            key = (row.text_id, row.analysis_view)
+            values = work_rows.setdefault(
+                key,
                 {
                     "Work": row.title,
                     "Collection": row.collection,
                     "Analysis view": view_labels[row.analysis_view],
-                    "Dimension": row.dimension.title(),
-                    "Mean": row.value,
-                    "Observations": row.observations,
+                    "Matched observations": row.observations,
                     "Coverage": row.coverage,
-                }
-                for row in chosen
-            ]
+                },
+            )
+            dimension = row.dimension.title()
+            values[f"{dimension} mean"] = row.mean
+            values[f"{dimension} SD"] = row.population_standard_deviation
+        comparison_columns = [
+            "Work",
+            "Collection",
+            "Analysis view",
+            "Valence mean",
+            "Valence SD",
+            "Arousal mean",
+            "Arousal SD",
+            "Dominance mean",
+            "Dominance SD",
+            "Matched observations",
+            "Coverage",
+        ]
+        comparison_rows = sorted(
+            work_rows.values(),
+            key=lambda row: (
+                str(row["Work"]).casefold(),
+                str(row["Analysis view"]),
+            ),
+        )
+        comparison_frame = pd.DataFrame(
+            comparison_rows,
+            columns=comparison_columns,
         )
         st.dataframe(
-            work_frame.style.format({"Mean": "{:.3f}", "Coverage": "{:.1%}"}),
+            comparison_frame.style.format(
+                {
+                    "Valence mean": "{:.3f}",
+                    "Valence SD": "{:.3f}",
+                    "Arousal mean": "{:.3f}",
+                    "Arousal SD": "{:.3f}",
+                    "Dominance mean": "{:.3f}",
+                    "Dominance SD": "{:.3f}",
+                    "Coverage": "{:.1%}",
+                },
+                na_rep="—",
+            ),
             hide_index=True,
             width="stretch",
+        )
+        st.caption(
+            "Each SD is the population standard deviation of included matched "
+            "lexical ratings within that poem, source, view, dimension, and "
+            "weighting. It is descriptive spread, not a confidence interval or "
+            "variability among poems."
         )
         if {"all_matched", "stopwords_excluded"}.issubset(
             {row.analysis_view for row in chosen}
         ):
+            work_frame = pd.DataFrame(
+                [
+                    {
+                        "Work": row.title,
+                        "Collection": row.collection,
+                        "Analysis view": view_labels[row.analysis_view],
+                        "Dimension": row.dimension.title(),
+                        "Mean": row.mean,
+                    }
+                    for row in chosen
+                ]
+            )
             sensitivity = (
                 work_frame.pivot_table(
                     index=["Work", "Collection", "Dimension"],

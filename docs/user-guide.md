@@ -46,6 +46,20 @@ running macOS 13 Ventura or newer.
 For detailed first-run permissions and browser troubleshooting, see
 [VerseVAD on macOS](macos-installation.md).
 
+## Update an existing installation
+
+If the VerseVAD folder is a Git clone, update it in place with GitHub Desktop's
+**Fetch origin** followed by **Pull origin**, or with `git pull --ff-only
+origin main`. Close VerseVAD first and inspect any tracked local changes before
+pulling. Then rerun the setup helper for the current operating system; it
+synchronizes only changed locked dependencies and preserves ignored lexicons,
+resources, projects, exports, runtimes, and caches.
+
+A folder obtained with **Download ZIP** has no Git history and cannot be
+pulled. See the [safe in-place update guide](updating.md) for clone detection,
+exact Windows/macOS commands, and a one-time ZIP-to-clone migration that keeps
+the old folder until private data are verified.
+
 ## Start and stop VerseVAD
 
 1. On Windows, double-click `start_versevad.bat`. On macOS, double-click
@@ -427,6 +441,23 @@ Neither is the universally correct view; they answer different questions. The
 dashboard and corpus CSV/Word bundle show their signed difference. A divergence may be
 an important result. A work with no eligible score is reported as omitted and
 never assigned a neutral value.
+
+The collection table also reports two different population standard
+deviations:
+
+- **Pooled lexical-rating SD:** the spread of all included matched token
+  ratings around the token-weighted volume mean. VerseVAD reconstructs it
+  exactly from each poem's matched-observation count, mean, and within-poem
+  population SD. It stays unavailable if a required poem-level SD is missing.
+- **Across-poem mean SD:** the spread of included poem-level token means around
+  the work-weighted volume mean. Use it to describe how much poem means differ
+  within the selected corpus.
+
+Median, lowest, and highest poem means provide additional context. Under
+**Compare Individual Works**, one row per poem and analysis view shows
+valence, arousal, and dominance means beside their within-poem population SDs.
+These SDs describe normative lexical-rating spread. They are not confidence
+intervals, uncertainty in the source ratings, or declarations about emotion.
 
 ### Corpus part-of-speech views
 
