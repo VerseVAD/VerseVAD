@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html import escape
-from typing import Mapping, Sequence
+from typing import Literal, Mapping, Sequence
 
 import altair as alt
 import streamlit as st
@@ -313,6 +313,29 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       background: var(--color-surface-muted);
       border-right: 1px solid var(--color-border);
     }}
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapsedControl"] {{
+      color: var(--color-text-primary) !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="stSidebarCollapsedControl"] button {{
+      background: var(--color-surface-raised) !important;
+      border: 1px solid var(--color-border-strong) !important;
+      color: var(--color-text-primary) !important;
+      min-height: 2.5rem;
+      min-width: 2.5rem;
+    }}
+    [data-testid="stSidebarCollapseButton"] button:hover,
+    [data-testid="stSidebarCollapsedControl"] button:hover {{
+      background: var(--color-accent-soft) !important;
+      border-color: var(--color-accent) !important;
+      color: var(--color-accent-strong) !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="stSidebarCollapsedControl"] svg {{
+      fill: currentColor !important;
+      stroke: currentColor !important;
+    }}
     [data-testid="stHeader"] {{
       background: transparent;
     }}
@@ -366,14 +389,12 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       border-color: var(--color-accent) !important;
       color: var(--color-accent-strong) !important;
     }}
-    [role="radiogroup"][aria-label="Report section"],
     [role="radiogroup"][aria-label="Project section"] {{
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-2);
       width: 100%;
     }}
-    [role="radiogroup"][aria-label="Report section"] button,
     [role="radiogroup"][aria-label="Project section"] button {{
       background: var(--color-surface) !important;
       border-color: var(--color-border) !important;
@@ -382,11 +403,9 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       min-height: 2.6rem;
       white-space: normal;
     }}
-    [role="radiogroup"][aria-label="Report section"] button p,
     [role="radiogroup"][aria-label="Project section"] button p {{
       color: inherit !important;
     }}
-    [role="radiogroup"][aria-label="Report section"] button[data-selected="true"],
     [role="radiogroup"][aria-label="Project section"] button[data-selected="true"] {{
       background: var(--color-accent-soft) !important;
       border-color: var(--color-accent) !important;
@@ -792,6 +811,7 @@ def render_stateful_section_navigation(
     container_key_prefix: str,
     default: str | None = None,
     help_text: str | None = None,
+    control: Literal["segmented", "dropdown"] = "segmented",
 ) -> tuple[str, dict[str, DeltaGenerator]]:
     """Render rerun-stable section navigation and keyed content containers."""
 
@@ -809,13 +829,24 @@ def render_stateful_section_navigation(
     if st.session_state.get(state_key) not in section_options:
         st.session_state[state_key] = selected_default
 
-    selected = st.segmented_control(
-        label,
-        options=section_options,
-        selection_mode="single",
-        key=state_key,
-        help=help_text,
-    )
+    if control == "dropdown":
+        selected = st.selectbox(
+            label,
+            options=section_options,
+            index=None,
+            key=state_key,
+            help=help_text,
+        )
+    elif control == "segmented":
+        selected = st.segmented_control(
+            label,
+            options=section_options,
+            selection_mode="single",
+            key=state_key,
+            help=help_text,
+        )
+    else:
+        raise ValueError("Section navigation control must be 'segmented' or 'dropdown'.")
     active_section = selected or selected_default
     container_keys = {
         section: f"{container_key_prefix}_{index}"

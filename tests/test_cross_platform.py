@@ -52,7 +52,8 @@ def test_browser_styles_include_safari_and_narrow_layout_safeguards() -> None:
         "font-size: 16px",
         "flex-wrap: wrap",
         "white-space: normal",
-        '[aria-label="Report section"]',
         '[aria-label="Project section"]',
+        '[data-testid="stSidebarCollapseButton"]',
+        '[data-testid="stSidebarCollapsedControl"]',
     ):
         assert required in css

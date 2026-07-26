@@ -6,6 +6,14 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Replaced the one-text horizontal report-family control with a persistent
+  dropdown, made every large report panel initially collapsed while preserving
+  independent multi-panel expansion, and made Streamlit's native sidebar
+  collapse/restore affordance visible and high-contrast so the wide workspace
+  automatically reflows on Windows and macOS browsers.
+- Moved **Dispersion of Matched Ratings** out of the token/type mean comparison
+  and into a standalone Affective Evidence VAD section directly after the VAD
+  definitions, without changing the population-standard-deviation calculation.
 - Replaced rerun-resetting one-text report tabs and Project / Corpus tabs with
   state-backed, responsive section controls. Lexicon, token-scope, weighting,
   and other display changes now retain the active section, and preparing

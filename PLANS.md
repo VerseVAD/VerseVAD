@@ -1,5 +1,19 @@
 # VerseVAD Implementation Plan
 
+## Completed compact report navigation and collapsible results
+
+- [x] Present one-text report families in a rerun-stable dropdown while keeping
+  the existing responsive Project / Corpus section control.
+- [x] Expose Streamlit's native high-contrast sidebar collapse/restore controls
+  so the main workspace automatically expands and resizes across supported
+  Windows and macOS browsers.
+- [x] Start all large report panels collapsed while retaining independent,
+  simultaneous expansion.
+- [x] Promote matched-rating population dispersion to its own Affective
+  Evidence VAD section immediately after the VAD definitions.
+- [x] Add interface, styling, cross-platform, and documentation regression
+  coverage.
+
 ## Completed rerun-stable section navigation
 
 - [x] Replace native report and Project / Corpus tabs, whose selected state was

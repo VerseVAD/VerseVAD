@@ -32,9 +32,10 @@ def _button(app: AppTest, label: str):
 
 
 def _section_navigation(app: AppTest, label: str):
+    control_type = "selectbox" if label == "Report section" else "button_group"
     return next(
         control
-        for control in app.get("button_group")
+        for control in app.get(control_type)
         if control.label == label
     )
 
@@ -338,6 +339,29 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
     assert report_navigation.options == REPORT_SECTIONS
     assert report_navigation.value == "Overview"
     assert not app.tabs
+    collapsible_report_sections = {
+        "VAD · Complete",
+        "Emotion Association & Intensity · Complete",
+        "PoetryID · Not selected",
+        "Concreteness · Not selected",
+        "Frequency & Rarity · Not selected",
+        "Age of Acquisition · Not selected",
+        "Pronunciation, Syllables & Stress · Not selected",
+        "Meter & Rhythm · Not selected",
+        "Rhyme & Recurring Sound · Not selected",
+        "Language Profile · Complete",
+        "Lexical & Structural Measures · Not selected",
+        "Token Evidence, Coverage & Diagnostics · Complete",
+        "Export Report & Data",
+        "Methodology & How to Read",
+    }
+    report_expanders = {
+        expander.label: expander
+        for expander in app.expander
+        if expander.label in collapsible_report_sections
+    }
+    assert report_expanders.keys() == collapsible_report_sections
+    assert all(not expander.proto.expanded for expander in report_expanders.values())
     assert ("Lexicons analyzed", "3") in [
         (metric.label, metric.value) for metric in app.metric
     ]
@@ -360,6 +384,14 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Download full audit bundle",
     }
     assert any("Parallel Normalized VAD Views" in heading.value for heading in app.subheader)
+    vad_headings = [heading.value for heading in app.subheader]
+    assert "Dispersion of Matched Ratings" in vad_headings
+    assert vad_headings.index("What Valence, Arousal, and Dominance Mean") < (
+        vad_headings.index("Dispersion of Matched Ratings")
+    ) < vad_headings.index("Repetition-Sensitive and Vocabulary-Sensitive Means")
+    assert "Dispersion of matched ratings" not in [
+        expander.label for expander in app.expander
+    ]
     assert any("Stopword Sensitivity" in heading.value for heading in app.subheader)
     assert any("Eight Emotion Associations" in heading.value for heading in app.subheader)
     assert any(

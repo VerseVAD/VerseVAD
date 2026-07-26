@@ -144,6 +144,18 @@ sections. A long section may shift slightly as its contents change, but the
 interface no longer returns to **Overview** or **Works & Metadata** merely
 because a control reran the page.
 
+Choose a one-text **Report section** from the dropdown. All large vertical
+sections begin collapsed and can be opened independently, so several may remain
+open at once. Use Streamlit's arrow control at the top edge of the left sidebar
+to hide or restore it; the main workspace automatically expands into the freed
+space or resizes when the sidebar returns. The control and responsive layout
+work the same way on supported Windows and macOS browsers.
+
+Within **Affective Evidence > VAD**, **Dispersion of Matched Ratings** is a
+separate section immediately after **What Valence, Arousal, and Dominance
+Mean**. Its population standard deviations describe variation among the
+matched ratings, independently of the token/type mean comparison that follows.
+
 The **Other Text** workspace reuses this sequence with **Analyze Text**
 terminology. Meter and rhyme remain available there but are visibly marked as
 experimental for non-lineated prose.

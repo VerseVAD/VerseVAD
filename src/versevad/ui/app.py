@@ -1886,6 +1886,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
         state_key=report_state_key,
         container_key_prefix=report_state_key,
         default="Overview",
+        control="dropdown",
         help_text=(
             "The selected report family is retained when a view, weighting, "
             "lexicon, or prepared export causes the page to refresh."
@@ -1905,7 +1906,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
     with affective_tab:
         vad_tab = st.expander(
             _section_label("VAD", bool(workspace.results)),
-            expanded=True,
         )
         emotion_tab = st.expander(
             _section_label("Emotion Association & Intensity", bool(workspace.results)),
@@ -1936,7 +1936,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
     with structure_tab:
         language_tab = st.expander(
             _section_label("Language Profile", workspace.poem_document is not None),
-            expanded=True,
         )
         lexical_style_tab = st.expander(
             _section_label("Lexical & Structural Measures", workspace.lexical_style is not None),
@@ -1944,10 +1943,9 @@ if workspace_page in {"Single Poem", "Other Text"}:
     with evidence_diagnostics_tab:
         evidence_tab = st.expander(
             "Token Evidence, Coverage & Diagnostics · Complete",
-            expanded=True,
         )
     with export_help_tab:
-        download_tab = st.expander("Export Report & Data", expanded=True)
+        download_tab = st.expander("Export Report & Data")
         help_tab = st.expander("Methodology & How to Read")
 
     with poetry_id_tab:
@@ -4861,42 +4859,6 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         f"{explanation.dimension.title()}:** {explanation.explanation}"
                     )
 
-            st.subheader("Repetition-Sensitive and Vocabulary-Sensitive Means")
-            st.write(
-                "Token-weighted means count every included occurrence, so repetition matters. "
-                "Type-weighted means count each distinct matched lexicon entry once, so they "
-                "describe the breadth of the matched vocabulary. Both use the same 0–1 display scale."
-            )
-            weighting_details = []
-            for row in vad:
-                weighting_details.extend(
-                    (
-                        {
-                            "Lexicon": row.lexicon,
-                            "Analysis view": row.analysis_view,
-                            "Weighting": "Token-weighted",
-                            "Valence": row.normalized_valence,
-                            "Arousal": row.normalized_arousal,
-                            "Dominance": row.normalized_dominance,
-                        },
-                        {
-                            "Lexicon": row.lexicon,
-                            "Analysis view": row.analysis_view,
-                            "Weighting": "Type-weighted",
-                            "Valence": row.type_valence,
-                            "Arousal": row.type_arousal,
-                            "Dominance": row.type_dominance,
-                        },
-                    )
-                )
-            st.dataframe(
-                pd.DataFrame(weighting_details).style.format(
-                    {dimension: lambda value: _decimal(value) for dimension in dimension_order}
-                ),
-                hide_index=True,
-                width="stretch",
-            )
-
             dispersion_rows = []
             for result in workspace.results:
                 summary = result.vad_summary
@@ -4940,19 +4902,55 @@ if workspace_page in {"Single Poem", "Other Text"}:
                                 ),
                             }
                         )
-            with st.expander("Dispersion of matched ratings"):
-                st.write(
-                    "Population standard deviation describes how widely the matched "
-                    "lexicon ratings vary around their mean. It is not the source "
-                    "lexicon's rater-level uncertainty."
+            st.subheader("Dispersion of Matched Ratings")
+            st.write(
+                "Population standard deviation describes how widely the matched "
+                "lexicon ratings vary around their mean. It is not the source "
+                "lexicon's rater-level uncertainty."
+            )
+            st.dataframe(
+                pd.DataFrame(dispersion_rows).style.format(
+                    {"Population standard deviation": lambda value: _decimal(value)}
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+
+            st.subheader("Repetition-Sensitive and Vocabulary-Sensitive Means")
+            st.write(
+                "Token-weighted means count every included occurrence, so repetition matters. "
+                "Type-weighted means count each distinct matched lexicon entry once, so they "
+                "describe the breadth of the matched vocabulary. Both use the same 0–1 display scale."
+            )
+            weighting_details = []
+            for row in vad:
+                weighting_details.extend(
+                    (
+                        {
+                            "Lexicon": row.lexicon,
+                            "Analysis view": row.analysis_view,
+                            "Weighting": "Token-weighted",
+                            "Valence": row.normalized_valence,
+                            "Arousal": row.normalized_arousal,
+                            "Dominance": row.normalized_dominance,
+                        },
+                        {
+                            "Lexicon": row.lexicon,
+                            "Analysis view": row.analysis_view,
+                            "Weighting": "Type-weighted",
+                            "Valence": row.type_valence,
+                            "Arousal": row.type_arousal,
+                            "Dominance": row.type_dominance,
+                        },
+                    )
                 )
-                st.dataframe(
-                    pd.DataFrame(dispersion_rows).style.format(
-                        {"Population standard deviation": lambda value: _decimal(value)}
-                    ),
-                    hide_index=True,
-                    width="stretch",
-                )
+            st.dataframe(
+                pd.DataFrame(weighting_details).style.format(
+                    {dimension: lambda value: _decimal(value) for dimension in dimension_order}
+                ),
+                hide_index=True,
+                width="stretch",
+            )
 
             st.subheader("Stopword Sensitivity")
             st.write(

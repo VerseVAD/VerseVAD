@@ -28,6 +28,12 @@ It now keeps pooled lexical-rating standard deviation separate from the
 standard deviation of poem-level means, and the poem comparison pairs each VAD
 mean with its within-poem population standard deviation.
 
+The one-text report uses a persistent dropdown, all large report panels start
+collapsed while remaining independently expandable, and the native sidebar
+arrow hides or restores the sidebar while the wide workspace resizes. In
+Affective Evidence, matched-rating dispersion is a standalone VAD section
+immediately below the VAD definitions.
+
 The new Language Profile reports model-assigned part-of-speech counts and
 relative shares independently of affective-lexicon coverage, both for one poem
 and for combined/work-by-work corpus views. It pairs a broad readable profile

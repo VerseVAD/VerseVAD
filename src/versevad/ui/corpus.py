@@ -933,7 +933,7 @@ def _render_corpus_modules(
         row for row in warnings if row.module_name == selected_module
     ]
     if selected_warnings:
-        with st.expander("Module warnings", expanded=True):
+        with st.expander("Module warnings"):
             st.dataframe(
                 pd.DataFrame(
                     [

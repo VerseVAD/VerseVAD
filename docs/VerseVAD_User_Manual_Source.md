@@ -37,6 +37,13 @@ the interface back to the first section. **Prepare downloads** keeps **Export &
 Help** selected. Content added during a refresh may shift the precise position
 slightly within a long section, but the active section remains stable.
 
+The one-text **Report section** control is a dropdown. All large vertical
+sections begin collapsed and can be opened independently, so multiple sections
+may remain expanded. Streamlit's arrow at the top edge of the left sidebar
+hides or restores the sidebar; the main workspace automatically uses the freed
+width or resizes when the sidebar returns. This behavior is shared by supported
+Windows and macOS browsers.
+
 # 1. Purpose, privacy, and scholarly scope
 
 ## What VerseVAD does
@@ -908,9 +915,10 @@ This tab contains:
 
 - parallel normalized VAD charts;
 - definitions of valence, arousal, and dominance;
+- a separate **Dispersion of Matched Ratings** section immediately after those
+  definitions, reporting population standard deviations among matched ratings;
 - token- and type-weighted values for each analysis view;
 - plain-language midpoint interpretations;
-- population dispersion;
 - stopword-sensitivity differences;
 - cumulative normalized totals;
 - top midpoint-centered contributors;
