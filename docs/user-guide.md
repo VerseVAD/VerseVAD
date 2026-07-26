@@ -156,6 +156,12 @@ separate section immediately after **What Valence, Arousal, and Dominance
 Mean**. Its population standard deviations describe variation among the
 matched ratings, independently of the token/type mean comparison that follows.
 
+In every interactive results table, the header row stays visible while
+scrolling vertically and the leftmost data column stays pinned while scrolling
+horizontally. The pinned column is the table's first identifying field (for
+example, Work, Lexicon, Line, Dimension, or Surface), not an invented value.
+Sorting, formatting, and downloadable data are unchanged.
+
 The **Other Text** workspace reuses this sequence with **Analyze Text**
 terminology. Meter and rhyme remain available there but are visibly marked as
 experimental for non-lineated prose.

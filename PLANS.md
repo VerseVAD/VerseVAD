@@ -1,5 +1,15 @@
 # VerseVAD Implementation Plan
 
+## Completed frozen table context
+
+- [x] Route every interactive result table through one shared renderer.
+- [x] Retain the grid's fixed header row and pin the first identifying data
+  column for horizontal scrolling.
+- [x] Preserve table sorting, styling, calculations, and export schemas across
+  one-text, corpus, PoetryID, and Lexicon Explorer views.
+- [x] Add shared-helper, interface, documentation, and full-suite regression
+  coverage.
+
 ## Completed compact report navigation and collapsible results
 
 - [x] Present one-text report families in a rerun-stable dropdown while keeping

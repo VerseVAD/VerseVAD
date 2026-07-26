@@ -6,6 +6,11 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Standardized all 103 interactive result tables on a shared renderer that
+  preserves Streamlit's fixed header row and pins the leftmost data column
+  during horizontal scrolling across Single Poem, Other Text, Project / Corpus,
+  PoetryID, and Lexicon Explorer views. Calculations, sorting, formatting, and
+  exports are unchanged.
 - Replaced the one-text horizontal report-family control with a persistent
   dropdown, made every large report panel initially collapsed while preserving
   independent multi-panel expansion, and made Streamlit's native sidebar

@@ -10,7 +10,11 @@ import streamlit as st
 
 from versevad.exports.poetry_id import export_poetry_id_bundle
 from versevad.poetry_id import ARCHETYPES, PoetryIDAnalysisResult, VadLevel
-from versevad.ui.design import PUBLICATION_CHART_COLORS, publication_chart
+from versevad.ui.design import (
+    PUBLICATION_CHART_COLORS,
+    publication_chart,
+    render_dataframe,
+)
 
 
 _LEVEL_ORDER = (VadLevel.LOW, VadLevel.MODERATE, VadLevel.HIGH)
@@ -278,7 +282,7 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
     for column, dominance in zip(map_columns, _LEVEL_ORDER, strict=True):
         with column:
             st.caption(f"{dominance.value.title()} dominance")
-            st.dataframe(
+            render_dataframe(
                 _map_frame(assignment, dominance),
                 width="stretch",
             )
@@ -289,7 +293,7 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
     )
 
     st.markdown("**Nearest candidate profiles**")
-    st.dataframe(
+    render_dataframe(
         pd.DataFrame(
             [
                 {
@@ -314,7 +318,7 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
         "all 27 centroids. They are not probabilities."
     )
     with st.expander("All 27 centroid distances"):
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -337,7 +341,7 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
 
     if result.lexical_character:
         st.markdown("**Secondary lexical character**")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {

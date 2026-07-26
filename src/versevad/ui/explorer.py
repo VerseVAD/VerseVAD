@@ -12,7 +12,11 @@ from versevad.exports.lexicon_explorer import (
 )
 from versevad.preprocessing import TextPreprocessor
 from versevad.ui.dataframes import heterogeneous_display_value
-from versevad.ui.design import render_empty_state, render_workspace_header
+from versevad.ui.design import (
+    render_dataframe,
+    render_empty_state,
+    render_workspace_header,
+)
 
 
 def _score(value: float | None) -> str:
@@ -62,7 +66,7 @@ def _render_vad(result: LexiconExplorerResult) -> None:
     styling = frame.style
     if normalized_columns:
         styling = styling.format({column: "{:.3f}" for column in normalized_columns})
-    st.dataframe(styling, hide_index=True, width="stretch")
+    render_dataframe(styling, hide_index=True, width="stretch")
     st.caption(
         "Original values reproduce the source scales. Normalized values are separate "
         "derived 0–1 transformations; they do not make the source samples interchangeable."
@@ -118,7 +122,7 @@ def _render_vad(result: LexiconExplorerResult) -> None:
                 "A larger standard deviation means the source ratings were more dispersed "
                 "around the mean. Blank cells mean that source did not supply the field."
             )
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(uncertainty).style.format(
                     {"Mean": "{:.3f}", "Standard deviation": "{:.3f}"},
                     na_rep="—",
@@ -142,7 +146,7 @@ def _render_vad(result: LexiconExplorerResult) -> None:
                 for row in result.comparisons
             ]
         )
-        st.dataframe(
+        render_dataframe(
             spread.style.format({"Minimum": "{:.3f}", "Maximum": "{:.3f}", "Range": "{:.3f}"}),
             hide_index=True,
             width="stretch",
@@ -183,7 +187,7 @@ def _render_emotion(result: LexiconExplorerResult) -> None:
     intensities = [row for row in result.entries if row.intensities]
     if emotions:
         st.subheader("Eight Emotion Associations")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -218,7 +222,7 @@ def _render_emotion(result: LexiconExplorerResult) -> None:
         )
     if sentiments:
         st.subheader("Positive and Negative Sentiment Associations")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -239,7 +243,7 @@ def _render_emotion(result: LexiconExplorerResult) -> None:
         )
     if intensities:
         st.subheader("Emotion Intensity Entries")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -278,7 +282,7 @@ def _render_components(result: LexiconExplorerResult) -> None:
                 "Normalized dominance": average.normalized_scores.dominance,
             }
         )
-    st.dataframe(
+    render_dataframe(
         pd.DataFrame(rows).style.format(
             {
                 "Normalized valence": "{:.3f}",
@@ -335,7 +339,7 @@ def _render_supplementary(result: LexiconExplorerResult) -> None:
                 "Note": entry.status_message,
             },
         )
-    st.dataframe(
+    render_dataframe(
         pd.DataFrame(status_rows.values()),
         hide_index=True,
         width="stretch",
@@ -343,7 +347,7 @@ def _render_supplementary(result: LexiconExplorerResult) -> None:
 
     evidence_frame = _supplementary_evidence_frame(result)
     if not evidence_frame.empty:
-        st.dataframe(
+        render_dataframe(
             evidence_frame,
             hide_index=True,
             width="stretch",
@@ -360,7 +364,7 @@ def _render_provenance(result: LexiconExplorerResult) -> None:
         return
     with st.expander("Source provenance"):
         if result.entries:
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -410,7 +414,7 @@ def _render_provenance(result: LexiconExplorerResult) -> None:
                 },
             )
         if supplementary:
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(supplementary.values()),
                 hide_index=True,
                 width="stretch",
@@ -495,7 +499,7 @@ def render_lexicon_explorer(preprocessor: TextPreprocessor) -> None:
                 for row in result.entries
             ]
         )
-        st.dataframe(methods, hide_index=True, width="stretch")
+        render_dataframe(methods, hide_index=True, width="stretch")
     _render_vad(result)
     _render_emotion(result)
     _render_components(result)

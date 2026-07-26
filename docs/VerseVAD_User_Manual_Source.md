@@ -44,6 +44,12 @@ hides or restores the sidebar; the main workspace automatically uses the freed
 width or resizes when the sidebar returns. This behavior is shared by supported
 Windows and macOS browsers.
 
+All interactive results tables keep their header row visible during vertical
+scrolling and pin the leftmost data column during horizontal scrolling. The
+pinned column is the table's first identifying field, such as Work, Lexicon,
+Line, Dimension, or Surface. This presentation aid does not change sorting,
+formatting, calculations, or exported data.
+
 # 1. Purpose, privacy, and scholarly scope
 
 ## What VerseVAD does

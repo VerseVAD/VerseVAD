@@ -34,6 +34,10 @@ arrow hides or restores the sidebar while the wide workspace resizes. In
 Affective Evidence, matched-rating dispersion is a standalone VAD section
 immediately below the VAD definitions.
 
+Scrollable result tables retain Streamlit's fixed header row and pin the
+leftmost data column, keeping row meanings visible while scholars move through
+long or wide results in every workspace.
+
 The new Language Profile reports model-assigned part-of-speech counts and
 relative shares independently of affective-lexicon coverage, both for one poem
 and for combined/work-by-work corpus views. It pairs a broad readable profile

@@ -177,6 +177,7 @@ from versevad.ui.design import (
     publication_chart,
     preset_widget_state,
     render_app_shell,
+    render_dataframe,
     render_empty_state,
     render_section_intro,
     render_stateful_section_navigation,
@@ -251,6 +252,7 @@ if _design_was_reloaded:
     publication_chart = _design_services.publication_chart
     preset_widget_state = _design_services.preset_widget_state
     render_app_shell = _design_services.render_app_shell
+    render_dataframe = _design_services.render_dataframe
     render_empty_state = _design_services.render_empty_state
     render_section_intro = _design_services.render_section_intro
     render_stateful_section_navigation = (
@@ -2084,7 +2086,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             coverage_frame["Coverage"] = coverage_frame["Coverage"].map(
                 _percentage
             )
-            st.dataframe(
+            render_dataframe(
                 coverage_frame[
                     [
                         "Lexicon",
@@ -2108,7 +2110,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
         if workspace.frequency is not None:
             frequency_summary = workspace.frequency.summary
             st.markdown("**SUBTLEX-US frequency coverage**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -2140,7 +2142,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
         if workspace.concreteness is not None:
             concrete_summary = workspace.concreteness.summary
             st.markdown("**Concreteness coverage**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -2175,7 +2177,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
         if workspace.aoa is not None:
             aoa_summary = workspace.aoa.summary
             st.markdown("**Age-of-acquisition coverage**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -2207,7 +2209,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
         if workspace.pronunciation is not None:
             pronunciation_summary = workspace.pronunciation.summary
             st.markdown("**Pronunciation and prosody-foundation coverage**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -2274,7 +2276,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             ]
             if filtered_coverage:
                 st.markdown("**Stopwords-excluded coverage**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(filtered_coverage).style.format(
                         {
                             "Content-focused coverage": lambda value: _percentage(
@@ -2466,7 +2468,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 pos_frame.set_index("Part of speech")[["Share of lexical tokens"]],
                 height=320,
             )
-            st.dataframe(
+            render_dataframe(
                 pos_frame.style.format(
                     {"Share of lexical tokens": lambda value: _percentage(value)}
                 ),
@@ -2533,7 +2535,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "Type-weighted arousal",
                     "Type-weighted dominance",
                 }
-                st.dataframe(
+                render_dataframe(
                     vad_pos_frame.style.format(
                         {
                             "Lexical-token coverage": (
@@ -2585,7 +2587,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "lexical_token_denominator": "Lexical-token denominator",
                 },
             )
-            st.dataframe(
+            render_dataframe(
                 detailed_pos_frame.style.format(
                     {"Share of lexical tokens": lambda value: _percentage(value)}
                 ),
@@ -2689,7 +2691,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     length_frame.set_index("Alphabetic characters")[["Token count"]],
                     height=260,
                 )
-                st.dataframe(
+                render_dataframe(
                     length_frame.style.format(
                         {"Token proportion": lambda value: _percentage(value)}
                     ),
@@ -2715,7 +2717,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "median_alphabetic_characters_per_token": "Median letters",
                 },
             )
-            st.dataframe(
+            render_dataframe(
                 line_frame.style.format(
                     {
                         "Line TTR": lambda value: _decimal(value),
@@ -2741,7 +2743,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "median_alphabetic_characters_per_token": "Median letters",
                 },
             )
-            st.dataframe(
+            render_dataframe(
                 stanza_frame.style.format(
                     {
                         "Stanza TTR": lambda value: _decimal(value),
@@ -2879,7 +2881,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     ],
                     height=280,
                 )
-                st.dataframe(
+                render_dataframe(
                     line_frame.style.format(
                         {
                             "Mean normative concreteness": lambda value: _decimal(
@@ -2913,7 +2915,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 ]
             )
             if not stanza_frame.empty:
-                st.dataframe(
+                render_dataframe(
                     stanza_frame.style.format(
                         {
                             "Mean": lambda value: _decimal(value),
@@ -2943,7 +2945,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 ]
             )
             if not pos_frame.empty:
-                st.dataframe(
+                render_dataframe(
                     pos_frame.style.format(
                         {
                             "Mean": lambda value: _decimal(value),
@@ -2964,7 +2966,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             concrete_column, abstract_column = st.columns(2)
             with concrete_column:
                 st.markdown("**Highest source ratings**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -2982,7 +2984,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 )
             with abstract_column:
                 st.markdown("**Lowest source ratings**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -3026,7 +3028,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         "reason": "Why",
                     },
                 )
-                st.dataframe(
+                render_dataframe(
                     audit_frame[
                         [
                             "Surface",
@@ -3114,7 +3116,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
 
             st.markdown("**Configured Zipf distribution**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -3170,7 +3172,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 }
                 for group in frequency.line_summaries
             ]
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     line_rows,
                     columns=[
@@ -3206,7 +3208,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     for group in frequency.stanza_summaries
                 ]
                 st.markdown("**Stanzas**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         stanza_rows,
                         columns=[
@@ -3240,7 +3242,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     for group in frequency.part_of_speech_summaries
                 ]
                 st.markdown("**Part of speech**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         pos_rows,
                         columns=[
@@ -3269,7 +3271,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             low_column, high_column = st.columns(2)
             with low_column:
                 st.markdown("**Lowest-frequency represented terms**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -3290,7 +3292,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 )
             with high_column:
                 st.markdown("**Highest-frequency represented terms**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -3312,7 +3314,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             with st.expander(
                 f"Rare-word tail ({len(frequency.rare_word_tail):,} represented terms)"
             ):
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -3354,7 +3356,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         "reason": "Why",
                     },
                 )
-                st.dataframe(
+                render_dataframe(
                     audit_frame[
                         [
                             "Surface",
@@ -3459,7 +3461,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
 
             st.markdown("**Distribution and source-response evidence**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -3499,7 +3501,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "matched source means. Each source term's own Rating.SD and "
                 "response count are separate evidence in the term and audit tables."
             )
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -3520,7 +3522,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
             if aoa.relationships:
                 st.markdown("**Relationships with other enabled modules**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -3556,7 +3558,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                             st.warning(warning.message)
 
             st.markdown("**Physical-line summaries**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -3610,7 +3612,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         }
                         for group in groups
                     ]
-                    st.dataframe(
+                    render_dataframe(
                         pd.DataFrame(rows).style.format(
                             {
                                 "Coverage": lambda value: _percentage(value),
@@ -3646,7 +3648,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             ):
                 with column:
                     st.markdown(f"**{heading}**")
-                    st.dataframe(
+                    render_dataframe(
                         pd.DataFrame(
                             [
                                 {
@@ -3694,7 +3696,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         "reason": "Why",
                     },
                 )
-                st.dataframe(
+                render_dataframe(
                     audit_frame[
                         [
                             "Surface",
@@ -3816,7 +3818,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                             st.warning(warning.message)
 
             st.markdown("**Physical-line syllable and lexical-stress evidence**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -3857,7 +3859,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             ]
             st.markdown("**Words needing attention**")
             if unresolved:
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -3899,7 +3901,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             with st.expander(
                 f"Pronunciation token audit ({len(pronunciation.token_audit):,} rows)"
             ):
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -4089,7 +4091,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     st.info(performance_summary.generic_composite_pattern)
 
                 st.markdown("**Stanza-level recurrence**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -4133,7 +4135,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     is not MeterInterpretationDepth.SUMMARY
                 ):
                     st.markdown("**Line-level realized readings**")
-                    st.dataframe(
+                    render_dataframe(
                         pd.DataFrame(
                             [
                                 {
@@ -4224,7 +4226,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                                 ],
                                 height=240,
                             )
-                            st.dataframe(
+                            render_dataframe(
                                 trajectory_frame,
                                 hide_index=True,
                                 width="stretch",
@@ -4285,7 +4287,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                                         ),
                                     }
                                 )
-                        st.dataframe(
+                        render_dataframe(
                             pd.DataFrame(detailed_rows),
                             hide_index=True,
                             width="stretch",
@@ -4294,7 +4296,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
                 if performance_meter.scholar_revisions:
                     st.markdown("**Scholar revisions (kept separate)**")
-                    st.dataframe(
+                    render_dataframe(
                         pd.DataFrame(
                             [
                                 {
@@ -4337,7 +4339,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         st.info(warning)
 
             st.markdown("**Physical-line candidate evidence**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -4408,7 +4410,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
 
             with st.expander("All 40 fixed candidates"):
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -4535,7 +4537,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
 
             st.markdown("**Stanza-level end-rhyme summary**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -4564,7 +4566,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             )
 
             st.markdown("**Physical-line ending and sound evidence**")
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -4611,7 +4613,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
             st.markdown("**Within-stanza ending-pair evidence**")
             if phonology.pair_results:
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -4674,7 +4676,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 help="Repeated consonant phoneme occurrences within physical lines.",
             )
             if phonology.sound_families:
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -4758,7 +4760,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "normalization_formula": "Formula",
                 },
             )
-            st.dataframe(
+            render_dataframe(
                 vad_frame[
                     [
                         "Lexicon",
@@ -4908,7 +4910,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "lexicon ratings vary around their mean. It is not the source "
                 "lexicon's rater-level uncertainty."
             )
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(dispersion_rows).style.format(
                     {"Population standard deviation": lambda value: _decimal(value)}
                 ),
@@ -4944,7 +4946,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         },
                     )
                 )
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(weighting_details).style.format(
                     {dimension: lambda value: _decimal(value) for dimension in dimension_order}
                 ),
@@ -4971,7 +4973,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 },
             )
             sensitivity_frame["Dimension"] = sensitivity_frame["Dimension"].str.title()
-            st.dataframe(
+            render_dataframe(
                 sensitivity_frame.style.format(
                     {
                         "All matched tokens": lambda value: _decimal(value),
@@ -5013,7 +5015,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 },
             )
             cumulative_frame["Dimension"] = cumulative_frame["Dimension"].str.title()
-            st.dataframe(
+            render_dataframe(
                 cumulative_frame[
                     [
                         "Lexicon",
@@ -5087,7 +5089,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             if contributor_frame.empty:
                 st.info("No contributor ranking is available for this dimension.")
             else:
-                st.dataframe(
+                render_dataframe(
                     contributor_frame[
                         [
                             "Lexicon",
@@ -5148,7 +5150,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                             "Formula": row.normalization_formula,
                         }
                     )
-                st.dataframe(details, hide_index=True, width="stretch")
+                render_dataframe(details, hide_index=True, width="stretch")
 
     with emotion_tab:
         associations = emotion_association_views(workspace)
@@ -5178,7 +5180,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 association_frame.set_index("Category")[["Rate per lexical token"]],
                 height=300,
             )
-            st.dataframe(
+            render_dataframe(
                 association_frame.style.format(
                     {
                         "Rate per lexical token": lambda value: _percentage(value),
@@ -5210,7 +5212,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 sentiment_frame.set_index("Sentiment")[["Rate per lexical token"]],
                 height=220,
             )
-            st.dataframe(
+            render_dataframe(
                 sentiment_frame.style.format(
                     {
                         "Rate per lexical token": lambda value: _percentage(value),
@@ -5239,7 +5241,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "top_terms": "Top contributors",
                 },
             )
-            st.dataframe(
+            render_dataframe(
                 intensity_frame.style.format(
                     {
                         "Prevalence per lexical token": lambda value: _percentage(value),
@@ -5266,7 +5268,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "Analysis wall time",
                     f"{performance.total_ms:,.1f} ms",
                 )
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -5283,7 +5285,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     hide_index=True,
                     width="stretch",
                 )
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(
                         [
                             {
@@ -5404,7 +5406,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "stopword_exclusion_reason": "Stopword decision",
             },
         )
-        st.dataframe(match_frame, hide_index=True, width="stretch", height=420)
+        render_dataframe(match_frame, hide_index=True, width="stretch", height=420)
         st.caption(f"Showing {len(filtered):,} of {len(all_matches):,} audit records.")
 
         st.subheader("Unmatched Vocabulary")
@@ -5424,7 +5426,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     "example_context": "Example context",
                 },
             )
-            st.dataframe(unmatched_frame, hide_index=True, width="stretch", height=320)
+            render_dataframe(unmatched_frame, hide_index=True, width="stretch", height=320)
             st.caption(
                 "A model lemma is proposed processing evidence, not an approved historical or scholarly mapping."
             )
@@ -5641,7 +5643,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             ("Suppressed component", "A visible unigram candidate not counted because a preferred phrase was selected."),
             ("Lemma fallback", "A model-proposed base form used only after exact matching fails."),
         ]
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(definitions, columns=["Term", "Meaning"]),
             hide_index=True,
             width="stretch",

@@ -1,10 +1,14 @@
 from pathlib import Path
 
+import pandas as pd
+
+import versevad.ui.design as design_services
 from versevad.ui.design import (
     DARK_TOKENS,
     LIGHT_TOKENS,
     MODULE_PRESETS,
     preset_widget_state,
+    render_dataframe,
     stylesheet_for,
 )
 from versevad.ui.preferences import (
@@ -31,6 +35,24 @@ def test_malformed_ui_preferences_fail_safely(tmp_path: Path) -> None:
     path = tmp_path / "ui_preferences.json"
     path.write_text("{not valid", encoding="utf-8")
     assert load_preferences(path) == UiPreferences()
+
+
+def test_dataframe_renderer_pins_leftmost_data_column(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_dataframe(data, **kwargs):
+        captured["data"] = data
+        captured.update(kwargs)
+
+    monkeypatch.setattr(design_services.st, "dataframe", fake_dataframe)
+    frame = pd.DataFrame({"Meaning": ["Valence"], "Value": [0.5]})
+
+    render_dataframe(frame, hide_index=True, width="stretch")
+
+    assert captured["data"] is frame
+    assert captured["hide_index"] is True
+    assert captured["width"] == "stretch"
+    assert captured["column_config"]["Meaning"]["pinned"] is True
 
 
 def test_stylesheet_uses_semantic_tokens_and_accessibility_modes() -> None:

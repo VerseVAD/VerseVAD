@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html import escape
-from typing import Literal, Mapping, Sequence
+from typing import Any, Literal, Mapping, Sequence
 
 import altair as alt
 import streamlit as st
@@ -801,6 +801,26 @@ def render_section_intro(title: str, purpose: str, *, status: str = "Complete") 
         f'<p class="versevad-section-intro">{escape(purpose)}</p>',
         unsafe_allow_html=True,
     )
+
+
+def render_dataframe(data: Any, **kwargs: Any) -> Any:
+    """Render a scrollable table with its first data column pinned."""
+
+    tabular_data = data if hasattr(data, "columns") else getattr(data, "data", None)
+    columns = getattr(tabular_data, "columns", ())
+    if len(columns):
+        first_column = columns[0]
+        column_config = dict(kwargs.pop("column_config", {}) or {})
+        existing_config = column_config.get(first_column)
+        if isinstance(existing_config, Mapping):
+            column_config[first_column] = {
+                **existing_config,
+                "pinned": True,
+            }
+        else:
+            column_config[first_column] = st.column_config.Column(pinned=True)
+        kwargs["column_config"] = column_config
+    return st.dataframe(data, **kwargs)
 
 
 def render_stateful_section_navigation(

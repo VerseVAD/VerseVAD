@@ -52,6 +52,7 @@ from versevad.ui.dataframes import heterogeneous_display_value
 from versevad.ui.design import (
     MODULE_PRESETS,
     preset_widget_state,
+    render_dataframe,
     render_empty_state,
     render_stateful_section_navigation,
     render_workspace_header,
@@ -413,7 +414,7 @@ def _render_texts_tab(repository: ProjectRepository, project_id: str) -> None:
     if summary.empty:
         st.info("No works match the current search and filters.")
     else:
-        st.dataframe(summary, hide_index=True, width="stretch", height=300)
+        render_dataframe(summary, hide_index=True, width="stretch", height=300)
     st.caption(
         f"Showing {len(filtered_texts):,} of {len(texts):,} works. "
         "Select column headers to sort."
@@ -502,7 +503,7 @@ def _render_profiles(metrics, total_works: int) -> None:
             for row in profiles
         ]
     )
-    st.dataframe(
+    render_dataframe(
         profile_frame.style.format(
             {
                 "Volume coverage": "{:.1%}",
@@ -571,7 +572,7 @@ def _render_corpus_modules(
     profiles = corpus_module_profiles(selected, total_works=total_works)
     if profiles:
         st.markdown("**Compatible collection summaries**")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -606,7 +607,7 @@ def _render_corpus_modules(
     categories = corpus_module_category_profiles(selected)
     if categories:
         st.markdown("**Work-level categorical prevalence**")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -678,7 +679,7 @@ def _render_corpus_modules(
                     distribution_frame.set_index("Profile")[["Works"]],
                     height=260,
                 )
-                st.dataframe(
+                render_dataframe(
                     distribution_frame.style.format(
                         {"Prevalence": "{:.1%}"}
                     ),
@@ -711,7 +712,7 @@ def _render_corpus_modules(
                     map_rows.append(map_row)
                 with column:
                     st.caption(f"{dominance.value.title()} dominance")
-                    st.dataframe(
+                    render_dataframe(
                         pd.DataFrame(map_rows).set_index("Arousal"),
                         width="stretch",
                     )
@@ -760,7 +761,7 @@ def _render_corpus_modules(
                     ),
                     height=380,
                 )
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(scatter_rows),
                     hide_index=True,
                     width="stretch",
@@ -774,7 +775,7 @@ def _render_corpus_modules(
                 st.markdown(
                     "**Per-poem categorical and nearest-centroid comparison**"
                 )
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(comparison_rows).style.format(
                         {
                             "Nearest distance": "{:.4f}",
@@ -826,7 +827,7 @@ def _render_corpus_modules(
             ]
             if disagreements:
                 st.markdown("**Token/type sensitivity**")
-                st.dataframe(
+                render_dataframe(
                     pd.DataFrame(disagreements),
                     hide_index=True,
                     width="stretch",
@@ -844,7 +845,7 @@ def _render_corpus_modules(
     )
     if pooled:
         st.markdown("**Separately calculated collection aggregates**")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -873,7 +874,7 @@ def _render_corpus_modules(
         key=f"corpus_module_scopes_{project_id}_{selected_module}",
     )
     shown = [row for row in selected if row.scope in selected_scopes]
-    st.dataframe(
+    render_dataframe(
         pd.DataFrame(
             [
                 {
@@ -905,7 +906,7 @@ def _render_corpus_modules(
     ]
     if selected_coverage:
         with st.expander("Coverage and unmatched evidence"):
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -934,7 +935,7 @@ def _render_corpus_modules(
     ]
     if selected_warnings:
         with st.expander("Module warnings"):
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -1699,7 +1700,7 @@ def _render_analysis_tab(
             comparison_rows,
             columns=comparison_columns,
         )
-        st.dataframe(
+        render_dataframe(
             comparison_frame.style.format(
                 {
                     "Valence mean": "{:.3f}",
@@ -1754,7 +1755,7 @@ def _render_analysis_tab(
                     - sensitivity["All matched tokens"]
                 )
                 st.markdown("**Stopword sensitivity by work**")
-                st.dataframe(
+                render_dataframe(
                     sensitivity.style.format(
                         {
                             "All matched tokens": "{:.3f}",
@@ -1796,7 +1797,7 @@ def _render_analysis_tab(
                 for row in load_rows
             ]
         )
-        st.dataframe(
+        render_dataframe(
             load_frame.style.format({"Value": "{:.3f}", "Coverage": "{:.1%}"}),
             hide_index=True,
             width="stretch",
@@ -1910,7 +1911,7 @@ def _render_batch_comparison(
             for row in primary
         ]
     )
-    st.dataframe(
+    render_dataframe(
         frame.style.format(
             {
                 "Reference": "{:.3f}",
@@ -2048,7 +2049,7 @@ def _render_review_tab(
     decisions = repository.list_review_decisions(scenario.scenario_version_id)
     if decisions:
         st.markdown("**Pinned decisions in this version**")
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -2170,7 +2171,7 @@ def _render_review_tab(
                 ).casefold()
             )
         ]
-        st.dataframe(
+        render_dataframe(
             pd.DataFrame(
                 [
                     {
@@ -2300,7 +2301,7 @@ def _render_review_tab(
     versions = repository.list_review_scenario_versions(scenario_id)
     if len(versions) > 1:
         with st.expander("Version history and rollback"):
-            st.dataframe(
+            render_dataframe(
                 pd.DataFrame(
                     [
                         {
@@ -2412,7 +2413,7 @@ def _render_qc_tab(repository: ProjectRepository, project_id: str) -> None:
             for row in filtered
         ]
     )
-    st.dataframe(frame, hide_index=True, width="stretch", height=340)
+    render_dataframe(frame, hide_index=True, width="stretch", height=340)
     if not filtered:
         return
     selected_index = st.selectbox(
@@ -2481,7 +2482,7 @@ def _render_part_of_speech_tab(
         combined.set_index("Part of speech")[["Share of lexical tokens"]],
         height=320,
     )
-    st.dataframe(
+    render_dataframe(
         combined[
             [
                 "Source POS tag(s)",
@@ -2503,7 +2504,7 @@ def _render_part_of_speech_tab(
         & (frame["Profile Level"] == "Detailed Model Tags")
     ].copy()
     st.markdown("**Detailed Combined Model-Tag Breakdown**")
-    st.dataframe(
+    render_dataframe(
         detailed_combined[
             [
                 "Source POS tag(s)",
@@ -2526,7 +2527,7 @@ def _render_part_of_speech_tab(
     ].copy()
     if not work_rows.empty:
         st.markdown("**Work-by-Work Comparison**")
-        st.dataframe(
+        render_dataframe(
             work_rows[
                 [
                     "Work",
@@ -2551,7 +2552,7 @@ def _render_part_of_speech_tab(
                 (frame["Scope"] == "Work")
                 & (frame["Profile Level"] == "Detailed Model Tags")
             ].copy()
-            st.dataframe(
+            render_dataframe(
                 detailed_work_rows[
                     [
                         "Work",
