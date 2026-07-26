@@ -356,7 +356,10 @@ alphabetic-character distribution, physical-line summaries, stanza summaries,
 token audit, coverage, warnings, and provenance. Lexical diversity uses
 normalized observed surface forms while keeping lemmas separate. Line and
 stanza word counts are direct projections of the same token IDs and structural
-IDs already present in the poem document.
+IDs already present in the poem document. A third typed descriptive-statistics
+field aggregates each stanza's existing nonblank-line count; no interface or
+export path retokenizes text or independently recomputes these structural
+means and population standard deviations.
 
 Application services, the One Poem interface, the scholar summary, and six
 exports consume the typed result rather than recalculating diversity or

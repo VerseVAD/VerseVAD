@@ -243,6 +243,7 @@ class LexicalStyleSummary:
     stanza_count: int
     nonblank_line_word_count_statistics: DescriptiveStatistics
     stanza_word_count_statistics: DescriptiveStatistics
+    stanza_line_count_statistics: DescriptiveStatistics
 
 
 @dataclass(frozen=True)
@@ -265,6 +266,21 @@ class LexicalStyleAnalysisResult:
             raise ValueError("Line word counts must sum to the document count.")
         if sum(item.word_count for item in self.stanza_summaries) != included_count:
             raise ValueError("Stanza word counts must sum to the document count.")
+        if (
+            self.summary.nonblank_line_word_count_statistics.count
+            != self.summary.nonblank_line_count
+        ):
+            raise ValueError(
+                "Line word-count statistics must cover every nonblank line."
+            )
+        if self.summary.stanza_word_count_statistics.count != len(
+            self.stanza_summaries
+        ):
+            raise ValueError("Stanza word-count statistics must cover every stanza.")
+        if self.summary.stanza_line_count_statistics.count != len(
+            self.stanza_summaries
+        ):
+            raise ValueError("Stanza line-count statistics must cover every stanza.")
         if (
             sum(item.token_count for item in self.word_length_distribution)
             != self.summary.word_length_observation_count
@@ -437,6 +453,54 @@ def _metrics(
                 "observations with alphabetic characters"
             ),
         ),
+        ModuleMetric(
+            "lexical_style.mean_words_per_nonblank_line",
+            summary.nonblank_line_word_count_statistics.mean,
+            ResultLayer.COMPUTED_SUMMARY,
+            unit="lexical tokens per nonblank physical line",
+            denominator=f"{summary.nonblank_line_count} nonblank physical lines",
+        ),
+        ModuleMetric(
+            "lexical_style.population_sd_words_per_nonblank_line",
+            (
+                summary.nonblank_line_word_count_statistics
+                .population_standard_deviation
+            ),
+            ResultLayer.COMPUTED_SUMMARY,
+            unit="lexical tokens per nonblank physical line",
+            denominator=f"{summary.nonblank_line_count} nonblank physical lines",
+            note="Population, not sample, standard deviation.",
+        ),
+        ModuleMetric(
+            "lexical_style.mean_words_per_stanza",
+            summary.stanza_word_count_statistics.mean,
+            ResultLayer.COMPUTED_SUMMARY,
+            unit="lexical tokens per stanza",
+            denominator=f"{summary.stanza_count} stanzas",
+        ),
+        ModuleMetric(
+            "lexical_style.population_sd_words_per_stanza",
+            summary.stanza_word_count_statistics.population_standard_deviation,
+            ResultLayer.COMPUTED_SUMMARY,
+            unit="lexical tokens per stanza",
+            denominator=f"{summary.stanza_count} stanzas",
+            note="Population, not sample, standard deviation.",
+        ),
+        ModuleMetric(
+            "lexical_style.mean_nonblank_lines_per_stanza",
+            summary.stanza_line_count_statistics.mean,
+            ResultLayer.COMPUTED_SUMMARY,
+            unit="nonblank physical lines per stanza",
+            denominator=f"{summary.stanza_count} stanzas",
+        ),
+        ModuleMetric(
+            "lexical_style.population_sd_nonblank_lines_per_stanza",
+            summary.stanza_line_count_statistics.population_standard_deviation,
+            ResultLayer.COMPUTED_SUMMARY,
+            unit="nonblank physical lines per stanza",
+            denominator=f"{summary.stanza_count} stanzas",
+            note="Population, not sample, standard deviation.",
+        ),
     ]
     metrics.extend(
         ModuleMetric(
@@ -532,7 +596,7 @@ class LexicalStyleModule:
     """Resource-free module over the shared poetry-preserving document."""
 
     name = "lexical_style"
-    version = "1.0.0"
+    version = "1.1.0"
 
     def validate_resources(self) -> tuple[ResourceStatus, ...]:
         return ()
@@ -611,6 +675,7 @@ class LexicalStyleModule:
             item.word_count for item in line_summaries if not item.is_blank
         )
         stanza_counts = tuple(item.word_count for item in stanza_summaries)
+        stanza_line_counts = tuple(item.line_count for item in stanza_summaries)
         summary = LexicalStyleSummary(
             lexical_token_count=len(included),
             normalized_surface_type_count=len(set(forms)),
@@ -645,6 +710,9 @@ class LexicalStyleModule:
                 nonblank_line_counts
             ),
             stanza_word_count_statistics=descriptive_statistics(stanza_counts),
+            stanza_line_count_statistics=descriptive_statistics(
+                stanza_line_counts
+            ),
         )
         distribution_counter = Counter(lengths)
         word_length_distribution = tuple(
@@ -713,12 +781,15 @@ class LexicalStyleModule:
                 "forms": forms,
                 "line_counts": [item.word_count for item in line_summaries],
                 "stanza_counts": [item.word_count for item in stanza_summaries],
+                "stanza_line_counts": [
+                    item.line_count for item in stanza_summaries
+                ],
             },
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
         )
-        result_id = "lexical-style-result-v1:" + hashlib.sha256(
+        result_id = "lexical-style-result-v2:" + hashlib.sha256(
             identity_payload.encode("utf-8")
         ).hexdigest()[:20]
         module_result = ModuleResult(

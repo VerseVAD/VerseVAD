@@ -352,13 +352,17 @@ application, UI, export, and synthetic-validation tests. The direct command is:
 
 The hand-calculated fixture checks `4/7` surface TTR, MATTR `14/15`, HD-D
 `86/105`, mean/median alphabetic word length 4, physical-line word counts
-`3, 2, 0, 2`, and stanza counts `5, 2`. A separate repeated-token fixture
-checks bidirectional MTLD 4 at threshold 0.72.
+`3, 2, 0, 2`, and stanza counts `5, 2`. It also checks average words per
+nonblank line `7/3` with population SD `sqrt(2/9)`, average words per stanza
+`3.5` with population SD `1.5`, and average nonblank lines per stanza `1.5`
+with population SD `0.5`. A separate repeated-token fixture checks
+bidirectional MTLD 4 at threshold 0.72.
 
 Automated coverage also verifies missing short-window/sample results,
 all-unique undefined MTLD, invalid configuration refusal, surface/lemma
 separation, punctuation/numeric exclusion, line/stanza reconciliation,
-resource-free module behavior, all six exports, the One Poem interface, and
+resource-free module behavior, CSV and Word exports, Project / Corpus metric
+persistence, the One Poem interface, and
 unchanged existing modules. See
 [`poetic-fingerprint-stage10-validation.md`](poetic-fingerprint-stage10-validation.md)
 for exact beginner steps and limitations.

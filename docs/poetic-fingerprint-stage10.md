@@ -124,6 +124,12 @@ Every preserved stanza receives:
 - descriptive stanza TTR; and
 - mean and median alphabetic-character word length.
 
+The document summary additionally reports the arithmetic mean and population
+standard deviation for words per nonblank physical line, words per stanza, and
+nonblank physical lines per stanza. Population standard deviation describes
+dispersion across every observed unit in the poem. Empty denominators remain
+missing rather than becoming zero.
+
 Line and stanza TTR values are local descriptive observations, not
 length-resistant corpus comparison measures.
 
@@ -140,13 +146,13 @@ The audit bundle adds:
 - `lexical_style_lines.csv`;
 - `lexical_style_stanzas.csv`;
 - `lexical_style_token_audit.csv`; and
-- `lexical_style_result.json`.
+- `lexical_style_manifest.csv`; plus
+- `lexical_style_report.docx`.
 
 Each result records the source-text hash, software and module versions,
 preprocessing recipe and model, configuration ID, scenario, inclusion policy,
-coverage, and warnings. The result is currently in-memory and available only
-in One Poem. The later Projects & Corpus port should invoke this same module
-rather than duplicate its calculations.
+coverage, and warnings. Stage 11 invokes and persists this same typed module in
+Projects & Corpus rather than duplicating its calculations.
 
 ## Current limitations
 

@@ -2699,6 +2699,54 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     width="stretch",
                 )
 
+            st.subheader("Structural Count Summary")
+            st.write(
+                "These averages summarize the poem's nonblank physical lines "
+                "and stanzas using the same lexical-token counts shown in the "
+                "detailed tables below."
+            )
+            structural_mean_columns = st.columns(3)
+            structural_mean_columns[0].metric(
+                "Average words per nonblank line",
+                _decimal(summary.nonblank_line_word_count_statistics.mean),
+            )
+            structural_mean_columns[1].metric(
+                "Average words per stanza",
+                _decimal(summary.stanza_word_count_statistics.mean),
+            )
+            structural_mean_columns[2].metric(
+                "Average nonblank lines per stanza",
+                _decimal(summary.stanza_line_count_statistics.mean),
+            )
+            structural_sd_columns = st.columns(3)
+            structural_sd_columns[0].metric(
+                "SD words per nonblank line",
+                _decimal(
+                    summary.nonblank_line_word_count_statistics
+                    .population_standard_deviation
+                ),
+            )
+            structural_sd_columns[1].metric(
+                "SD words per stanza",
+                _decimal(
+                    summary.stanza_word_count_statistics
+                    .population_standard_deviation
+                ),
+            )
+            structural_sd_columns[2].metric(
+                "SD nonblank lines per stanza",
+                _decimal(
+                    summary.stanza_line_count_statistics
+                    .population_standard_deviation
+                ),
+            )
+            st.caption(
+                "SD is the population standard deviation across all observed "
+                "units in this poem. Blank stanza-separator lines are excluded "
+                "from the line denominator; stanza line counts likewise count "
+                "nonblank physical lines."
+            )
+
             st.subheader("Words by Physical Line")
             st.write(
                 "Every preserved physical line remains visible. Blank stanza "

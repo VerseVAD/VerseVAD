@@ -50,10 +50,19 @@ def test_lexical_style_bundle_is_complete_and_auditable(preprocessor) -> None:
         and row["value"] == str(result.summary.mattr)
         for row in summary
     )
-    assert any(
-        row["metric"] == "line_word_count_mean"
-        for row in summary
-    )
+    summary_by_metric = {row["metric"]: row for row in summary}
+    assert summary_by_metric["line_word_count_mean"]["value"] == str(7 / 3)
+    assert summary_by_metric[
+        "line_word_count_population_standard_deviation"
+    ]["value"] == str((2 / 9) ** 0.5)
+    assert summary_by_metric["stanza_word_count_mean"]["value"] == "3.5"
+    assert summary_by_metric[
+        "stanza_word_count_population_standard_deviation"
+    ]["value"] == "1.5"
+    assert summary_by_metric["stanza_line_count_mean"]["value"] == "1.5"
+    assert summary_by_metric[
+        "stanza_line_count_population_standard_deviation"
+    ]["value"] == "0.5"
     lines = _rows(bundle["lexical_style_lines.csv"])
     assert [row["word_count"] for row in lines] == ["3", "2", "0", "2"]
     stanzas = _rows(bundle["lexical_style_stanzas.csv"])

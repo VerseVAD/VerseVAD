@@ -2802,11 +2802,45 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 "Punctuation marks inside a surface token are not counted as letters.",
             ),
             (
+                "Average words per nonblank line",
+                summary.nonblank_line_word_count_statistics.mean,
+                "lexical tokens per nonblank physical line",
+                f"{summary.nonblank_line_count} nonblank physical lines",
+                "Blank separator lines remain visible with word count zero in the audit.",
+            ),
+            (
+                "Population SD of words per nonblank line",
+                (
+                    summary.nonblank_line_word_count_statistics
+                    .population_standard_deviation
+                ),
+                "lexical tokens per nonblank physical line",
+                f"{summary.nonblank_line_count} nonblank physical lines",
+                "Population, not sample, standard deviation.",
+            ),
+            (
                 "Median words per nonblank line",
                 summary.nonblank_line_word_count_statistics.median,
                 "lexical tokens per nonblank physical line",
                 f"{summary.nonblank_line_count} nonblank physical lines",
-                "Blank separator lines remain visible with word count zero in the audit.",
+                "",
+            ),
+            (
+                "Average words per stanza",
+                summary.stanza_word_count_statistics.mean,
+                "lexical tokens per stanza",
+                f"{summary.stanza_count} stanzas",
+                "",
+            ),
+            (
+                "Population SD of words per stanza",
+                (
+                    summary.stanza_word_count_statistics
+                    .population_standard_deviation
+                ),
+                "lexical tokens per stanza",
+                f"{summary.stanza_count} stanzas",
+                "Population, not sample, standard deviation.",
             ),
             (
                 "Median words per stanza",
@@ -2814,6 +2848,20 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 "lexical tokens per stanza",
                 f"{summary.stanza_count} stanzas",
                 "",
+            ),
+            (
+                "Average nonblank lines per stanza",
+                summary.stanza_line_count_statistics.mean,
+                "nonblank physical lines per stanza",
+                f"{summary.stanza_count} stanzas",
+                "",
+            ),
+            (
+                "Population SD of nonblank lines per stanza",
+                summary.stanza_line_count_statistics.population_standard_deviation,
+                "nonblank physical lines per stanza",
+                f"{summary.stanza_count} stanzas",
+                "Population, not sample, standard deviation.",
             ),
         ):
             rows.append(

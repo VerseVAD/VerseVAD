@@ -40,6 +40,28 @@ def main() -> int:
     assert math.isclose(result.summary.mattr or 0, expected_mattr)
     assert math.isclose(result.summary.hdd or 0, expected_hdd)
     assert result.summary.mean_alphabetic_characters_per_token == 4
+    assert math.isclose(
+        result.summary.nonblank_line_word_count_statistics.mean or 0,
+        7 / 3,
+    )
+    assert math.isclose(
+        (
+            result.summary.nonblank_line_word_count_statistics
+            .population_standard_deviation
+            or 0
+        ),
+        math.sqrt(2 / 9),
+    )
+    assert result.summary.stanza_word_count_statistics.mean == 3.5
+    assert (
+        result.summary.stanza_word_count_statistics.population_standard_deviation
+        == 1.5
+    )
+    assert result.summary.stanza_line_count_statistics.mean == 1.5
+    assert (
+        result.summary.stanza_line_count_statistics.population_standard_deviation
+        == 0.5
+    )
     assert [item.word_count for item in result.line_summaries] == [3, 2, 0, 2]
     assert [item.word_count for item in result.stanza_summaries] == [5, 2]
 
@@ -50,6 +72,12 @@ def main() -> int:
     print("Mean alphabetic characters per lexical token: 4.")
     print("Line word counts: 3, 2, 0, 2.")
     print("Stanza word counts: 5, 2.")
+    print(
+        "Structural averages (population SD): "
+        "words/nonblank line 2.333333 (0.471405); "
+        "words/stanza 3.500000 (1.500000); "
+        "nonblank lines/stanza 1.500000 (0.500000)."
+    )
     return 0
 
 

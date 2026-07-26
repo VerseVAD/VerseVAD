@@ -6,6 +6,12 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Added a **Structural Count Summary** to **Lexical & Structural Measures** with
+  average words per nonblank physical line, average words per stanza, and
+  average nonblank physical lines per stanza, each paired with its within-poem
+  population standard deviation. The shared typed engine, corpus-persisted
+  document metrics, scholar summary, CSV/Word exports, and validation fixtures
+  now expose the same calculations.
 - Standardized all 103 interactive result tables on a shared renderer that
   preserves Streamlit's fixed header row and pins the leftmost data column
   during horizontal scrolling across Single Poem, Other Text, Project / Corpus,

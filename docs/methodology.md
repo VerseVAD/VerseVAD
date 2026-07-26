@@ -659,6 +659,15 @@ surface. Apostrophes, hyphens, and other punctuation do not add to the count.
 A lexical token with no alphabetic characters remains in structural word
 counts but receives no length rather than length zero.
 
+The structural summary calculates the arithmetic mean and population standard
+deviation of lexical-token counts across nonblank physical lines, lexical-token
+counts across stanzas, and nonblank physical-line counts across stanzas.
+Population standard deviation is used because the displayed units are the
+complete set observed in the analyzed poem, not a sample drawn from that poem.
+Blank structural separator lines remain in the detailed line audit with zero
+words but do not enter either nonblank-line denominator. Empty sets remain
+missing rather than becoming zero.
+
 The module reports textual observations, not literary quality, vocabulary
 knowledge, intelligence, education, comprehension, reader effect, or
 authorial intention.

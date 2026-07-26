@@ -508,11 +508,19 @@ def test_interface_runs_optional_lexical_style_without_a_resource() -> None:
     assert not app.exception
     assert any("Analysis complete" in message.value for message in app.success)
     assert any("Lexical Diversity" in heading.value for heading in app.subheader)
+    assert any(
+        "Structural Count Summary" in heading.value for heading in app.subheader
+    )
     assert any("Words by Physical Line" in heading.value for heading in app.subheader)
     assert any("Words by Stanza" in heading.value for heading in app.subheader)
-    assert ("Lexical tokens", "7") in [
-        (metric.label, metric.value) for metric in app.metric
-    ]
+    metrics = [(metric.label, metric.value) for metric in app.metric]
+    assert ("Lexical tokens", "7") in metrics
+    assert ("Average words per nonblank line", "2.333") in metrics
+    assert ("Average words per stanza", "3.500") in metrics
+    assert ("Average nonblank lines per stanza", "1.500") in metrics
+    assert ("SD words per nonblank line", "0.471") in metrics
+    assert ("SD words per stanza", "1.500") in metrics
+    assert ("SD nonblank lines per stanza", "0.500") in metrics
 
 
 def test_interface_runs_optional_concreteness_profile_if_resource_is_present() -> None:

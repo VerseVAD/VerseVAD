@@ -33,7 +33,10 @@ HD-D = 86/105 = approximately 0.819048
 
 Alphabetic-character lengths are `3, 4, 3, 5, 4, 6, 3`, so the mean and median
 are both 4. The physical-line word counts are `3, 2, 0, 2`; the stanza word
-counts are `5, 2`.
+counts are `5, 2`. Across nonblank lines, average words are `7/3` and
+population SD is `sqrt(2/9)` (approximately `0.471405`). Across stanzas,
+average words are `3.5` with population SD `1.5`; average nonblank lines are
+`1.5` with population SD `0.5`.
 
 An independent MTLD fixture, `a b a b a b a b`, crosses the default 0.72
 threshold after each three-token `a b a` or `b a b` segment in both
@@ -64,8 +67,9 @@ Tests cover:
 - punctuation and numeric-token exclusion;
 - blank physical lines retained with zero word count;
 - line and stanza counts summing to the document count;
+- all three structural averages and population standard deviations;
 - resource-free module-contract behavior;
-- all six CSV/JSON exports;
+- all CSV and narrative Word exports;
 - application summary and ZIP integration; and
 - the live Streamlit checkbox, tab, metrics, and structural tables.
 
@@ -103,10 +107,13 @@ same local exporter stalled in the preceding completed stage.
 7. Click **Analyze this text**.
 8. Open **Lexical Style**.
 9. Confirm token/type totals, word-length data, line counts `3, 2, 0, 2`, and
-   stanza counts `5, 2`. With the defaults, MATTR and HD-D remain missing
+   stanza counts `5, 2`. In **Structural Count Summary**, confirm averages
+   `2.333`, `3.500`, and `1.500`, with population SDs `0.471`, `1.500`, and
+   `0.500`. With the defaults, MATTR and HD-D remain missing
    because the synthetic text is shorter than 50 and 42 tokens. Set both
    parameters to 3 to reproduce the hand calculations above.
-10. Download the full audit bundle and confirm the six `lexical_style_*` files.
+10. Download the full audit bundle and confirm the lexical-style CSV files and
+    narrative Word report.
 
 ## Limitations verified
 
@@ -116,4 +123,5 @@ same local exporter stalled in the preceding completed stage.
 - The module performs no resource lookup and modifies no source lexicon.
 - The broader skipped visible-structure and syntax/lineation analyses are not
   present.
-- Projects & Corpus persistence and aggregation remain later work.
+- Projects & Corpus persists the same document-level module metrics; no second
+  calculation path is introduced.

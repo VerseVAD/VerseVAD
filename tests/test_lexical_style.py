@@ -90,11 +90,43 @@ def test_module_reports_document_line_stanza_and_word_length_data(
     ]
     assert [row.word_count for row in result.stanza_summaries] == [5, 2]
     assert [row.line_count for row in result.stanza_summaries] == [2, 1]
+    assert result.summary.nonblank_line_word_count_statistics.mean == pytest.approx(
+        7 / 3
+    )
+    assert (
+        result.summary.nonblank_line_word_count_statistics
+        .population_standard_deviation
+        == pytest.approx((2 / 9) ** 0.5)
+    )
+    assert result.summary.stanza_word_count_statistics.mean == pytest.approx(3.5)
+    assert (
+        result.summary.stanza_word_count_statistics.population_standard_deviation
+        == pytest.approx(1.5)
+    )
+    assert result.summary.stanza_line_count_statistics.mean == pytest.approx(1.5)
+    assert (
+        result.summary.stanza_line_count_statistics.population_standard_deviation
+        == pytest.approx(0.5)
+    )
+    assert {
+        metric.metric_id
+        for metric in result.module_result.metrics
+        if metric.scope == "document"
+    } >= {
+        "lexical_style.mean_words_per_nonblank_line",
+        "lexical_style.population_sd_words_per_nonblank_line",
+        "lexical_style.mean_words_per_stanza",
+        "lexical_style.population_sd_words_per_stanza",
+        "lexical_style.mean_nonblank_lines_per_stanza",
+        "lexical_style.population_sd_nonblank_lines_per_stanza",
+    }
     assert sum(item.token_count for item in result.word_length_distribution) == 7
     assert any(
         warning.code == "lexical_style.short_text"
         for warning in result.module_result.warnings
     )
+    assert result.module_result.module_version == "1.1.0"
+    assert result.module_result.result_id.startswith("lexical-style-result-v2:")
 
 
 def test_word_counts_exclude_punctuation_and_numeric_tokens_without_zero_fill(

@@ -728,6 +728,22 @@ def test_workspace_can_run_lexical_style_without_external_resources(
         and row["metric"] == "Lexical token count"
         for row in summary_rows
     )
+    summary_by_metric = {row["metric"]: row for row in summary_rows}
+    assert summary_by_metric["Average words per nonblank line"]["value"] == str(
+        7 / 3
+    )
+    assert summary_by_metric[
+        "Population SD of words per nonblank line"
+    ]["value"] == str((2 / 9) ** 0.5)
+    assert summary_by_metric["Median words per nonblank line"]["value"] == "2.0"
+    assert summary_by_metric["Average words per stanza"]["value"] == "3.5"
+    assert summary_by_metric["Population SD of words per stanza"]["value"] == "1.5"
+    assert summary_by_metric["Median words per stanza"]["value"] == "3.5"
+    assert summary_by_metric["Average nonblank lines per stanza"]["value"] == "1.5"
+    assert (
+        summary_by_metric["Population SD of nonblank lines per stanza"]["value"]
+        == "0.5"
+    )
     with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
         assert {
             "lexical_style_summary.csv",

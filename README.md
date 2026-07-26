@@ -90,7 +90,10 @@ rhyme or dialect. At the scholar's direction, the broader visible-structure
 and syntax/lineation stages were skipped. Narrowed Stage 10 adds normalized
 observed surface-form diversity with configurable MATTR, HD-D, and
 bidirectional MTLD, Unicode alphabetic-character word length, and lexical-token
-counts for every preserved physical line and stanza. Stage 11 ports all seven
+counts for every preserved physical line and stanza. The Structure report also
+summarizes average words per nonblank line, average words per stanza, and
+average nonblank lines per stanza, each paired with its within-poem population
+standard deviation. Stage 11 ports all seven
 optional modules to Project / Corpus through the same tested engines, adds
 generic immutable schema-4 storage and auditable collection summaries, and
 retains pooled lexical-diversity calculations separately from equal-work

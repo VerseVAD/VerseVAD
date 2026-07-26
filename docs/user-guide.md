@@ -129,7 +129,8 @@ Use this order:
 4. **Sound & Form** — open pronunciation/syllables/stress, candidate meter, and
    rhyme/recurring-sound evidence.
 5. **Structure** — inspect the shared language profile plus lexical diversity,
-   word length, physical-line word counts, and stanza word counts.
+   word length, the structural count summary, physical-line word counts, and
+   stanza word counts.
 6. **Evidence & Diagnostics** — inspect surface forms, phrases, lemmas,
    exclusions, approved mappings, coverage, unmatched vocabulary,
    normalization, versions, and warnings.
@@ -571,6 +572,14 @@ The full audit ZIP contains the friendly CSV files,
   processing representation;
 - module CSV sets for concreteness, frequency, AoA, pronunciation, meter,
   rhyme/sound, lexical style, and PoetryID when enabled.
+
+In **Structure > Lexical & Structural Measures**, the **Structural Count
+Summary** reports average words per nonblank physical line, average words per
+stanza, and average nonblank physical lines per stanza. Each average is paired
+with the population standard deviation across all corresponding units in that
+poem. Blank lines that separate stanzas remain visible as zero-count rows in
+the detailed line table but are not included in words-per-line or
+lines-per-stanza denominators.
 
 CSV files use UTF-8 with a byte-order mark so current versions of Excel usually
 open them correctly. VerseVAD does not generate JSON, TXT, or XLSX analysis

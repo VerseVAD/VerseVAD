@@ -787,6 +787,9 @@ poem. The module reports:
   without-replacement sample;
 - forward/reverse and mean MTLD at a configured TTR threshold;
 - Unicode alphabetic-character word-length statistics and distribution;
+- average words per nonblank physical line, average words per stanza, and
+  average nonblank physical lines per stanza, each with its population
+  standard deviation;
 - one lexical-token count row for every preserved physical line, including
   blank separators with zero; and
 - lexical-token and nonblank-line counts for every stanza.
@@ -1020,6 +1023,19 @@ This tab appears when **Lexical diversity, word length & structural word
 counts** is enabled. It reports token/type totals, MATTR, HD-D, MTLD,
 alphabetic-character word-length statistics and distribution, and detailed
 word counts for each physical line and stanza.
+
+The **Structural Count Summary** shows:
+
+- average words per nonblank physical line and its population standard
+  deviation;
+- average words per stanza and its population standard deviation; and
+- average nonblank physical lines per stanza and its population standard
+  deviation.
+
+The standard deviations describe dispersion across all corresponding units in
+the poem, so VerseVAD uses population rather than sample standard deviation.
+Blank stanza-separator lines remain visible in the detailed line table but do
+not enter the words-per-line or lines-per-stanza denominators.
 
 Read the displayed parameters and token policy before comparing results.
 Physical blank lines remain visible with word count zero. A missing MATTR or

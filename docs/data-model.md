@@ -94,6 +94,14 @@ lookup, thresholds, coverage and source-response cautions, ranking limits, and
 the non-default contextual `content_words_only` scope. These records remain in
 memory and in one-poem exports; schema version 3 is unchanged.
 
+Narrowed Stage 10 adds `LexicalStyleAnalysisResult`. Its typed document summary
+retains descriptive-statistics records for lexical-token counts across
+nonblank physical lines, lexical-token counts across stanzas, and nonblank
+physical-line counts across stanzas. These records provide count, mean,
+median, population standard deviation, quartiles, and range without replacing
+the detailed line/stanza summaries. Stage 11 persists the corresponding
+document metrics through the generic schema-4 optional-module tables.
+
 ## Poetic Fingerprint expansion Stages 0-4
 
 Stage 0 adds an immutable, framework-independent common envelope for future

@@ -1,5 +1,17 @@
 # VerseVAD Implementation Plan
 
+## Completed structural count summary
+
+- [x] Reuse the existing nonblank-line and stanza lexical-token counts to
+  report average words per nonblank line and average words per stanza.
+- [x] Aggregate each stanza's audited nonblank-line count to report average
+  nonblank lines per stanza.
+- [x] Pair all three averages with population standard deviations in the
+  Structure interface, typed module metrics, scholar summary, and CSV/Word
+  exports.
+- [x] Add hand-calculated engine, export, corpus persistence, interface,
+  documentation, and manual regression coverage.
+
 ## Completed frozen table context
 
 - [x] Route every interactive result table through one shared renderer.

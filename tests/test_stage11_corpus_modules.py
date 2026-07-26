@@ -90,6 +90,18 @@ def test_optional_module_only_corpus_batch_persists_auditable_results(
         and row.value == pytest.approx(1.0)
         for row in metrics
     )
+    assert sorted(
+        row.value
+        for row in metrics
+        if row.metric_id == "lexical_style.mean_words_per_nonblank_line"
+        and row.scope == "document"
+    ) == [2.0, 3.0]
+    assert [
+        row.value
+        for row in metrics
+        if row.metric_id == "lexical_style.mean_nonblank_lines_per_stanza"
+        and row.scope == "document"
+    ] == [1.0, 1.0]
     assert [
         row.value
         for row in metrics

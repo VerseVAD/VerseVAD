@@ -175,6 +175,17 @@ def export_lexical_style_summary_csv(
         },
         {
             "section": "structural_word_counts",
+            "metric": "line_word_count_population_standard_deviation",
+            "value": (
+                summary.nonblank_line_word_count_statistics
+                .population_standard_deviation
+            ),
+            "unit_or_scale": "lexical tokens per nonblank physical line",
+            "denominator": f"{summary.nonblank_line_count} nonblank physical lines",
+            "note": "Population, not sample, standard deviation.",
+        },
+        {
+            "section": "structural_word_counts",
             "metric": "line_word_count_median",
             "value": summary.nonblank_line_word_count_statistics.median,
             "unit_or_scale": "lexical tokens per nonblank physical line",
@@ -191,9 +202,46 @@ def export_lexical_style_summary_csv(
         },
         {
             "section": "structural_word_counts",
+            "metric": "stanza_word_count_population_standard_deviation",
+            "value": (
+                summary.stanza_word_count_statistics
+                .population_standard_deviation
+            ),
+            "unit_or_scale": "lexical tokens per stanza",
+            "denominator": f"{summary.stanza_count} stanzas",
+            "note": "Population, not sample, standard deviation.",
+        },
+        {
+            "section": "structural_word_counts",
             "metric": "stanza_word_count_median",
             "value": summary.stanza_word_count_statistics.median,
             "unit_or_scale": "lexical tokens per stanza",
+            "denominator": f"{summary.stanza_count} stanzas",
+            "note": "",
+        },
+        {
+            "section": "structural_word_counts",
+            "metric": "stanza_line_count_mean",
+            "value": summary.stanza_line_count_statistics.mean,
+            "unit_or_scale": "nonblank physical lines per stanza",
+            "denominator": f"{summary.stanza_count} stanzas",
+            "note": "",
+        },
+        {
+            "section": "structural_word_counts",
+            "metric": "stanza_line_count_population_standard_deviation",
+            "value": (
+                summary.stanza_line_count_statistics.population_standard_deviation
+            ),
+            "unit_or_scale": "nonblank physical lines per stanza",
+            "denominator": f"{summary.stanza_count} stanzas",
+            "note": "Population, not sample, standard deviation.",
+        },
+        {
+            "section": "structural_word_counts",
+            "metric": "stanza_line_count_median",
+            "value": summary.stanza_line_count_statistics.median,
+            "unit_or_scale": "nonblank physical lines per stanza",
             "denominator": f"{summary.stanza_count} stanzas",
             "note": "",
         },
