@@ -26,10 +26,11 @@ The initial technology choices are:
 - Jinja templates for local HTML methods reports;
 - `uv` as the project-local dependency and Python manager.
 
-No system-wide package installation is required by the architecture. A Windows
-launcher will activate the project environment and start the local application.
-A packaged executable can be evaluated after the interface is stable; it is not
-a Phase 1 dependency.
+No system-wide package installation is required by the architecture.
+Project-local Windows and macOS setup helpers obtain the appropriate managed
+Python build and activate the same locked project environment. OS-specific
+launchers start one platform-neutral local application. A packaged executable
+can be evaluated later; it is not an architectural dependency.
 
 Phase 1 selected and locked Python 3.12, spaCy 3.8.14,
 `en_core_web_sm` 3.8.0, Click 8.4.2, and pytest 9.1.1 in `uv.lock`. The working
@@ -260,11 +261,15 @@ be silently updated. New judgments create a new scenario and run.
 
 ### Installation complexity
 
-The target computer currently has no ordinary `python` or `git` command on its
-PATH. Phase 3 setup uses a checksum-verified project-local `uv` executable, a
-project-managed Python runtime and environment, and no administrator access.
-The launcher uses the locked environment offline and binds Streamlit only to
-`127.0.0.1` with usage telemetry disabled.
+The original Windows target had no ordinary `python` or `git` command on its
+PATH. Windows setup uses a checksum-verified project-local `uv` executable.
+macOS setup uses the pinned official `uv` installer in unmanaged,
+project-local mode and selects the appropriate Apple silicon or Intel build.
+Both use a project-managed Python runtime and environment without administrator
+access. Their launchers use the locked environment offline and bind Streamlit
+only to `127.0.0.1` with usage telemetry disabled. The universal `uv.lock`
+retains platform and architecture markers instead of copying a Windows virtual
+environment to another operating system.
 
 ### Pronunciation alternatives and future prosody
 

@@ -248,15 +248,22 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       font-family: var(--font-interface);
       color: var(--color-text-primary);
     }}
+    html {{
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }}
     .stApp {{
       background: var(--color-background);
       color: var(--color-text-primary);
+      min-width: 0;
       transition: background-color var(--transition-fast), color var(--transition-fast);
     }}
     .main .block-container {{
       max-width: 92rem;
+      min-width: 0;
       padding-top: 1rem;
       padding-bottom: 4rem;
+      width: 100%;
     }}
     h1, h2, h3, h4 {{
       color: var(--color-text-primary);
@@ -267,6 +274,7 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
     }}
     p, label, [data-testid="stCaptionContainer"] {{
       color: var(--color-text-secondary);
+      overflow-wrap: anywhere;
     }}
     [data-testid="stTextAreaRootElement"],
     [data-testid="stTextInputRootElement"] {{
@@ -321,7 +329,9 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
     [data-testid="stDataFrame"], [data-testid="stTable"] {{
       border: 1px solid var(--color-border);
       border-radius: var(--radius-small);
+      max-width: 100%;
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
     }}
     [data-testid="stExpander"], [data-testid="stForm"],
     div[data-testid="stVerticalBlockBorderWrapper"] {{
@@ -332,6 +342,7 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
     [data-baseweb="tab-list"] {{
       gap: var(--space-2);
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
     }}
     [data-baseweb="tab"] {{
@@ -374,6 +385,7 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       box-shadow: 0 .35rem 1rem var(--color-shadow);
       margin-bottom: var(--space-4);
       padding: .55rem .8rem;
+      position: -webkit-sticky;
       position: sticky;
       top: .5rem;
       z-index: 900;
@@ -457,10 +469,23 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       background: var(--color-surface-muted) !important;
       color: var(--color-text-primary) !important;
     }}
+    pre {{
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }}
+    button, [role="button"] {{
+      touch-action: manipulation;
+    }}
     #MainMenu, footer {{
       visibility: hidden;
     }}
     @media (max-width: 800px) {{
+      .main .block-container {{
+        max-width: 100%;
+        overflow-x: hidden;
+        overflow-x: clip;
+      }}
       .main .block-container {{
         padding-left: .8rem;
         padding-right: .8rem;
@@ -486,6 +511,38 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       }}
       .versevad-empty {{
         padding: var(--space-6) var(--space-4);
+      }}
+    }}
+    @media (max-width: 520px) {{
+      .st-key-versevad_global_header {{
+        position: static;
+      }}
+      .st-key-versevad_global_header [data-testid="stColumn"]:not(:first-child) {{
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+        width: 100% !important;
+      }}
+      [role="radiogroup"][aria-label="Workspace"] {{
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+      }}
+      [role="radiogroup"][aria-label="Workspace"] button {{
+        flex: 1 1 calc(50% - var(--space-2));
+        min-width: 8.5rem;
+        white-space: normal;
+      }}
+      [data-testid="stTextAreaRootElement"] textarea,
+      [data-testid="stTextInputRootElement"] input {{
+        font-size: 16px;
+      }}
+      [data-testid="stDownloadButton"] button,
+      [data-testid="stBaseButton-primary"] {{
+        min-height: 2.75rem;
+        white-space: normal;
+      }}
+      .versevad-wordmark {{
+        white-space: normal;
       }}
     }}
     @media (prefers-reduced-motion: reduce) {{

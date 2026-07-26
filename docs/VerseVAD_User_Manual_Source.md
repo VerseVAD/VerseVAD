@@ -129,26 +129,39 @@ including resource-free lexical style, remain usable.
 ## First-time setup
 
 1. Open the `VerseVAD` folder.
-2. Double-click `setup_windows.bat`.
-3. Allow the setup window to finish. The first setup can use the internet to obtain the pinned local runtime and packages.
+2. On Windows, double-click `setup_windows.bat`. On macOS, open Terminal in
+   the folder and run `bash setup_macos.command`.
+3. Allow setup to finish. The first setup can use the internet to obtain the
+   pinned local runtime and packages.
 4. Install the desired research sources using
    `docs/resource-installation.md`. This is intentionally a separate manual
    step.
 5. Start VerseVAD, resolve any resource warning by checking the exact
    destination and checksum, and use **Run self-test**.
 6. Confirm that the applicable diagnostic lines end in `PASS`.
-7. Press a key if the setup window asks you to do so.
+7. Close the setup window when it finishes.
 
 Setup is project-local. It does not require administrator access or a system-wide Python installation.
-If the `VerseVAD` folder is moved or renamed, rerun `setup_windows.bat`.
+The macOS setup supports Apple silicon and Intel Macs running macOS 13 Ventura
+or newer without requiring Homebrew. If the `VerseVAD` folder is moved or
+renamed, rerun the setup helper for the current operating system.
 Setup detects stale absolute virtual-environment paths and rebuilds only the
 disposable `.venv`; research sources and project data are not removed.
 
+On macOS, setup also makes the three `.command` helpers executable. If Terminal
+reports `Permission denied`, run `chmod u+x setup_macos.command
+start_versevad.command diagnose_macos.command` from the VerseVAD folder. See
+`docs/macos-installation.md` for exact Finder/Terminal steps, Gatekeeper
+guidance, and browser troubleshooting.
+
 ## Start VerseVAD
 
-1. Double-click `start_versevad.bat`.
+1. On Windows, double-click `start_versevad.bat`. On macOS, double-click
+   `start_versevad.command`.
 2. Keep the visible launcher window open while using VerseVAD.
-3. Your default browser should open `http://127.0.0.1:8501`.
+3. Your default browser should open `http://127.0.0.1:8501`. Current Safari
+   and Chrome are supported; Streamlit's browser policy covers the two most
+   recent versions of each.
 4. If the browser does not open automatically, type that address into a browser on the same computer.
 
 The shared application header contains:
@@ -1722,11 +1735,20 @@ The divergence is substantial because the long work dominates the token-weighted
 
 ## Run the self-test
 
-Under **Installation Check**, click **Run self-test** in the sidebar. A healthy installation reports `11/11 checks passed`. You can also double-click `diagnose_windows.bat`.
+Under **Installation Check**, click **Run self-test** in the sidebar. A fully
+provisioned installation reports `12/12 checks passed`. You can also
+double-click `diagnose_windows.bat` on Windows or `diagnose_macos.command` on
+macOS.
 
 ## Browser page shows old-code errors
 
-Close older VerseVAD launcher windows and browser tabs, then restart with `start_versevad.bat`. A forced browser refresh or fresh private/incognito tab can clear stale page state. The application also contains a runtime revision guard for known stale-module problems.
+Close older VerseVAD launcher windows and browser tabs, then restart with the
+launcher for the current operating system. A forced browser refresh or fresh
+private/incognito tab can clear stale page state. In Chrome on macOS, the hard
+refresh shortcut is Command-Shift-R. If no browser opens, manually visit
+`http://127.0.0.1:8501` in Safari or Chrome while the launcher remains open.
+The application also contains a runtime revision guard for known stale-module
+problems.
 
 ## No matches or very sparse results
 

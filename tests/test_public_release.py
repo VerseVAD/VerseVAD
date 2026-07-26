@@ -130,6 +130,9 @@ def test_user_facing_sources_use_versevad_folder_name() -> None:
         ROOT / "setup_windows.bat",
         ROOT / "start_versevad.bat",
         ROOT / "scripts" / "setup_windows.ps1",
+        ROOT / "setup_macos.command",
+        ROOT / "start_versevad.command",
+        ROOT / "diagnose_macos.command",
     )
 
     assert all(

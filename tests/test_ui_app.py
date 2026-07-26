@@ -765,6 +765,8 @@ def test_windows_helpers_are_local_and_telemetry_disabled() -> None:
     assert "--offline" in launcher
     assert "gatherUsageStats false" in launcher
     assert "UV_PYTHON_INSTALL_DIR" in setup
+    assert 'UV_PYTHON_PREFERENCE = "only-managed"' in setup
+    assert "UV_PYTHON_PREFERENCE=only-managed" in launcher
     assert "ExpectedUvHash" in setup
     assert "The VerseVAD folder moved" in setup
     assert "Refusing to rebuild an environment outside" in setup

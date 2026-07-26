@@ -28,23 +28,28 @@ optional modules whose dependencies are unavailable.
 ## First-time setup
 
 1. Open the `VerseVAD` folder.
-2. Double-click `setup_windows.bat`.
-3. Allow the setup window to finish. The first setup may take several minutes
-   and needs internet access to obtain the pinned local runtime and packages.
+2. On Windows, double-click `setup_windows.bat`. On macOS, open Terminal in the
+   folder and run `bash setup_macos.command`.
+3. Allow setup to finish. The first setup may take several minutes and needs
+   internet access to obtain the pinned local runtime and packages.
 4. Install the desired research resources using
    `docs/resource-installation.md`. This is a separate, manual step because the
    data have their own terms and are never bundled or downloaded by VerseVAD.
 5. Start VerseVAD and use **Run self-test**. Resolve any resource warning by
    checking the exact destination and supported SHA-256 in the guide.
-6. Press a key to close the setup window when setup is complete.
+6. Close the setup window when setup is complete.
 
 Setup does not need administrator access and does not install Python system
 wide. VerseVAD keeps its runtime, environment, and package cache inside ignored
-folders in this project.
+folders in this project. The macOS setup supports Apple silicon and Intel Macs
+running macOS 13 Ventura or newer.
+For detailed first-run permissions and browser troubleshooting, see
+[VerseVAD on macOS](macos-installation.md).
 
 ## Start and stop VerseVAD
 
-1. Double-click `start_versevad.bat`.
+1. On Windows, double-click `start_versevad.bat`. On macOS, double-click
+   `start_versevad.command`.
 2. Keep the launcher window open. Your browser should open
    `http://127.0.0.1:8501` automatically.
 3. If the browser does not open, type that exact address into a browser on this
@@ -690,14 +695,16 @@ large ZIP during unrelated interface reruns. An unchanged prepared export is
 reused safely.
 
 Under **Installation Check**, click **Run self-test** in the app sidebar at any
-time. A healthy installation shows `11/11 checks passed`. You can also
-double-click `diagnose_windows.bat`.
+time. A fully provisioned installation shows `12/12 checks passed`. You can
+also double-click `diagnose_windows.bat` on Windows or
+`diagnose_macos.command` on macOS.
 
 If startup fails:
 
 1. close any earlier VerseVAD launcher window;
-2. run `diagnose_windows.bat` and note any `FAIL` line;
-3. rerun `setup_windows.bat` if the local environment is missing;
+2. run the Windows or macOS diagnostic launcher and note any `FAIL` line;
+3. rerun the setup helper for the current operating system if the local
+   environment is missing;
 4. copy or photograph the complete plain-language error for support.
 
 Invalid encoding, non-text files, blank text, missing titles, and missing
@@ -719,10 +726,12 @@ also require correction through close inspection.
 
 ## Older validation demonstrations
 
-`test_phase1.bat` and `test_phase2.bat` remain available as invented,
-hand-calculated engine demonstrations. Their generated `phase1_demo_output` and
-`phase2_demo_output` folders can be deleted safely and recreated by rerunning
-the corresponding demonstration.
+`test_phase1.bat` and `test_phase2.bat` remain available on Windows as invented,
+hand-calculated engine demonstrations. On macOS, the same demonstrations can be
+run from Terminal with `./.tools/uv/uv run --frozen --offline
+versevad-phase1-demo` or `versevad-phase2-demo`. Their generated
+`phase1_demo_output` and `phase2_demo_output` folders can be deleted safely and
+recreated by rerunning the corresponding demonstration.
 
 ## PoetryID
 

@@ -6,6 +6,7 @@ set "VERSEVAD_UV=%~dp0.tools\uv\uv.exe"
 set "UV_CACHE_DIR=%~dp0.runtime\uv-cache"
 set "UV_PYTHON_INSTALL_DIR=%~dp0.runtime\python"
 set "UV_PYTHON_INSTALL_REGISTRY=0"
+set "UV_PYTHON_PREFERENCE=only-managed"
 
 if not exist "%VERSEVAD_UV%" (
   echo VerseVAD's local setup tool is missing.

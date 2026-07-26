@@ -12,10 +12,24 @@ All notable VerseVAD changes will be recorded here.
 - Replaced the nested poem-document JSON with explicit `processing_*.csv`
   tables and added a comprehensive one-text report, module-specific reports,
   and a corpus narrative report.
+- Updated the PoetryID direct synthetic validation to its current seven-CSV
+  plus one-DOCX export contract instead of the superseded CSV/TXT count.
 
 ### Added
 
 - First public-release version of VerseVAD.
+- Project-local macOS setup, startup, and diagnostics helpers for Apple silicon
+  and Intel Macs, using the same universal lockfile, managed Python 3.12,
+  loopback-only service, offline ordinary launch, and local research files as
+  Windows.
+- A core runtime-only setup diagnostic so a public checkout can be installed
+  before separately licensed lexicons are downloaded; the in-app/full
+  diagnostic continues to report every missing or unsupported resource.
+- Safari-oriented CSS fallbacks for text sizing, sticky headers, momentum
+  scrolling, overflow containment, narrow workspace navigation, readable
+  text-entry sizing, and wrapping action/download buttons.
+- A dedicated macOS installation and browser guide plus cross-platform launcher
+  and responsive-style regression coverage.
 - A dedicated PoetryID corpus table comparing every poem's threshold-based
   categorical profile with its nearest continuous centroid, including
   agreement, both distances, rule-based confidence, and VAD coordinates for

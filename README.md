@@ -138,6 +138,7 @@ See:
 - [Poetic Fingerprint Stage 14 validation](docs/poetic-fingerprint-stage14-validation.md)
 - [Stage 14 performance report](docs/stage14-performance-report.md)
 - [Public resource installation guide](docs/resource-installation.md)
+- [macOS installation and browser guide](docs/macos-installation.md)
 - [Lexicon inventory](docs/lexicons.md)
 - [Methodological commitments](docs/methodology.md)
 - [Data model](docs/data-model.md)
@@ -189,15 +190,47 @@ terms.
 
 ## Start the graphical application
 
-On the first run, double-click `setup_windows.bat`. It creates a locked
-project-local Python environment; it does not require administrator access or a
-system-wide Python installation. Setup may use the internet to download the
-pinned runtime and dependencies.
+VerseVAD has project-local setup and launchers for Windows and macOS. Both use
+the same cross-platform `uv.lock`, Python package, resources, project database,
+and browser interface. Setup may use the internet to download the pinned
+runtime and dependencies; ordinary startup is offline.
 
-For ordinary use, double-click `start_versevad.bat`. Your browser opens the
-local address `http://127.0.0.1:8501`. Keep the small launcher window open while
-working. Ordinary startup and analysis use the already installed local files
-and do not upload the poem or results.
+`pyproject.toml` is the direct dependency manifest and `uv.lock` is the
+complete, exact cross-platform dependency lock. Together they replace a
+traditional `requirements.txt`; do not install packages manually before using
+the supplied setup helper.
+
+### Windows
+
+On the first run, double-click `setup_windows.bat`. For ordinary use,
+double-click `start_versevad.bat`.
+
+### macOS
+
+On the first run, open Terminal in the VerseVAD folder and run:
+
+```bash
+bash setup_macos.command
+```
+
+The setup supports Apple silicon and Intel Macs running macOS 13 Ventura or
+newer, requires no administrator access or system-wide Python installation,
+and makes the `.command` launchers executable. For ordinary use, double-click
+`start_versevad.command`, or run:
+
+```bash
+./start_versevad.command
+```
+
+Safari or Chrome opens the same local address,
+`http://127.0.0.1:8501`. Keep the small launcher window open while working.
+Streamlit supports the two most recent Safari and Chrome versions; update an
+older browser before troubleshooting VerseVAD. See the
+[macOS installation and browser guide](docs/macos-installation.md) for
+first-run permissions, diagnostics, and browser checks.
+
+On either operating system, ordinary startup and analysis use the installed
+local files and do not upload the poem or results.
 
 In the app, use the shared workspace navigation across the top. The same header
 also provides persistent Light, Dark, and System appearance modes:

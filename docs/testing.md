@@ -522,3 +522,34 @@ the real installed-resource search completed normally. At the scholar's
 direction, the unrelated full-resource synthetic demonstration rerun was
 stopped rather than continuing to traverse every installed lexicon for this
 display-only repair.
+
+## macOS and browser compatibility
+
+Cross-platform tests require the macOS setup, startup, and diagnostic helpers
+to resolve their own checkout path, keep `uv`, Python, and caches
+project-local, preserve the locked/offline launch policy, bind only to
+`127.0.0.1`, and avoid Windows path syntax. The setup contract also requires
+the pinned official `uv` installer, explicit Python 3.12 selection, safe
+rebuilding of only the checkout-local `.venv`, and a runtime-only diagnostic
+that can pass before separately licensed lexicons are installed.
+
+Responsive stylesheet tests cover Safari-prefixed sticky positioning and
+momentum scrolling, explicit text-size adjustment, safe overflow, 520-pixel
+header/workspace wrapping, 16-pixel narrow-screen text inputs, and wrapping
+download/primary buttons. Live browser validation should cover all four
+workspaces at desktop, tablet, and narrow viewports, confirm no page-level
+horizontal overflow, and check the browser console. Because Safari is not
+available on the Windows development host, final release acceptance also
+requires a short real-Mac pass in current Safari and Chrome following
+`docs/macos-installation.md`.
+
+The Windows-host completion pass on 2026-07-26 reached 100% with no failures
+across 297 automated tests, passed all eleven direct synthetic validations and
+all twelve full local diagnostics, and confirmed an 88-package locked/offline
+environment dry run. A temporary loopback server returned HTTP 200 with no
+application warning or traceback. The focused launcher, browser-style,
+release, manual, and Streamlit interface set passed 35 tests. The in-app
+browser-control surface was unavailable during this pass, and Safari cannot
+run on Windows, so no Safari or pixel-level Chrome visual claim is made. The
+real-Mac checklist remains explicit rather than being represented as
+automatically complete.

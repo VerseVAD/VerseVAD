@@ -37,6 +37,7 @@ if (-not (Test-Path -LiteralPath $UvExecutable)) {
 $env:UV_CACHE_DIR = Join-Path $RuntimeDirectory "uv-cache"
 $env:UV_PYTHON_INSTALL_DIR = Join-Path $RuntimeDirectory "python"
 $env:UV_PYTHON_INSTALL_REGISTRY = "0"
+$env:UV_PYTHON_PREFERENCE = "only-managed"
 
 # A Python virtual environment records absolute interpreter and launcher paths.
 # If the VerseVAD folder was moved or renamed, rebuild only that disposable
@@ -70,7 +71,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Running VerseVAD's local diagnostic checks..."
-& $UvExecutable run --frozen --offline versevad-diagnose --quick
+& $UvExecutable run --frozen --offline versevad-diagnose --quick --runtime-only
 if ($LASTEXITCODE -ne 0) {
     throw "Setup finished, but one or more diagnostic checks failed."
 }

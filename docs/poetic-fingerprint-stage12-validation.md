@@ -27,7 +27,7 @@ Input VAD: valence 0.2, arousal 0.5, dominance 0.8.
 Categorical profile: The Survivor (low, moderate, high).
 Nearest-centroid distance: 0.000000.
 All 27 distances retained; relative affinities sum to 1.
-Export bundle: seven CSV/TXT files and no PoetryID JSON.
+Export bundle: seven CSV files plus one DOCX report; no JSON/TXT/XLSX.
 ```
 
 ## Automated coverage
@@ -43,7 +43,7 @@ Stage 12 tests cover:
 - token/type separation and source/view/configuration identity;
 - native-scale concreteness, SUBTLEX-US Zipf, and AoA lexical character;
 - missing optional dimensions without changing the VAD profile;
-- seven CSV/TXT exports and the absence of PoetryID JSON;
+- seven CSV exports, one DOCX report, and the absence of JSON/TXT/XLSX;
 - One Poem dependency reuse through exact upstream VAD analysis IDs;
 - schema-4 per-work persistence and project/corpus artifact bundles;
 - corpus profile grouping by source, view, weighting, and configuration;
@@ -51,7 +51,8 @@ Stage 12 tests cover:
 
 ## Beginner interface check
 
-1. Start VerseVAD with `start_versevad.bat`.
+1. Start VerseVAD with `start_versevad.bat` on Windows or
+   `start_versevad.command` on macOS.
 2. Open **One Poem** and paste a poem containing at least five ordinary
    lexical items.
 3. Keep at least one VAD lexicon selected.

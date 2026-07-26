@@ -1,4 +1,4 @@
-"""Local installation diagnostics shared by the interface and Windows helper."""
+"""Local installation diagnostics shared by the interface and OS launchers."""
 
 from __future__ import annotations
 
@@ -28,8 +28,8 @@ class DiagnosticCheck:
     detail: str
 
 
-def run_self_test() -> tuple[DiagnosticCheck, ...]:
-    """Run safe read-only checks without sending data or changing source files."""
+def run_runtime_self_test() -> tuple[DiagnosticCheck, ...]:
+    """Check the installed runtime without requiring separately licensed data."""
 
     checks = [DiagnosticCheck("VerseVAD package", True, f"Version {__version__}")]
     try:
@@ -148,6 +148,13 @@ def run_self_test() -> tuple[DiagnosticCheck, ...]:
                 str(error),
             )
         )
+    return tuple(checks)
+
+
+def run_self_test() -> tuple[DiagnosticCheck, ...]:
+    """Run safe read-only checks without sending data or changing source files."""
+
+    checks = list(run_runtime_self_test())
 
     for spec in LEXICON_SPECS:
         try:
@@ -169,11 +176,28 @@ def main() -> int:
     parser.add_argument(
         "--quick",
         action="store_true",
-        help="Reserved for setup compatibility; all current checks are local and read-only.",
+        help="Use concise setup-compatible output; checks remain local and read-only.",
     )
-    parser.parse_args()
-    checks = run_self_test()
-    print("VerseVAD local diagnostics")
+    parser.add_argument(
+        "--runtime-only",
+        action="store_true",
+        help=(
+            "Check the application runtime and synthetic formulas without "
+            "requiring separately installed research lexicons."
+        ),
+    )
+    arguments = parser.parse_args()
+    checks = (
+        run_runtime_self_test()
+        if arguments.runtime_only
+        else run_self_test()
+    )
+    heading = (
+        "VerseVAD core runtime diagnostics"
+        if arguments.runtime_only
+        else "VerseVAD local diagnostics"
+    )
+    print(heading)
     print("No texts or lexicons were sent anywhere, and source files were not changed.")
     for check in checks:
         marker = "PASS" if check.passed else "FAIL"

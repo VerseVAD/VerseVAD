@@ -985,6 +985,25 @@ review required.
 
 ## Cross-cutting later work - Scholarly diagnostics
 
+## Post-release portability - macOS and supported browsers
+
+- [x] Add project-local macOS setup, startup, and diagnostic `.command`
+  helpers for Apple silicon and Intel Macs.
+- [x] Reuse the universal lockfile, managed Python 3.12, offline ordinary
+  startup, loopback-only binding, and disabled telemetry on both platforms.
+- [x] Separate core runtime setup diagnostics from optional research-resource
+  diagnostics so a public checkout can be installed before licensed datasets.
+- [x] Add Safari-safe CSS fallbacks and narrow-layout wrapping without changing
+  calculations, exports, or existing Windows launcher behavior.
+- [x] Add macOS installation, permission, browser, and troubleshooting
+  documentation to the README, beginner guide, architecture, testing guide,
+  and comprehensive manual source.
+- [x] Run targeted/full automated validation, all synthetic checks, locked
+  environment/startup checks, and Word-manual structural/accessibility QA.
+- [?] Complete the documented real-Mac Safari/Chrome acceptance checklist;
+  Safari and macOS launcher/Gatekeeper behavior cannot be executed on the
+  Windows development host.
+
 ## Public release 1.0.0
 
 - [x] Promote package, runtime, and offline-lock metadata to version `1.0.0`.

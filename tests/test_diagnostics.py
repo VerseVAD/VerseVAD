@@ -1,4 +1,19 @@
-from versevad.diagnostics import run_self_test
+from versevad.diagnostics import run_runtime_self_test, run_self_test
+
+
+def test_runtime_self_test_does_not_require_research_lexicons() -> None:
+    checks = run_runtime_self_test()
+    assert len(checks) == 7
+    assert all(check.passed for check in checks)
+    assert {check.check for check in checks} == {
+        "VerseVAD package",
+        "Graphical framework",
+        "English linguistic model",
+        "Phrase and VAD calculation",
+        "Categorical emotion calculation",
+        "Emotion intensity calculation",
+        "Performance-aware meter safeguards",
+    }
 
 
 def test_local_self_test_checks_model_formulas_and_all_sources() -> None:

@@ -7,6 +7,7 @@ set "VERSEVAD_OUTPUT=%~dp0phase2_demo_output"
 set "UV_CACHE_DIR=%~dp0.runtime\uv-cache"
 set "UV_PYTHON_INSTALL_DIR=%~dp0.runtime\python"
 set "UV_PYTHON_INSTALL_REGISTRY=0"
+set "UV_PYTHON_PREFERENCE=only-managed"
 
 if not exist "%VERSEVAD_UV%" (
   echo VerseVAD's project-local setup tool is missing.

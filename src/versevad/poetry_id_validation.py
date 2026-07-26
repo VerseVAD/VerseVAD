@@ -68,15 +68,19 @@ def main() -> int:
     )
     assert assignment.confidence.label == "high_confidence"
     bundle = export_poetry_id_bundle(result)
-    assert len(bundle) == 7
-    assert not any(name.endswith(".json") for name in bundle)
+    assert len(bundle) == 8
+    assert not any(
+        name.endswith((".json", ".txt", ".xlsx"))
+        for name in bundle
+    )
+    assert bundle["poetry_id_report.docx"].startswith(b"PK")
 
     print("VerseVAD PoetryID validation passed.")
     print("Input VAD: valence 0.2, arousal 0.5, dominance 0.8.")
     print("Categorical profile: The Survivor (low, moderate, high).")
     print("Nearest-centroid distance: 0.000000.")
     print("All 27 distances retained; relative affinities sum to 1.")
-    print("Export bundle: seven CSV/TXT files and no PoetryID JSON.")
+    print("Export bundle: seven CSV files plus one DOCX report; no JSON/TXT/XLSX.")
     return 0
 
 
