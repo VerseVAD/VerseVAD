@@ -375,6 +375,15 @@ def test_interface_renders_poetry_id_maps_scales_and_non_json_downloads() -> Non
     assert not poetry_id.disabled
     poetry_id.set_value(True)
     app.run(timeout=60)
+    analysis_views = next(
+        field
+        for field in app.multiselect
+        if field.label == "PoetryID analysis views"
+    )
+    assert analysis_views.value == [
+        "all_matched",
+        "stopwords_excluded",
+    ]
     _button(app, "Analyze Poem").click()
     app.run(timeout=60)
 
@@ -382,9 +391,20 @@ def test_interface_renders_poetry_id_maps_scales_and_non_json_downloads() -> Non
     assert any(
         heading.value == "PoetryID" for heading in app.subheader
     )
-    assert any(
-        field.label == "PoetryID evidence view" for field in app.selectbox
-    )
+    selectors = {field.label: field for field in app.selectbox}
+    assert {
+        "PoetryID VAD source",
+        "PoetryID token scope",
+        "PoetryID weighting",
+    } <= selectors.keys()
+    assert selectors["PoetryID token scope"].options == [
+        "All matched tokens (including stopwords)",
+        "Stopwords excluded",
+    ]
+    assert selectors["PoetryID weighting"].options == [
+        "Token-weighted",
+        "Type-weighted",
+    ]
     labels = {
         button.label
         for button in app.get("download_button")

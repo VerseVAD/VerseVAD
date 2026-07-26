@@ -1165,7 +1165,10 @@ def _render_analysis_tab(
     aoa_content_words_only = False
     poetry_id_sources: tuple[str, ...] = ()
     poetry_id_weightings: tuple[str, ...] = ("token", "type")
-    poetry_id_views: tuple[str, ...] = ("all_matched",)
+    poetry_id_views: tuple[str, ...] = (
+        "all_matched",
+        "stopwords_excluded",
+    )
     poetry_id_lexical_dimensions: tuple[str, ...] = ()
     poetry_id_threshold_profile = PoetryIDConfiguration().threshold_profile
     poetry_id_configuration_error = ""
@@ -1348,9 +1351,17 @@ def _render_analysis_tab(
                 st.multiselect(
                     "PoetryID analysis views",
                     options=["all_matched", "stopwords_excluded"],
-                    default=["all_matched"],
-                    format_func=lambda value: value.replace("_", " ").title(),
+                    default=["all_matched", "stopwords_excluded"],
+                    format_func=lambda value: (
+                        "All matched tokens (including stopwords)"
+                        if value == "all_matched"
+                        else "Stopwords excluded"
+                    ),
                     key=f"corpus_poetry_id_views_{project_id}",
+                    help=(
+                        "Both views remain separate in every work and corpus "
+                        "comparison. Unmatched vocabulary remains missing."
+                    ),
                 )
             )
             character_options = [

@@ -39,6 +39,7 @@ from versevad.phase2_validation import (
     phase2_synthetic_intensity_lexicon,
     phase2_synthetic_vad_lexicon,
 )
+from versevad.poetry_id import PoetryIDConfiguration
 from versevad.preprocessing import (
     PreparedPoemPreprocessor,
     SpacyEnglishPreprocessor,
@@ -171,6 +172,9 @@ def test_workspace_poetry_id_reuses_completed_vad_and_has_no_json_export(
         original_text="joy love peace light happy calm strong",
         lexicon_ids=("nrc_vad_v1",),
         include_poetry_id=True,
+        poetry_id_configuration=PoetryIDConfiguration(
+            analysis_views=("all_matched", "stopwords_excluded"),
+        ),
     )
 
     workspace = run_workspace_analysis(request, preprocessor=preprocessor)
@@ -183,6 +187,10 @@ def test_workspace_poetry_id_reuses_completed_vad_and_has_no_json_export(
     assert {row.weighting_mode for row in workspace.poetry_id.assignments} == {
         "token",
         "type",
+    }
+    assert {row.analysis_view for row in workspace.poetry_id.assignments} == {
+        "all_matched",
+        "stopwords_excluded",
     }
     with zipfile.ZipFile(io.BytesIO(detailed_export_zip(workspace))) as bundle:
         poetry_id_files = {

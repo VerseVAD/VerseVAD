@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -12,10 +14,27 @@ from versevad.ui.design import PUBLICATION_CHART_COLORS, publication_chart
 
 
 _LEVEL_ORDER = (VadLevel.LOW, VadLevel.MODERATE, VadLevel.HIGH)
+_ANALYSIS_VIEW_LABELS = {
+    "all_matched": "All matched tokens (including stopwords)",
+    "stopwords_excluded": "Stopwords excluded",
+}
+_WEIGHTING_LABELS = {
+    "token": "Token-weighted",
+    "type": "Type-weighted",
+}
 
 
 def _percentage(value: float | None) -> str:
     return "—" if value is None else f"{value:.1%}"
+
+
+def _unique(values: Iterable[str]) -> list[str]:
+    return list(dict.fromkeys(values))
+
+
+def _clear_invalid_widget_value(key: str, options: list[str]) -> None:
+    if st.session_state.get(key) not in options:
+        st.session_state.pop(key, None)
 
 
 def _map_frame(assignment, dominance: VadLevel) -> pd.DataFrame:
@@ -146,20 +165,73 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
         )
         return
 
-    choices = {
-        (
-            f"{item.source_lexicon_name} · "
-            f"{item.analysis_view.replace('_', ' ')} · "
-            f"{item.weighting_mode} weighted"
-        ): item
+    source_ids = _unique(
+        item.source_analysis_id for item in result.assignments
+    )
+    source_labels = {
+        item.source_analysis_id: item.source_lexicon_name
         for item in result.assignments
     }
-    selected_label = st.selectbox(
-        "PoetryID evidence view",
-        options=list(choices),
-        key="poetry_id_assignment",
+    _clear_invalid_widget_value("poetry_id_source", source_ids)
+    source_column, scope_column, weighting_column = st.columns(3)
+    with source_column:
+        selected_source = st.selectbox(
+            "PoetryID VAD source",
+            options=source_ids,
+            format_func=lambda value: source_labels[value],
+            key="poetry_id_source",
+            disabled=len(source_ids) == 1,
+            help=(
+                "Each source-specific normalized VAD result remains separate; "
+                "PoetryID does not create a consensus score."
+            ),
+        )
+
+    source_assignments = [
+        item
+        for item in result.assignments
+        if item.source_analysis_id == selected_source
+    ]
+    analysis_views = _unique(
+        item.analysis_view for item in source_assignments
     )
-    assignment = choices[selected_label]
+    _clear_invalid_widget_value("poetry_id_analysis_view", analysis_views)
+    with scope_column:
+        selected_view = st.selectbox(
+            "PoetryID token scope",
+            options=analysis_views,
+            format_func=lambda value: _ANALYSIS_VIEW_LABELS[value],
+            key="poetry_id_analysis_view",
+            disabled=len(analysis_views) == 1,
+            help=(
+                "All matched tokens includes matched stopwords. Stopwords "
+                "excluded uses the pinned VerseVAD stopword policy. Unmatched "
+                "vocabulary remains missing in both views."
+            ),
+        )
+
+    scoped_assignments = [
+        item
+        for item in source_assignments
+        if item.analysis_view == selected_view
+    ]
+    weighting_modes = _unique(
+        item.weighting_mode for item in scoped_assignments
+    )
+    _clear_invalid_widget_value("poetry_id_weighting", weighting_modes)
+    with weighting_column:
+        selected_weighting = st.selectbox(
+            "PoetryID weighting",
+            options=weighting_modes,
+            format_func=lambda value: _WEIGHTING_LABELS[value],
+            key="poetry_id_weighting",
+            disabled=len(weighting_modes) == 1,
+        )
+    assignment = next(
+        item
+        for item in scoped_assignments
+        if item.weighting_mode == selected_weighting
+    )
 
     st.markdown(
         "### Nearest PoetryID profile: "
@@ -179,7 +251,8 @@ def render_poetry_id(result: PoetryIDAnalysisResult | None) -> None:
         f"Levels: {assignment.valence_level.value} valence · "
         f"{assignment.arousal_level.value} arousal · "
         f"{assignment.dominance_level.value} dominance. "
-        f"Weighting: {assignment.weighting_mode}. "
+        f"Token scope: {_ANALYSIS_VIEW_LABELS[assignment.analysis_view]}. "
+        f"Weighting: {_WEIGHTING_LABELS[assignment.weighting_mode]}. "
         f"Threshold profile: {result.configuration.threshold_profile.name}. "
         f"VAD token coverage {_percentage(assignment.coverage.token_coverage)}; "
         f"type coverage {_percentage(assignment.coverage.type_coverage)}."

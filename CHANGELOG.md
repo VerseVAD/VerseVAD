@@ -6,6 +6,10 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Added independent PoetryID VAD-source, token-scope, and token/type-weighting
+  result selectors. New one-text and corpus configurations select both
+  all-matched and stopword-excluded evidence by default while preserving
+  unmatched vocabulary as missing and keeping every combination separate.
 - Repaired Project / Corpus deletion so the destructive action runs in the
   button callback before expensive tab rendering, clears the deleted selector
   state, and reruns onto another project or the empty-project view without an

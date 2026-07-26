@@ -1016,7 +1016,12 @@ at least one selected VAD source. PoetryID consumes the completed normalized
 VAD result; it does not tokenize, load a lexicon, match words, or calculate VAD
 again.
 
-Read one source/view/weighting combination at a time. The tab presents:
+Both token scopes are selected by default. Use the separate **PoetryID VAD
+source**, **PoetryID token scope**, and **PoetryID weighting** selectors to read
+one combination at a time. **All matched tokens (including stopwords)** includes
+only tokens that matched the selected VAD lexicon; unmatched vocabulary stays
+missing. **Stopwords excluded** applies the pinned VerseVAD stopword policy.
+The tab presents:
 
 - continuous normalized valence, arousal, and dominance before any label;
 - the low/moderate/high categorical levels and candidate profile;
@@ -1171,6 +1176,9 @@ nearest-centroid results, and token/type sensitivity without declaring one
 corpus-wide identity. The comparison table keeps both profile names, their
 agreement, nearest and categorical centroid distances, rule-based confidence,
 and continuous VAD coordinates together for each work.
+
+Both PoetryID token scopes are selected by default in new batch settings. They
+remain separate in stored results, comparisons, and exports.
 
 Coverage, unmatched evidence, warnings, configuration IDs, and denominators
 remain visible. **Download module audit ZIP** reconstructs and checksum-checks

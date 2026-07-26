@@ -390,13 +390,15 @@ Run the hand-calculated classifier example:
 
 The example places `(0.2, 0.5, 0.8)` exactly at The Survivor centroid under
 the default fixed profile, checks all 27 distances and affinity normalization,
-and verifies that the seven-file PoetryID bundle contains CSV/TXT only.
+and verifies that the PoetryID bundle contains seven CSV files and one DOCX
+report with no JSON, TXT, or XLSX.
 
 Automated tests cover the complete registry, threshold inclusivity, custom
 configuration round trips, distance ranking, categorical/centroid agreement,
 boundary and coverage confidence, structured unavailability, token/type
-separation, native-scale lexical character, exact upstream VAD identity,
-non-JSON exports, generic project persistence, compatible corpus
+separation, all-matched/stopword-excluded separation, independent source/scope/
+weighting result controls, native-scale lexical character, exact upstream VAD
+identity, non-JSON exports, generic project persistence, compatible corpus
 distributions, workbook fields, and regressions.
 
 See

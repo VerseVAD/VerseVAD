@@ -733,10 +733,19 @@ if workspace_page in {"Single Poem", "Other Text"}:
         poetry_id_views = st.multiselect(
             "PoetryID analysis views",
             options=["all_matched", "stopwords_excluded"],
-            default=["all_matched"],
-            format_func=lambda value: value.replace("_", " ").title(),
+            default=["all_matched", "stopwords_excluded"],
+            format_func=lambda value: (
+                "All matched tokens (including stopwords)"
+                if value == "all_matched"
+                else "Stopwords excluded"
+            ),
             disabled=not include_poetry_id,
             key="poetry_id_views",
+            help=(
+                "Both views are kept separate. All matched tokens includes "
+                "matched stopwords; unmatched vocabulary remains missing in "
+                "both views and is never assigned a neutral value."
+            ),
         )
         available_character_dimensions = []
         if include_concreteness:

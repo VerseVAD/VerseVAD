@@ -91,7 +91,9 @@ relative affinities and confidence, coverage/boundary evidence, optional
 concreteness/frequency/AoA character, Single Poem maps/scales, and compatible
 corpus distributions. Every source, all-matched/stopword-excluded view, and
 token/type weighting remains separate. PoetryID uses CSV data and a narrative
-Word report.
+Word report. The one-text and corpus interfaces request both token scopes by
+default, and the one-text result provides independent VAD source, token-scope,
+and weighting selectors.
 
 Every VAD analysis also reports two clearly labeled lexical views: all matched
 tokens and stopwords excluded. The stopword-excluded view uses a pinned,

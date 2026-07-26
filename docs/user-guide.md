@@ -768,8 +768,13 @@ recreated by rerunning the corresponding demonstration.
 
 PoetryID is optional and requires at least one selected VAD lexicon. Enable
 **PoetryID Lexical-Affective Profile**, select the VAD sources, token/type
-weightings, and all-matched or stopword-excluded views, then analyze. Every
-combination remains separate; no consensus score is calculated.
+weightings, and all-matched or stopword-excluded views, then analyze. Both token
+scopes are selected by default. In the result, use the separate **PoetryID VAD
+source**, **PoetryID token scope**, and **PoetryID weighting** selectors. **All
+matched tokens (including stopwords)** includes only tokens that matched the
+chosen VAD lexicon; unmatched vocabulary remains missing. **Stopwords
+excluded** applies the pinned VerseVAD stopword policy. Every combination
+remains separate; no consensus score is calculated.
 
 Read the PoetryID tab in this order:
 

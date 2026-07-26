@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed PoetryID token-scope selection
+
+- [x] Request all-matched and stopword-excluded PoetryID evidence by default in
+  the one-text and corpus interfaces.
+- [x] Present VAD source, token scope, and token/type weighting as independent
+  result controls without merging compatible combinations.
+- [x] Preserve unmatched-vocabulary missingness and add interface, integration,
+  cross-platform, export, and documentation regression coverage.
+
 ## Completed Project / Corpus deletion repair
 
 - [x] Move confirmed deletion into the pre-rerun button callback.
