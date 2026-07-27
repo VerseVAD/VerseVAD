@@ -55,6 +55,25 @@ All notable VerseVAD changes will be recorded here.
 
 ### Added
 
+- Added **Inherited Form Analysis** to Sound & Form with a versioned,
+  source-backed registry of ten initial profiles: Elizabethan, Petrarchan, and
+  Spenserian sonnets; villanelle; sestina; limerick; an explicitly narrow
+  English-language 5–7–5 haiku profile; pantoum; terza rima; and ghazal.
+  Weighted evidence reuses the existing pronunciation, performance-aware/fixed
+  meter, and graded-rhyme modules and adds ordered refrain, end-word rotation,
+  radif/qafia, and line-length detectors. Results separate candidate,
+  consistency, coverage, nearest alternative, classification, and
+  non-probabilistic confidence; missing evidence is never converted to
+  mismatch.
+- Added traditional-definition tooltips for every suggested potential form
+  match. Each tooltip identifies the conventional markers and the analyzed
+  poem's principal agreements and departures; complete definitions, sources,
+  limitations, and feature evidence remain in the interface and exports.
+- Added the same inherited-form engine to Project / Corpus with per-poem
+  candidate, classification, consistency, coverage, confidence, runner-up, and
+  margin comparison. Generic schema-4 persistence stores the module result and
+  six CSV files plus a narrative DOCX report without JSON.
+
 - First public-release version of VerseVAD.
 - Project-local macOS setup, startup, and diagnostics helpers for Apple silicon
   and Intel Macs, using the same universal lockfile, managed Python 3.12,

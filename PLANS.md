@@ -856,6 +856,32 @@ review required.
   source/resource and lock checks, benchmark comparison, document checks, and
   `git diff --check`.
 - [x] Create the Stage 14 source-control checkpoint.
+
+## Poetic Fingerprint expansion - Stage 15 inherited-form analysis
+
+- [x] Define a versioned ten-profile registry with required, preferred, and
+  optional rules, weights, tolerances, traditional definitions, sources, and
+  explicit limitations.
+- [x] Reuse the shared poem document, pronunciation, meter, and graded-rhyme
+  results; do not rescan or duplicate their resource loading.
+- [x] Add line/stanza, syllable, ordered refrain, sestina end-word rotation,
+  pantoum linkage, terza-rima chaining, limerick proportion, and
+  ghazal radif/qafia evidence.
+- [x] Separate candidate rank, weighted consistency, evidence coverage,
+  required-feature coverage, classification, runner-up margin, and
+  non-probabilistic confidence.
+- [x] Keep missing dependent evidence missing and lower coverage instead of
+  treating it as a failed rule.
+- [x] Add source-backed traditional-definition tooltips with poem-specific
+  agreements and departures for suggested potential matches.
+- [x] Add Single Poem and Project / Corpus presentation through the same
+  engine, including a per-poem corpus candidate table.
+- [x] Add six CSV audit tables and one deterministic narrative DOCX report;
+  do not add JSON.
+- [x] Add exact-form, modified-form, missing-evidence, persistence, UI, export,
+  and direct synthetic validation coverage.
+- [ ] Expand beyond the first ten profiles only after the version-1 behavior
+  and terminology have been reviewed with representative poems.
 - [x] Select `GPL-3.0-only`, add its canonical license text, and clearly
   separate the software license from user-installed research-source terms.
 - [x] Document official resource pages, exact paths/names/checksums, and add

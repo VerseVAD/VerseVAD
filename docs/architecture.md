@@ -480,3 +480,41 @@ then cached by immutable analysis identity.
 - [spaCy: models and versioned pipelines](https://spacy.io/usage/models)
 - [uv: managed Python installations](https://docs.astral.sh/uv/guides/install-python/)
 - [PyInstaller manual](https://pyinstaller.org/en/stable/index.html)
+
+## Expansion Stage 15 inherited-form architecture
+
+`versevad.inherited_form.profiles` owns the versioned ten-profile registry.
+`versevad.inherited_form.engine` owns feature extraction, ranking,
+classification, confidence, module metrics, coverage, warnings, and
+provenance. Streamlit and exporters consume typed results; they do not contain
+independent form-recognition rules.
+
+```text
+ModuleInput(PoemDocument)
+ + PronunciationAnalysisResult
+ + MeterAnalysisResult
+ + PhonologicalAnalysisResult
+ -> InheritedFormEngine
+ -> InheritedFormAnalysisResult
+    -> best_candidate / nearest_alternative
+    -> FormCandidateResult(s)
+       -> FormFeatureEvidence(s)
+    -> ModuleResult
+```
+
+The application orchestrator runs pronunciation, meter, and phonology when
+Inherited Form Analysis is selected, even if those dependency checkboxes are
+not separately selected. Their immutable result IDs enter the inherited-form
+cache key. The engine does not load CMUdict or rescan meter/rhyme.
+
+Single Poem renders the result in `versevad.ui.inherited_form`. Project /
+Corpus persists the same common `ModuleResult` through schema 4 and adds a
+per-poem comparison over generic stored metrics. `versevad.exports.inherited_form`
+produces six UTF-8 CSV files and a deterministic narrative DOCX report. The
+repository stores all seven artifacts with size and SHA-256; no schema
+migration and no JSON artifact are required.
+
+Adding a later form should ordinarily require a new registry record plus a
+feature detector only when the shared evidence cannot express the form.
+Every added profile must include sources, definitions, limitations, weights,
+tolerances, exact fixtures, and near-miss coverage.

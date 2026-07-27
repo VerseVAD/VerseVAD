@@ -152,6 +152,7 @@ MODULE_PRESETS = {
             "include_pronunciation",
             "include_meter",
             "include_phonology",
+            "include_inherited_form",
             "include_lexical_style",
         ),
     ),
@@ -174,6 +175,7 @@ MODULE_PRESETS = {
             "include_pronunciation",
             "include_meter",
             "include_phonology",
+            "include_inherited_form",
         ),
     ),
     "Custom": ModulePreset(

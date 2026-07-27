@@ -770,3 +770,37 @@ Publication-oriented chart rendering remains light and stable regardless of
 the application appearance. Interface charts use the same underlying data in
 all appearance modes. The lexical-evidence language, missing-value rules,
 coverage cautions, and per-module methodology remain unchanged.
+
+## Stage 15 inherited-form candidate ranking
+
+Inherited Form Analysis is a rule-based candidate-ranking system over ten
+versioned, source-backed profiles. It is not a trained classifier. Each
+profile declares required, preferred, and optional features with visible
+weights, expectations, sources, and limitations.
+
+For each available feature, its rule weight is multiplied by its evidence
+coverage. Consistency is the weighted mean of the available feature scores;
+evidence coverage is the effective available weight divided by total possible
+profile weight. Missing pronunciation, meter, rhyme, or syllable evidence has
+no score and lowers coverage. It is never converted to mismatch or a neutral
+value.
+
+A potential match must meet the configured consistency threshold, overall
+coverage minimum, required-feature coverage minimum, and contradiction rule.
+Classification—Strict, Strongly conforming, Modified, Form-derived,
+Suggestive resemblance, or No inherited-form match—describes conformity.
+Confidence—low, moderate, or high—also considers coverage, required-feature
+contradictions, and margin over the runner-up. Neither value is a probability.
+
+Rhyme-scheme comparison balances expected-rhyme and expected-difference
+relationships so numerous non-rhyming line pairs cannot overwhelm the
+diagnostic rhymes. Exact/perfect and identical evidence receives full credit;
+graded slant and eye evidence can receive partial credit. Meter is consumed
+from the existing fixed or performance-aware result and is never independently
+rescanned.
+
+Suggested candidates expose a tooltip containing the traditional definition
+and poem-specific agreements and departures. Complete source URLs,
+limitations, weights, detected values, scores, and coverage remain visible in
+the evidence table and exports. See
+[`inherited-form-stage15.md`](inherited-form-stage15.md).

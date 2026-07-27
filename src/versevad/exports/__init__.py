@@ -28,6 +28,14 @@ from versevad.exports.frequency import (
     export_frequency_terms_csv,
     export_frequency_token_audit_csv,
 )
+from versevad.exports.inherited_form import (
+    export_inherited_form_bundle,
+    export_inherited_form_candidates_csv,
+    export_inherited_form_features_csv,
+    export_inherited_form_methodology_csv,
+    export_inherited_form_profiles_csv,
+    export_inherited_form_summary_csv,
+)
 from versevad.exports.meter import (
     export_meter_alignment_operations_csv,
     export_meter_bundle,
@@ -98,6 +106,12 @@ __all__ = [
     "export_frequency_summary_csv",
     "export_frequency_terms_csv",
     "export_frequency_token_audit_csv",
+    "export_inherited_form_bundle",
+    "export_inherited_form_candidates_csv",
+    "export_inherited_form_features_csv",
+    "export_inherited_form_methodology_csv",
+    "export_inherited_form_profiles_csv",
+    "export_inherited_form_summary_csv",
     "export_lexical_style_bundle",
     "export_lexical_style_lines_csv",
     "export_lexical_style_stanzas_csv",

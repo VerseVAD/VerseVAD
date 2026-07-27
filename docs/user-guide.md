@@ -842,3 +842,69 @@ coordinates. Filter to one source/view/weighting combination before
 interpreting a distribution or comparison.
 
 PoetryID downloads are six CSV files and one narrative Word report.
+
+## Inherited Form Analysis
+
+Enable **Inherited Form Analysis (10 candidate profiles)** under **Sound and
+Form**. VerseVAD automatically reuses its pronunciation, meter, and graded
+rhyme results, even when those dependency checkboxes were not separately
+selected. The module does not rescan the poem.
+
+The first registry contains:
+
+- Elizabethan / Shakespearean sonnet;
+- Petrarchan / Italian sonnet;
+- Spenserian sonnet;
+- villanelle;
+- sestina;
+- limerick;
+- English-language 5–7–5 haiku profile;
+- pantoum;
+- terza rima; and
+- ghazal.
+
+Read the result in this order:
+
+1. **Potential match** names the highest candidate that met both the
+   consistency and evidence minimums. It is not a definitive form identity.
+2. **Classification** ranges from Strict and Strongly conforming through
+   Modified, Form-derived, Suggestive resemblance, and No inherited-form
+   match.
+3. **Consistency** is agreement with the available weighted rules.
+4. **Evidence coverage** is the share of possible weighted profile evidence
+   that VerseVAD could evaluate. Missing pronunciation, meter, or rhyme stays
+   missing.
+5. **Confidence** uses consistency, coverage, required-feature contradictions,
+   and separation from the runner-up. It is not a probability.
+6. **Nearest alternative** keeps related or overlapping forms visible.
+
+Hover over the classification metric or read the blue information box to see
+the candidate's traditional definition and the poem's main agreements and
+departures. Use **Inspect candidate evidence** for expected/detected values,
+roles, weights, scores, coverage, and source modules. The sources and
+limitations expander links to the supporting definitions.
+
+The haiku entry is deliberately named **English-Language 5–7–5 Haiku
+Profile**. It tests three lines and 5/7/5 syllables; it does not equate haiku
+with that classroom rule or claim to detect Japanese *on*, kigo, kireji,
+juxtaposition, or aesthetic identity. The ghazal profile does not guess
+couplet semantic autonomy or maqta; sonnet profiles do not guess a semantic
+volta.
+
+In **Project / Corpus**, add Inherited Form Analysis to the batch. Open
+**Additional Module Results**, select `inherited_form`, and use the per-poem
+table to compare potential match, classification, consistency, coverage,
+confidence, nearest alternative, and margin. Results remain work-level; no
+single form is assigned to the collection.
+
+Downloads contain:
+
+- `inherited_form_summary.csv`;
+- `inherited_form_candidates.csv`;
+- `inherited_form_features.csv`;
+- `inherited_form_profiles.csv`;
+- `inherited_form_methodology.csv`;
+- `inherited_form_manifest.csv`; and
+- `inherited_form_report.docx`.
+
+No inherited-form JSON export is produced.

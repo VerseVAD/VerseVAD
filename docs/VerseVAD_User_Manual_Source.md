@@ -6,7 +6,7 @@
 **Manual updated:** {{DATE}}  
 **Intended reader:** A first-time user who needs no programming, linguistics, or statistics background
 
-> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, transparent candidate-meter comparisons, phonological patterns, lexical-style counts, and PoetryID candidate lexical-affective neighborhoods. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, rhyme/sound evidence, lexical diversity, word length, structural word counts, and PoetryID remain separately documented constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter or performed rhythm, or replace contextual close reading.
+> IMPORTANT: VerseVAD describes **lexical evidence**, optional dictionary-based pronunciation evidence, transparent candidate-meter comparisons, phonological patterns, lexical-style counts, PoetryID candidate lexical-affective neighborhoods, and inherited-form resemblance. Concreteness, corpus-relative frequency, retrospective Age of Acquisition, pronunciation/lexical stress, meter fit, rhyme/sound evidence, lexical diversity, word length, structural word counts, PoetryID, and inherited-form consistency remain separately documented constructs. VerseVAD does not determine the emotion of a poem, speaker, author, or reader, diagnose cognition, establish definitive meter, performed rhythm, or genre identity, or replace contextual close reading.
 
 [[PAGEBREAK]]
 
@@ -231,7 +231,7 @@ Close the browser tab, then close the visible launcher window. One-poem results 
 8. In **Overview**, inspect coverage and warnings.
 9. In **Affective Evidence**, compare VAD sources/views, emotion evidence, and PoetryID when selected.
 10. In **Lexical Character**, inspect Concreteness, Frequency & Rarity, and Age of Acquisition when selected.
-11. In **Sound & Form**, inspect Pronunciation, Meter & Rhythm, and Rhyme & Sound when selected.
+11. In **Sound & Form**, inspect Pronunciation, Meter & Rhythm, Rhyme & Sound, and Inherited Form Analysis when selected.
 12. In **Structure**, inspect the language profile and lexical/structural measures.
 13. In **Evidence & Diagnostics**, inspect exactly which surface forms, lemmas, or phrases matched.
 14. In **Export & Help**, save the readable summary or full audit bundle.
@@ -765,6 +765,60 @@ Safe wording is: “The dictionary-based ending evidence produced an ABAB exact-
 rhyme scheme among four analyzable endings.” Do not claim that VerseVAD proved
 how the poem must be pronounced, performed, heard, or intended.
 
+## Inherited-form candidate analysis
+
+When enabled, **Inherited Form Analysis** compares the poem with ten versioned,
+source-backed profiles:
+
+- Elizabethan / Shakespearean, Petrarchan / Italian, and Spenserian sonnets;
+- villanelle;
+- sestina;
+- limerick;
+- English-language 5–7–5 haiku profile;
+- pantoum;
+- terza rima; and
+- ghazal.
+
+It automatically reuses the shared poem document, pronunciation, meter, and
+graded-rhyme results. It does not retokenize, reload CMUdict, or perform an
+independent scansion. New form-specific detectors compare ordered refrains,
+sestina end-word rotation and envoi, pantoum interstanza repetition, terza-rima
+rhyme chains, limerick long/short lines, and ghazal radif/qafia evidence.
+
+Read four distinctions carefully:
+
+- **candidate** is the highest-ranked eligible profile;
+- **consistency** is weighted agreement with available profile rules;
+- **evidence coverage** is how much possible weighted evidence could be tested;
+- **confidence** also considers required features and separation from the
+  nearest alternative.
+
+Confidence is low, moderate, or high and is not a probability. Missing
+pronunciation, meter, rhyme, or syllable evidence has no feature score and
+lowers coverage; it is never converted to mismatch.
+
+Classifications are Strict, Strongly conforming, Modified, Form-derived,
+Suggestive resemblance, and No inherited-form match. A candidate must pass
+the consistency, total-coverage, required-feature-coverage, and contradiction
+rules before VerseVAD calls it a potential match.
+
+Hover over the classification metric or read the visible information box for
+the traditional definition plus the poem's strongest agreements and
+departures. The ranking table and candidate-evidence selector retain every
+profile, expected and detected value, role, weight, feature score, coverage,
+and source module. The sources and limitations expander links to the
+definition sources.
+
+The haiku profile is deliberately narrow. It tests an English-language 5–7–5
+structural convention; it does not treat English syllables as Japanese *on* or
+claim to detect kigo, kireji, juxtaposition, or haiku identity. Ghazal
+semantic autonomy and optional maqta are not guessed. Sonnet volta evidence is
+not guessed.
+
+Safe wording is: “VerseVAD reports a modified Elizabethan-sonnet potential
+match with 78% consistency across 86% of the profile's weighted evidence.”
+Do not write: “VerseVAD proved that the poem is an Elizabethan sonnet.”
+
 ## Lexical diversity, word length, and structural word counts
 
 The optional **Lexical Style** module uses the shared poetry-preserving
@@ -844,7 +898,7 @@ but meter and rhyme are visibly marked experimental for non-lineated prose.
 Select one or more affective lexicons and/or enable the optional normative
 lexical concreteness, SUBTLEX-US frequency, Kuperman Age of Acquisition,
 CMUdict pronunciation/prosody-foundation, candidate-meter, rhyme/sound,
-Lexical Style, or PoetryID modules. The controls are grouped as **Core
+Lexical Style, PoetryID, or Inherited Form Analysis modules. The controls are grouped as **Core
 Analysis**, **Lexical Character**, **Structural and Lexical Measures**,
 **PoetryID**, and **Sound and Form**.
 
@@ -857,11 +911,13 @@ overrides, or other methodology.
 VAD, categorical association, intensity, concreteness, corpus-relative
 frequency, retrospective lexical AoA, dictionary pronunciation/lexical stress,
 configured meter fit, rhyme/sound evidence, lexical diversity/word counts, and
-PoetryID candidate profiles answer different questions and remain separate.
+PoetryID candidate profiles, and inherited-form resemblance answer different questions and remain separate.
 PoetryID requires an enabled VAD source and reuses its completed result;
 selecting meter or rhyme automatically runs its pronunciation dependency.
+Inherited Form Analysis automatically reuses pronunciation, meter, and graded
+rhyme evidence without independently rescanning the poem.
 
-The same eight optional modules are also available in **Project / Corpus**.
+The same nine optional modules are also available in **Project / Corpus**.
 Single Poem and Other Text results remain temporary unless downloaded; corpus runs persist the
 same module result envelopes, configurations, coverage, warnings, provenance,
 and audit artifacts against exact text versions.
@@ -1016,6 +1072,31 @@ eye-rhyme evidence, and caution label.
 An unresolved line ending appears as `?` and reduces coverage. It receives no
 neutral value or fabricated rhyme label. Add a Stage 5 override only when you
 can document the intended pronunciation.
+
+## Sound & Form: Inherited Form Analysis section
+
+This section appears when **Inherited-form candidate analysis** is enabled. It
+reuses the poem's preserved line and stanza structure plus the existing
+pronunciation, meter, and rhyme results; it does not rescan those layers
+independently. The initial registry ranks ten documented profiles:
+Elizabethan/Shakespearean sonnet, Petrarchan sonnet, Spenserian sonnet,
+villanelle, sestina, limerick, English-language 5-7-5 haiku profile, pantoum,
+terza rima, and ghazal.
+
+Read **Potential match**, **Classification**, **Consistency**, **Evidence
+coverage**, **Required evidence**, **Confidence**, and **Nearest alternative**
+together. A suggestion appears only when the configured consistency and
+coverage minimums are met and no available required feature severely
+contradicts the profile. Confidence is rule-based and non-probabilistic.
+
+Hover over the suggested match or its classification to read the form's
+traditional definition, followed by poem-specific **Agreement** and
+**Departures**. The full ranking table keeps all ten candidates visible, and
+the candidate-evidence selector exposes each feature's role, weight, score,
+coverage, observed evidence, and explanation. The sources and limitations
+panel documents the profile definitions and boundary decisions. If the
+evidence is insufficient or conflicting, VerseVAD reports **No inherited-form
+match** rather than forcing the nearest profile into a suggestion.
 
 ## Structure: Lexical and Structural Measures section
 
@@ -1204,6 +1285,12 @@ recalculated from the ordered pooled token evidence and are not averages of
 work-level diversity scores. Meter and rhyme remain work-level
 candidates/evidence; no corpus-wide definitive meter or rhyme scheme is
 created.
+
+Inherited-form corpus results likewise remain poem-specific. The comparison
+table shows each work's potential match, classification, consistency, evidence
+coverage, confidence, nearest alternative, and margin. It is designed for
+poem-to-poem comparison and does not assign one inherited form to the corpus as
+a whole.
 
 PoetryID corpus views group only matching source, all-matched or
 stopword-excluded view, token/type weighting, module version, and
@@ -1429,6 +1516,13 @@ module-specific Word reports, and the following detailed CSV files.
 | `rhyme_internal.csv` | Exact dictionary rhyme parts recurring between eligible words within one physical line |
 | `phonological_sounds.csv` | Recurring initial consonants, stressed vowels, and consonants with occurrence and line counts |
 | `rhyme_report.docx` | Narrative rhyme/sound findings, denominators, coverage, cautions, and companion-file guide |
+| `inherited_form_summary.csv` | Suggested candidate, classification, consistency, total and required evidence coverage, confidence, nearest alternative, and margin |
+| `inherited_form_candidates.csv` | All ten ranked profiles with definitions, scores, coverage, contradictions, margins, and suggestion status |
+| `inherited_form_features.csv` | Candidate-by-feature rule roles, weights, scores, local coverage, observed evidence, and explanations |
+| `inherited_form_profiles.csv` | Versioned profile definitions, traditions, rules, weights, and source references |
+| `inherited_form_methodology.csv` | Active thresholds, configuration, scoring explanations, limitations, and safe interpretive wording |
+| `inherited_form_manifest.csv` | Module/version identity, text/configuration IDs, dependent resource provenance, and warnings |
+| `inherited_form_report.docx` | Narrative potential-match report with traditional definition, agreement, departures, alternatives, sources, and cautions |
 | `lexical_style_summary.csv` | Token/type and configured MATTR, HD-D, MTLD, word-length, and structural-count summaries |
 | `lexical_style_word_lengths.csv` | Exact alphabetic-character lengths with token counts and proportions |
 | `lexical_style_lines.csv` | Every preserved physical line with blank status, lexical-token count, surface types, local TTR, and word length |
@@ -1757,6 +1851,29 @@ Alliteration and assonance densities divide supported words participating in a
 repeated within-line sound by supported words. Consonance density divides
 repeated consonant occurrences by resolved consonant occurrences.
 
+## Inherited-form candidate formulas
+
+For profile rule `i`, let `w_i` be its documented importance weight, `s_i` its
+graded agreement score from 0 to 1, and `c_i` its local evidence coverage from
+0 to 1. Only rules with available evidence enter the consistency numerator and
+denominator.
+
+`effective_weight_i = w_i * c_i`
+
+`candidate_consistency = sum(effective_weight_i * s_i) / sum(effective_weight_i)`
+
+`evidence_coverage = sum(effective_weight_i for available rules) / sum(w_i for all configured rules)`
+
+`required_evidence_coverage = sum(effective_weight_i for available required rules) / sum(w_i for all required rules)`
+
+Missing evidence therefore lowers coverage; it is never silently scored as
+agreement or contradiction. A candidate can be suggested only when consistency
+is at least `0.55`, overall evidence coverage is at least `0.35`, required
+evidence coverage is at least `0.70`, and no available required rule scores
+below `0.20`. Moderate and high confidence additionally require stronger
+consistency, coverage, and separation from the next-ranked candidate. These
+configured indices and labels are comparative heuristics, not probabilities.
+
 ## Worked synthetic example
 
 Suppose normalized valence matches are `bright = 0.875` repeated ten times in one work and `dark = 0.250` once in a second work.
@@ -1792,6 +1909,10 @@ The divergence is substantial because the long work dominates the token-weighted
 | Exact match | Direct match from normalized surface form to a source entry |
 | Exclude decision | Scenario decision that retains the candidate in the audit but omits it from that scenario's aggregates |
 | Flag decision | Scenario decision that records concern without changing matching or scores |
+| Form candidate | A documented inherited-form profile compared with the poem's available structural, syllabic, metrical, rhyme, and repetition evidence |
+| Form consistency | Coverage-adjusted weighted agreement between the available poem evidence and one inherited-form profile; not a probability |
+| Form evidence coverage | Available coverage-adjusted rule weight divided by all configured rule weight for a form profile |
+| Required form evidence coverage | Available coverage-adjusted weight for required rules divided by all required-rule weight for a form profile |
 | Graded slant evidence | Configured similarity across stressed vowel, final consonants, rhyme-part edit, stress alignment, and syllable count; not a probability |
 | Identical rhyme | Complete retained phonological endings agree, including repeated words or homophonic complete endings |
 | Internal rhyme | Exact dictionary rhyme parts recur between eligible words within one physical line |
@@ -1941,10 +2062,30 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   authorial intention or perceptual effect.
 - Corpus rhyme/sound results persist as work-level evidence; scheme prevalence
   does not declare one corpus-wide rhyme scheme.
+- Stage 15 inherited-form analysis compares ten encoded, source-documented
+  profiles rather than every named, historical, regional, or contemporary
+  poetic form.
+- Form suggestions are non-probabilistic rule-based affinities. They do not
+  establish authorial intention, historical membership, literary value, or a
+  definitive genre label.
+- Free verse, nonce forms, hybrids, translations, adaptations, and materially
+  variant traditions may appropriately receive no suggestion or only
+  form-derived/suggestive resemblance.
+- The narrow English-language 5-7-5 haiku profile is not a universal definition
+  of Japanese haiku, and its result must be read with the displayed
+  tradition-specific limitation.
+- Form evidence inherits the limitations and missingness of structural,
+  CMUdict pronunciation, meter, rhyme, spelling, and repeated-line analysis.
 
 # 15. Reproducibility and updating this manual
 
 Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes. Performance-aware meter additionally retains analysis mode, declared profile/version, interpretation depth, bounded candidate/alternative limits, visible-elision policy, component weights/scores, syllable-level adjustments, alternates, stanza/poem recurrence, trajectory, organization, and separately preserved scholar revisions. A Stage 7 result retains the linked pronunciation configuration, exact resource hashes, rhyme/sound thresholds and weights, line-ending coverage, stanza/line/pair evidence, sound families, warnings, and immutable result/configuration identities.
+
+A Stage 15 result retains the exact profile registry and version, rule weights
+and roles, active thresholds, dependent pronunciation/meter/rhyme provenance,
+candidate ranking, feature-level evidence and coverage, contradictions,
+alternatives, confidence explanation, sources, limitations, configuration
+identity, and warnings.
 
 The companion definitions guide is maintained from:
 

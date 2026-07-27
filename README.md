@@ -108,6 +108,19 @@ Word report. The one-text and corpus interfaces request both token scopes by
 default, and the one-text result provides independent VAD source, token-scope,
 and weighting selectors.
 
+Stage 15 adds **Inherited Form Analysis** to Sound & Form. It ranks ten
+source-backed profiles—three sonnet traditions, villanelle, sestina, limerick,
+an English-language 5–7–5 haiku profile, pantoum, terza rima, and ghazal—using
+weighted line, stanza, meter, graded-rhyme, syllable, refrain, line-length, and
+end-word evidence. The module reuses the completed pronunciation, meter, and
+rhyme engines; it does not rescan or duplicate them. Results separate candidate
+form, consistency, evidence coverage, runner-up margin, and a
+non-probabilistic confidence band. Missing evidence remains missing. Suggested
+matches include a tooltip with the traditional definition plus the poem's
+agreements and departures. Single Poem and Project / Corpus share the same
+engine, per-poem persisted metrics, six CSV audit tables, and one narrative
+Word report.
+
 State-backed report and project-section navigation preserves the selected
 section across Streamlit refreshes. Changing a view, weighting, lexicon, or
 token scope therefore keeps the current report family active, and preparing
@@ -161,6 +174,8 @@ See:
 - [Poetic Fingerprint Stage 14 performance-aware meter and optimization](docs/poetic-fingerprint-stage14.md)
 - [Poetic Fingerprint Stage 14 validation](docs/poetic-fingerprint-stage14-validation.md)
 - [Stage 14 performance report](docs/stage14-performance-report.md)
+- [Stage 15 inherited-form analysis](docs/inherited-form-stage15.md)
+- [Stage 15 inherited-form validation](docs/inherited-form-stage15-validation.md)
 - [Public resource installation guide](docs/resource-installation.md)
 - [macOS installation and browser guide](docs/macos-installation.md)
 - [Safe in-place update guide](docs/updating.md)

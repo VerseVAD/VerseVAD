@@ -39,6 +39,7 @@ from versevad.phonology import PhonologicalConfiguration
 from versevad.preprocessing import SpacyEnglishPreprocessor, TextPreprocessor
 from versevad.prosody import MeterConfiguration, PronunciationConfiguration
 from versevad.poetry_id import PoetryIDConfiguration
+from versevad.inherited_form import InheritedFormConfiguration
 from versevad.stopwords import DEFAULT_PROTECTED_WORDS
 
 
@@ -150,6 +151,10 @@ class CorpusAnalysisConfiguration:
     poetry_id_configuration: PoetryIDConfiguration = (
         PoetryIDConfiguration()
     )
+    include_inherited_form: bool = False
+    inherited_form_configuration: InheritedFormConfiguration = (
+        InheritedFormConfiguration()
+    )
     analysis_cache_enabled: bool = True
     performance_diagnostics: bool = True
 
@@ -166,16 +171,19 @@ class CorpusAnalysisConfiguration:
             self.include_pronunciation
             or self.include_meter
             or self.include_phonology
+            or self.include_inherited_form
         ):
             names.append("pronunciation_prosody_foundation")
-        if self.include_meter:
+        if self.include_meter or self.include_inherited_form:
             names.append("candidate_meter_and_rhythmic_regularity")
-        if self.include_phonology:
+        if self.include_phonology or self.include_inherited_form:
             names.append("rhyme_and_phonological_patterns")
         if self.include_lexical_style:
             names.append("lexical_style")
         if self.include_poetry_id:
             names.append("poetry_id")
+        if self.include_inherited_form:
+            names.append("inherited_form")
         return tuple(names)
 
     @property
@@ -201,17 +209,18 @@ class CorpusAnalysisConfiguration:
                     self.include_pronunciation
                     or self.include_meter
                     or self.include_phonology
+                    or self.include_inherited_form
                 ),
                 "pronunciation_prosody_foundation",
                 self.pronunciation_configuration,
             ),
             (
-                self.include_meter,
+                self.include_meter or self.include_inherited_form,
                 "candidate_meter_and_rhythmic_regularity",
                 self.meter_configuration,
             ),
             (
-                self.include_phonology,
+                self.include_phonology or self.include_inherited_form,
                 "rhyme_and_phonological_patterns",
                 self.phonological_configuration,
             ),
@@ -224,6 +233,11 @@ class CorpusAnalysisConfiguration:
                 self.include_poetry_id,
                 "poetry_id",
                 self.poetry_id_configuration,
+            ),
+            (
+                self.include_inherited_form,
+                "inherited_form",
+                self.inherited_form_configuration,
             ),
         )
         return {
@@ -670,6 +684,12 @@ def corpus_module_category_profiles(
         "phonology.rhyme_scheme",
         "poetry_id.categorical_archetype_id",
         "poetry_id.confidence_label",
+        "inherited_form.best_candidate_id",
+        "inherited_form.best_candidate_name",
+        "inherited_form.confidence_label",
+        "inherited_form.classification",
+        "inherited_form.nearest_alternative_id",
+        "inherited_form.nearest_alternative_name",
     }
     grouped: dict[
         tuple[str, str, str, str, str, str],
@@ -1061,6 +1081,12 @@ def analyze_corpus(
                     ),
                     poetry_id_configuration=(
                         module_configuration.poetry_id_configuration
+                    ),
+                    include_inherited_form=(
+                        module_configuration.include_inherited_form
+                    ),
+                    inherited_form_configuration=(
+                        module_configuration.inherited_form_configuration
                     ),
                     analysis_cache_enabled=(
                         module_configuration.analysis_cache_enabled

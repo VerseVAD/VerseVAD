@@ -45,6 +45,7 @@ _application_was_reloaded = (
             "PhonologicalConfiguration",
             "LexicalStyleConfiguration",
             "PoetryIDConfiguration",
+            "InheritedFormConfiguration",
             "installed_resource_readiness",
         )
     )
@@ -86,6 +87,9 @@ if _application_was_reloaded:
         "versevad.poetry_id.engine",
         "versevad.poetry_id.integration",
         "versevad.poetry_id",
+        "versevad.inherited_form.profiles",
+        "versevad.inherited_form.engine",
+        "versevad.inherited_form",
         "versevad.exports.concreteness",
         "versevad.exports.frequency",
         "versevad.exports.aoa",
@@ -94,7 +98,9 @@ if _application_was_reloaded:
         "versevad.exports.phonology",
         "versevad.exports.lexical_style",
         "versevad.exports.poetry_id",
+        "versevad.exports.inherited_form",
         "versevad.ui.poetry_id",
+        "versevad.ui.inherited_form",
     ):
         _module = importlib.import_module(_module_name)
         importlib.reload(_module)
@@ -149,6 +155,7 @@ from versevad.lexical_semantic.frequency import (
     FrequencyConfiguration,
 )
 from versevad.lexical_style import LexicalStyleConfiguration
+from versevad.inherited_form import InheritedFormConfiguration
 from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
 from versevad.prosody.pronunciation import (
@@ -170,6 +177,7 @@ from versevad.poetry_id import (
     ThresholdProfile,
 )
 from versevad.ui.poetry_id import render_poetry_id
+from versevad.ui.inherited_form import render_inherited_form
 from versevad.ui.stopwords import render_stopword_settings
 from versevad.ui.design import (
     MODULE_PRESETS,
@@ -242,8 +250,10 @@ _design_was_reloaded = (
 if _design_was_reloaded:
     importlib.reload(_design_services)
     import versevad.ui.poetry_id as _poetry_id_ui_services
+    import versevad.ui.inherited_form as _inherited_form_ui_services
 
     importlib.reload(_poetry_id_ui_services)
+    importlib.reload(_inherited_form_ui_services)
     for _module_name in ("versevad.ui.corpus", "versevad.ui.explorer"):
         if _module_name in sys.modules:
             importlib.reload(sys.modules[_module_name])
@@ -260,6 +270,7 @@ if _design_was_reloaded:
     )
     render_workspace_header = _design_services.render_workspace_header
     render_poetry_id = _poetry_id_ui_services.render_poetry_id
+    render_inherited_form = _inherited_form_ui_services.render_inherited_form
     st.session_state["_design_runtime_revision"] = _DESIGN_RUNTIME_REVISION
 
 if _application_was_reloaded:
@@ -533,6 +544,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             "include_pronunciation": not pronunciation_available,
             "include_meter": not pronunciation_available,
             "include_phonology": not pronunciation_available,
+            "include_inherited_form": not pronunciation_available,
         }
         for module_key in (
             "include_concreteness",
@@ -543,6 +555,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
             "include_phonology",
             "include_lexical_style",
             "include_poetry_id",
+            "include_inherited_form",
         ):
             if unavailable_modules.get(module_key, False):
                 st.session_state[module_key] = False
@@ -834,6 +847,25 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "Optional and off by default. Stage 7 automatically runs the "
                 "pronunciation foundation. Dictionary, spelling, and repeated-text "
                 "evidence remain separately labeled."
+            )
+
+        include_inherited_form = st.checkbox(
+            "Inherited Form Analysis (10 candidate profiles)",
+            disabled=not pronunciation_available,
+            key="include_inherited_form",
+            help=(
+                "Ranks ten source-backed inherited-form profiles using line, "
+                "stanza, meter, graded rhyme, refrain, syllable, and end-word "
+                "evidence. Suggested matches are non-probabilistic and never "
+                "declare the poem's genre identity."
+            ),
+        )
+        if pronunciation_available:
+            st.caption(
+                "Optional and off by default. This automatically reuses the "
+                "pronunciation, performance-aware meter, and graded rhyme "
+                "modules. Its candidate tooltip explains the traditional "
+                "definition and the poem's agreements and departures."
             )
 
         with st.expander("3. Analysis configuration and methodology"):
@@ -1616,6 +1648,8 @@ if workspace_page in {"Single Poem", "Other Text"}:
         if include_poetry_id:
             st.warning(poetry_id_configuration_error)
 
+    inherited_form_configuration = InheritedFormConfiguration()
+
     pronunciation_configuration_error = ""
     try:
         pronunciation_configuration = PronunciationConfiguration(
@@ -1635,7 +1669,12 @@ if workspace_page in {"Single Poem", "Other Text"}:
     except ValueError as error:
         pronunciation_configuration_error = str(error)
         pronunciation_configuration = PronunciationConfiguration()
-        if include_pronunciation or include_meter or include_phonology:
+        if (
+            include_pronunciation
+            or include_meter
+            or include_phonology
+            or include_inherited_form
+        ):
             st.warning(pronunciation_configuration_error)
 
     meter_configuration_error = ""
@@ -1668,7 +1707,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
     except ValueError as error:
         meter_configuration_error = str(error)
         meter_configuration = MeterConfiguration()
-        if include_meter:
+        if include_meter or include_inherited_form:
             st.warning(meter_configuration_error)
 
     phonological_configuration_error = ""
@@ -1684,7 +1723,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
     except ValueError as error:
         phonological_configuration_error = str(error)
         phonological_configuration = PhonologicalConfiguration()
-        if include_phonology:
+        if include_phonology or include_inherited_form:
             st.warning(phonological_configuration_error)
 
     if analyze_clicked:
@@ -1726,6 +1765,10 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 lexical_style_configuration=lexical_style_configuration,
                 include_poetry_id=include_poetry_id,
                 poetry_id_configuration=poetry_id_configuration,
+                include_inherited_form=include_inherited_form,
+                inherited_form_configuration=(
+                    inherited_form_configuration
+                ),
                 include_pronunciation=include_pronunciation,
                 pronunciation_configuration=pronunciation_configuration,
                 include_meter=include_meter,
@@ -1745,12 +1788,22 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 st.write("Preparing one shared linguistic representation.")
                 if selected_lexicons:
                     st.write("Analyzing selected affective lexicons independently.")
-                if include_pronunciation or include_meter or include_phonology:
+                if (
+                    include_pronunciation
+                    or include_meter
+                    or include_phonology
+                    or include_inherited_form
+                ):
                     st.write(
                         "Analyzing pronunciation and selected sound/form evidence."
                     )
                 if include_poetry_id:
                     st.write("Generating PoetryID from the completed VAD result.")
+                if include_inherited_form:
+                    st.write(
+                        "Ranking ten inherited-form profiles from completed "
+                        "sound and structural evidence."
+                    )
                 st.session_state["workspace"] = run_workspace_analysis(
                     request, preprocessor=_preprocessor()
                 )
@@ -1800,6 +1853,8 @@ if workspace_page in {"Single Poem", "Other Text"}:
         or include_phonology != workspace.request.include_phonology
         or include_lexical_style != workspace.request.include_lexical_style
         or include_poetry_id != workspace.request.include_poetry_id
+        or include_inherited_form
+        != workspace.request.include_inherited_form
         or (
             include_concreteness
             and concreteness_configuration
@@ -1825,16 +1880,21 @@ if workspace_page in {"Single Poem", "Other Text"}:
             != workspace.request.poetry_id_configuration
         )
         or (
-            (include_pronunciation or include_meter or include_phonology)
+            (
+                include_pronunciation
+                or include_meter
+                or include_phonology
+                or include_inherited_form
+            )
             and pronunciation_configuration
             != workspace.request.pronunciation_configuration
         )
         or (
-            include_meter
+            (include_meter or include_inherited_form)
             and meter_configuration != workspace.request.meter_configuration
         )
         or (
-            include_phonology
+            (include_phonology or include_inherited_form)
             and phonological_configuration
             != workspace.request.phonological_configuration
         )
@@ -1935,6 +1995,12 @@ if workspace_page in {"Single Poem", "Other Text"}:
         phonology_tab = st.expander(
             _section_label("Rhyme & Recurring Sound", workspace.phonology is not None),
         )
+        inherited_form_tab = st.expander(
+            _section_label(
+                "Inherited Form Analysis",
+                workspace.inherited_form is not None,
+            ),
+        )
     with structure_tab:
         language_tab = st.expander(
             _section_label("Language Profile", workspace.poem_document is not None),
@@ -1952,6 +2018,9 @@ if workspace_page in {"Single Poem", "Other Text"}:
 
     with poetry_id_tab:
         render_poetry_id(workspace.poetry_id)
+
+    with inherited_form_tab:
+        render_inherited_form(workspace.inherited_form)
 
     with overview_tab:
         coverage = coverage_views(workspace)
@@ -5545,6 +5614,11 @@ if workspace_page in {"Single Poem", "Other Text"}:
                         (
                             workspace.poetry_id.module_result.result_id
                             if workspace.poetry_id
+                            else ""
+                        ),
+                        (
+                            workspace.inherited_form.module_result.result_id
+                            if workspace.inherited_form
                             else ""
                         ),
                     )

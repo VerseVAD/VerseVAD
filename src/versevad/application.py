@@ -41,6 +41,7 @@ from versevad.exports.docx_report import (
     build_narrative_report_from_summary_csv,
 )
 from versevad.exports.frequency import export_frequency_bundle
+from versevad.exports.inherited_form import export_inherited_form_bundle
 from versevad.exports.lexical_style import export_lexical_style_bundle
 from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phase2_csv import export_phase2_csv
@@ -72,6 +73,11 @@ from versevad.lexical_style import (
     LexicalStyleConfiguration,
     LexicalStyleModule,
     LexicalStyleModuleError,
+)
+from versevad.inherited_form import (
+    InheritedFormAnalysisResult,
+    InheritedFormConfiguration,
+    InheritedFormEngine,
 )
 from versevad.models import (
     AffectMatchRecord,
@@ -278,7 +284,9 @@ class ResourceReadiness:
         if self.aoa.available:
             installed.append("aoa")
         if self.pronunciation_available:
-            installed.extend(("pronunciation", "meter", "phonology"))
+            installed.extend(
+                ("pronunciation", "meter", "phonology", "inherited_form")
+            )
         return tuple(installed)
 
 
@@ -376,6 +384,10 @@ class AnalysisRequest:
     poetry_id_configuration: PoetryIDConfiguration = (
         PoetryIDConfiguration()
     )
+    include_inherited_form: bool = False
+    inherited_form_configuration: InheritedFormConfiguration = (
+        InheritedFormConfiguration()
+    )
     analysis_cache_enabled: bool = True
     performance_diagnostics: bool = True
 
@@ -395,6 +407,7 @@ class WorkspaceAnalysis:
     phonology: PhonologicalAnalysisResult | None = None
     lexical_style: LexicalStyleAnalysisResult | None = None
     poetry_id: PoetryIDAnalysisResult | None = None
+    inherited_form: InheritedFormAnalysisResult | None = None
     performance: AnalysisPerformanceReport | None = None
 
 
@@ -816,6 +829,7 @@ def run_workspace_analysis(
     phonological_module: PhonologicalModule | None = None,
     lexical_style_module: LexicalStyleModule | None = None,
     poetry_id_engine: PoetryIDEngine | None = None,
+    inherited_form_engine: InheritedFormEngine | None = None,
 ) -> WorkspaceAnalysis:
     if not request.title.strip():
         raise WorkspaceAnalysisError("Enter a title or working label for this text.")
@@ -831,6 +845,7 @@ def run_workspace_analysis(
         and not request.include_phonology
         and not request.include_lexical_style
         and not request.include_poetry_id
+        and not request.include_inherited_form
     ):
         raise WorkspaceAnalysisError(
             "Select at least one lexicon or optional analysis module before analyzing."
@@ -1105,6 +1120,7 @@ def run_workspace_analysis(
         request.include_pronunciation
         or request.include_meter
         or request.include_phonology
+        or request.include_inherited_form
     ):
         module = pronunciation_module or PronunciationModule(resource_root)
         try:
@@ -1132,7 +1148,7 @@ def run_workspace_analysis(
         except PronunciationModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
     meter = None
-    if request.include_meter:
+    if request.include_meter or request.include_inherited_form:
         if pronunciation is None:  # pragma: no cover - guarded by dependency
             raise WorkspaceAnalysisError(
                 "Meter analysis requires the pronunciation foundation."
@@ -1165,7 +1181,7 @@ def run_workspace_analysis(
         except MeterModuleError as error:
             raise WorkspaceAnalysisError(str(error)) from error
     phonology = None
-    if request.include_phonology:
+    if request.include_phonology or request.include_inherited_form:
         if pronunciation is None:  # pragma: no cover - guarded by dependency
             raise WorkspaceAnalysisError(
                 "Rhyme and phonological analysis requires the pronunciation "
@@ -1261,6 +1277,39 @@ def run_workspace_analysis(
             ),
             enabled=poetry_id_engine is None,
         )
+    inherited_form = None
+    if request.include_inherited_form:
+        if pronunciation is None or meter is None or phonology is None:
+            raise WorkspaceAnalysisError(
+                "Inherited-form analysis requires pronunciation, meter, and "
+                "rhyme evidence."
+            )
+        engine = inherited_form_engine or InheritedFormEngine()
+        inherited_form = cached_operation(
+            "inherited_form",
+            {
+                "text_sha256": document.text_sha256,
+                "text_version_id": document.text_version_id,
+                "configuration": request.inherited_form_configuration,
+                "engine_version": engine.version,
+                "pronunciation_result_id": _module_result_id(pronunciation),
+                "meter_result_id": _module_result_id(meter),
+                "phonology_result_id": _module_result_id(phonology),
+            },
+            lambda: engine.analyze(
+                module_input,
+                pronunciation,
+                meter,
+                phonology,
+                request.inherited_form_configuration,
+            ),
+            validator=lambda value: (
+                isinstance(value, InheritedFormAnalysisResult)
+                and value.module_result.text_version_id
+                == document.text_version_id
+            ),
+            enabled=inherited_form_engine is None,
+        )
     performance_report = (
         AnalysisPerformanceReport(
             enabled=True,
@@ -1285,6 +1334,7 @@ def run_workspace_analysis(
         phonology=phonology,
         lexical_style=lexical_style,
         poetry_id=poetry_id,
+        inherited_form=inherited_form,
         performance=performance_report,
     )
 
@@ -2057,6 +2107,13 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
             "Age-of-acquisition results aggregate retrospective normative lexical "
             "ratings in years. They are not grade level, difficulty, intelligence, "
             "familiarity, or diagnostic evidence of cognitive impairment or decline."
+        )
+    if workspace.inherited_form is not None:
+        notes.append(
+            "Inherited Form Analysis reports structural resemblance to ten "
+            "versioned traditional profiles. A potential match, consistency "
+            "index, and confidence band are not a declaration of genre identity "
+            "or a probability."
         )
     if workspace.lexical_style is not None:
         notes.append(
@@ -3178,6 +3235,84 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                         ),
                     }
                 )
+    if workspace.inherited_form is not None:
+        inherited = workspace.inherited_form
+        best = inherited.best_candidate
+        alternative = inherited.nearest_alternative
+        rows.extend(
+            (
+                {
+                    "section": "Inherited Form Analysis",
+                    "lexicon": "Ten-profile inherited-form registry",
+                    "analysis_view": inherited.configuration.scenario_id,
+                    "metric": "Potential inherited-form match",
+                    "value": best.profile_name if best else "No inherited-form match",
+                    "unit_or_scale": (
+                        best.classification
+                        if best
+                        else "configured no-match state"
+                    ),
+                    "denominator": "available weighted profile evidence",
+                    "plain_language_note": (
+                        best.tooltip
+                        if best
+                        else (
+                            "No candidate met both the suggestion and minimum "
+                            "evidence thresholds."
+                        )
+                    ),
+                },
+                {
+                    "section": "Inherited Form Analysis",
+                    "lexicon": "Ten-profile inherited-form registry",
+                    "analysis_view": inherited.configuration.scenario_id,
+                    "metric": "Form consistency",
+                    "value": (
+                        best.consistency
+                        if best and best.consistency is not None
+                        else ""
+                    ),
+                    "unit_or_scale": "proportion",
+                    "denominator": "available weighted profile evidence",
+                    "plain_language_note": (
+                        "Consistency is not a probability; missing evidence is "
+                        "excluded and separately lowers coverage."
+                    ),
+                },
+                {
+                    "section": "Inherited Form Analysis",
+                    "lexicon": "Ten-profile inherited-form registry",
+                    "analysis_view": inherited.configuration.scenario_id,
+                    "metric": "Evidence coverage",
+                    "value": (
+                        best.evidence_coverage
+                        if best
+                        else inherited.candidates[0].evidence_coverage
+                    ),
+                    "unit_or_scale": "proportion",
+                    "denominator": "potential profile weight",
+                    "plain_language_note": (
+                        "Unavailable pronunciation, meter, or rhyme evidence "
+                        "stays missing rather than becoming a failed feature."
+                    ),
+                },
+                {
+                    "section": "Inherited Form Analysis",
+                    "lexicon": "Ten-profile inherited-form registry",
+                    "analysis_view": inherited.configuration.scenario_id,
+                    "metric": "Nearest alternative",
+                    "value": (
+                        alternative.profile_name if alternative else ""
+                    ),
+                    "unit_or_scale": "candidate profile",
+                    "denominator": "second-ranked enabled profile",
+                    "plain_language_note": (
+                        "Related forms can share features; the runner-up is "
+                        "retained to make that ambiguity visible."
+                    ),
+                },
+            )
+        )
     return _csv_bytes(fields, rows)
 
 
@@ -3203,6 +3338,49 @@ def csv_reading_guide() -> bytes:
             "important_caution": (
                 "A PoetryID label is a nearest candidate lexical-affective "
                 "profile, not the poem's emotion."
+            ),
+        },
+        {
+            "file": "inherited_form_summary.csv",
+            "what_it_answers": (
+                "Which inherited form is the leading potential match, and how "
+                "strong and well-covered is the evidence?"
+            ),
+            "start_with": (
+                "best candidate, classification, consistency, evidence coverage, "
+                "confidence, nearest alternative, and traditional definition."
+            ),
+            "important_caution": (
+                "A potential match and confidence band are rule-based evidence, "
+                "not a probability or definitive genre identity."
+            ),
+        },
+        {
+            "file": "inherited_form_features.csv",
+            "what_it_answers": (
+                "How did each expected form feature agree with the observed poem?"
+            ),
+            "start_with": (
+                "profile, role, weight, expected, detected, score, coverage, "
+                "and source modules."
+            ),
+            "important_caution": (
+                "Unavailable dependent evidence remains missing and lowers "
+                "coverage; it is not scored as zero."
+            ),
+        },
+        {
+            "file": "inherited_form_profiles.csv",
+            "what_it_answers": (
+                "What traditional definition, sources, and limitations define "
+                "each of the ten versioned profiles?"
+            ),
+            "start_with": (
+                "profile name, tradition, definition, source URLs, and limitations."
+            ),
+            "important_caution": (
+                "The profiles describe documented conventions with historical "
+                "and artistic variation."
             ),
         },
         {
@@ -3678,6 +3856,7 @@ def _build_detailed_export_zip(workspace: WorkspaceAnalysis) -> bytes:
             (workspace.phonology, export_phonological_bundle),
             (workspace.lexical_style, export_lexical_style_bundle),
             (workspace.poetry_id, export_poetry_id_bundle),
+            (workspace.inherited_form, export_inherited_form_bundle),
         )
         for result, exporter in optional_results:
             if result is not None:
@@ -3746,6 +3925,7 @@ def detailed_export_zip(
         _module_result_id(workspace.phonology),
         _module_result_id(workspace.lexical_style),
         _module_result_id(workspace.poetry_id),
+        _module_result_id(workspace.inherited_form),
     )
     content, _lookup = EXPORT_CACHE.get_or_compute(
         key,

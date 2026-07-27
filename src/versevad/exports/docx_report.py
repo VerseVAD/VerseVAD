@@ -101,6 +101,20 @@ REPORT_PROFILES: Mapping[str, NarrativeReportProfile] = {
         "judgment of poetic identity, authorship, quality, or genre.",
         ("Interpret every value with its denominator and method information.",),
     ),
+    "inherited_form": NarrativeReportProfile(
+        "Inherited Form Analysis Report",
+        "This report compares the poem with ten versioned, source-backed "
+        "inherited-form profiles using line, stanza, rhyme, meter, syllable, "
+        "refrain, and end-word evidence when available.",
+        "The leading result is a potential structural match. Consistency and "
+        "confidence are transparent rule-based indices, not probabilities or "
+        "declarations of genre identity, quality, historical intention, or tradition.",
+        (
+            "Missing pronunciation, meter, or rhyme evidence remains missing and lowers evidence coverage.",
+            "Traditional definitions describe conventions that admit historical, linguistic, and artistic variation.",
+            "Volta, kigo, semantic autonomy, and other interpretive features are not guessed when they cannot be scored defensibly.",
+        ),
+    ),
     "lexicon_explorer": NarrativeReportProfile(
         "Lexicon Explorer Report",
         "This report records one local word-or-phrase lookup across the installed "

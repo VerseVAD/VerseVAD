@@ -601,3 +601,41 @@ recovery from a deliberately stale deleted-project ID. The completion pass on
 2026-07-26 passed all `301` automated tests. The focused deletion set passed
 three tests, and the broader Project/Corpus, design, and cross-platform
 interface set passed thirty tests.
+
+## Stage 15 inherited-form validation
+
+Focused tests cover:
+
+- exactly ten unique, source-backed profiles and tooltip definitions;
+- exact villanelle refrain positions and stanza architecture;
+- exact sestina end-word rotation and envoi;
+- exact pantoum ordered repetition;
+- an exact Shakespearean fixture whose existing phonology and meter results
+  are `ABABCDCDEFEFGG` and iambic pentameter;
+- a deliberately modified refrain receiving graded rather than binary credit;
+- missing required syllable evidence lowering coverage and preventing an
+  unsupported 5–7–5 haiku suggestion;
+- explicit profile subsets and deterministic configuration identity;
+- automatic pronunciation/meter/rhyme dependency execution;
+- per-poem project persistence and seven checksummed artifacts;
+- six CSV files plus deterministic narrative DOCX, with no JSON;
+- traditional-definition tooltip content; and
+- Single Poem, Project / Corpus, design, application, and existing module
+  regressions.
+
+Run the lightweight direct validation with:
+
+```powershell
+.\.venv\Scripts\python.exe -m versevad.inherited_form_validation
+```
+
+or on macOS:
+
+```bash
+.venv/bin/python -m versevad.inherited_form_validation
+```
+
+The command constructs invented villanelle, sestina, pantoum, and
+under-supported haiku fixtures. It does not traverse installed research
+lexicons. Full completion evidence is recorded in
+[`inherited-form-stage15-validation.md`](inherited-form-stage15-validation.md).

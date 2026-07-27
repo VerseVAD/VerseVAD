@@ -31,6 +31,7 @@ versevad-pronunciation-demo = "versevad.pronunciation_validation:main"
 versevad-meter-demo = "versevad.meter_validation:main"
 versevad-phonology-demo = "versevad.phonology_validation:main"
 versevad-lexical-style-demo = "versevad.lexical_style_validation:main"
+versevad-inherited-form-demo = "versevad.inherited_form_validation:main"
 versevad-diagnose = "versevad.diagnostics:main"
 
 [dependency-groups]

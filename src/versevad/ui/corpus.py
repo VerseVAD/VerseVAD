@@ -48,6 +48,7 @@ from versevad.poetry_id import (
     ThresholdProfile,
     VadLevel,
 )
+from versevad.inherited_form import InheritedFormConfiguration
 from versevad.ui.dataframes import heterogeneous_display_value
 from versevad.ui.design import (
     MODULE_PRESETS,
@@ -176,6 +177,66 @@ def _poetry_id_work_comparison_rows(
             }
         )
     return tuple(rows)
+
+
+def _inherited_form_work_comparison_rows(
+    metrics,
+) -> tuple[dict[str, object], ...]:
+    """Build one inherited-form candidate row per analyzed work."""
+
+    metric_ids = {
+        "inherited_form.result_status",
+        "inherited_form.best_candidate_name",
+        "inherited_form.best_consistency",
+        "inherited_form.best_evidence_coverage",
+        "inherited_form.confidence_label",
+        "inherited_form.classification",
+        "inherited_form.nearest_alternative_name",
+        "inherited_form.candidate_margin",
+    }
+    by_work: dict[str, dict[str, object]] = {}
+    for row in metrics:
+        if (
+            row.module_name != "inherited_form"
+            or row.scope != "document"
+            or row.metric_id not in metric_ids
+        ):
+            continue
+        values = by_work.setdefault(row.text_id, {"Work": row.title})
+        values[row.metric_id] = row.value
+    return tuple(
+        {
+            "Work": values["Work"],
+            "Potential match": values.get(
+                "inherited_form.best_candidate_name"
+            ),
+            "Classification": values.get(
+                "inherited_form.classification"
+            ),
+            "Consistency": values.get(
+                "inherited_form.best_consistency"
+            ),
+            "Evidence coverage": values.get(
+                "inherited_form.best_evidence_coverage"
+            ),
+            "Confidence": str(
+                values.get("inherited_form.confidence_label", "")
+            ).title() or None,
+            "Nearest alternative": values.get(
+                "inherited_form.nearest_alternative_name"
+            ),
+            "Candidate margin": values.get(
+                "inherited_form.candidate_margin"
+            ),
+            "Status": str(
+                values.get("inherited_form.result_status", "")
+            ).replace("_", " ").title(),
+        }
+        for values in sorted(
+            by_work.values(),
+            key=lambda item: str(item["Work"]).casefold(),
+        )
+    )
 
 
 def _corpus_part_of_speech_rows(
@@ -840,6 +901,34 @@ def _render_corpus_modules(
                 "available in the corpus workbook and each work's CSV bundle."
             )
 
+    if selected_module == "inherited_form":
+        comparison_rows = _inherited_form_work_comparison_rows(selected)
+        if comparison_rows:
+            st.markdown(
+                "**Per-poem inherited-form candidate comparison**"
+            )
+            render_dataframe(
+                pd.DataFrame(comparison_rows).style.format(
+                    {
+                        "Consistency": "{:.1%}",
+                        "Evidence coverage": "{:.1%}",
+                        "Candidate margin": "{:.1%}",
+                    },
+                    na_rep="—",
+                ),
+                hide_index=True,
+                width="stretch",
+                height=360,
+            )
+            st.caption(
+                "Potential matches compare each poem with the same versioned "
+                "ten-profile registry. Consistency measures agreement with "
+                "available weighted evidence; coverage reports how much profile "
+                "evidence was available. Confidence is not a probability. The "
+                "stored profile CSV and Word report include each traditional "
+                "definition, source links, and the poem's feature-level evidence."
+            )
+
     pooled = tuple(
         row for row in aggregates if row.module_name == selected_module
     )
@@ -1024,6 +1113,7 @@ def _render_analysis_tab(
             "Lexical diversity, word length, and structural word counts"
         ),
         "poetry_id": "PoetryID lexical-affective profiles",
+        "inherited_form": "Inherited Form Analysis (10 candidate profiles)",
     }
     module_labels = {
         module_id: label
@@ -1088,6 +1178,7 @@ def _render_analysis_tab(
             "include_phonology": "phonology",
             "include_lexical_style": "lexical_style",
             "include_poetry_id": "poetry_id",
+            "include_inherited_form": "inherited_form",
         }
         if preset_state is not None:
             st.session_state[f"analysis_lexicons_{project_id}"] = (
@@ -1218,7 +1309,10 @@ def _render_analysis_tab(
                     "classes, so this is an actual analysis-scope choice."
                 ),
             )
-        if "meter" in selected_modules:
+        if (
+            "meter" in selected_modules
+            or "inherited_form" in selected_modules
+        ):
             st.markdown("**Meter batch settings**")
             meter_mode_labels = {
                 "Candidate meter only (validated default)": (
@@ -1316,8 +1410,18 @@ def _render_analysis_tab(
             )
             st.caption(
                 "Every work uses the same declared profile and exact configuration. "
-                "Source lexical stress remains unchanged, and no named stanza-form "
-                "classification is added."
+                "Source lexical stress remains unchanged. When Inherited Form "
+                "Analysis is selected, these meter results become one transparent "
+                "evidence layer in the form ranking."
+            )
+        if "inherited_form" in selected_modules:
+            st.markdown("**Inherited-form batch settings**")
+            st.caption(
+                "All ten version-1 profiles will be ranked for every work. "
+                "Pronunciation, meter, and graded rhyme run automatically; "
+                "missing dependent evidence lowers coverage rather than becoming "
+                "a failed feature. Traditional definitions and source links are "
+                "included in each stored CSV and Word export."
             )
         if "poetry_id" in selected_modules:
             st.markdown("**PoetryID batch settings**")
@@ -1519,6 +1623,12 @@ def _render_analysis_tab(
                     requested_lexical_dimensions=(
                         poetry_id_lexical_dimensions
                     ),
+                ),
+                include_inherited_form=(
+                    "inherited_form" in selected_modules
+                ),
+                inherited_form_configuration=(
+                    InheritedFormConfiguration()
                 ),
                 analysis_cache_enabled=st.session_state.get(
                     "analysis_cache_enabled",

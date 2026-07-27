@@ -580,3 +580,29 @@ atomic replacement.
 
 Module presets, workspace navigation, expanded report sections, search text,
 and filters remain Streamlit session state. They do not alter schema 4.
+
+## Expansion Stage 15 inherited-form records
+
+`FormProfile` stores profile ID/name, family, tradition, original concise
+definition, tooltip definition, rules, source URLs, limitations, and registry
+version. `FormRule` stores rule/feature IDs, label, role, weight, expected
+wording, and typed parameters.
+
+`InheritedFormConfiguration` stores selected profile IDs, suggestion and
+coverage minimums, required-feature coverage minimum, confidence and margin
+thresholds, modified-refrain floor, scenario ID, and deterministic
+configuration ID.
+
+`FormFeatureEvidence` stores expected and detected values, role, weight,
+score-or-missing, evidence coverage, explanation, and contributing source
+module IDs. `FormCandidateResult` stores rank, profile identity/definition,
+tooltip, consistency, total and required evidence coverage, required agreement
+and contradiction count, next-candidate margin, confidence, classification,
+suggestion status, narrative, and all feature evidence.
+
+`InheritedFormAnalysisResult` wraps status, registry version, ordered
+candidates, best candidate, nearest alternative, exact configuration, and the
+common `ModuleResult`. The common metrics persist per-work best candidate,
+classification, consistency, coverage, confidence, runner-up, margin, and all
+candidate ranks/scores. Schema 4 stores these generically; the seven generated
+artifacts are checksummed through `module_artifacts`.

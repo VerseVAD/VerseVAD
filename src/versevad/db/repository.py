@@ -26,6 +26,7 @@ from versevad.exports.meter import export_meter_bundle
 from versevad.exports.phonology import export_phonological_bundle
 from versevad.exports.pronunciation import export_pronunciation_bundle
 from versevad.exports.poetry_id import export_poetry_id_bundle
+from versevad.exports.inherited_form import export_inherited_form_bundle
 from versevad.models import (
     MatchMethod,
     MatchSelection,
@@ -1783,6 +1784,7 @@ class ProjectRepository:
             (workspace.phonology, export_phonological_bundle),
             (workspace.lexical_style, export_lexical_style_bundle),
             (workspace.poetry_id, export_poetry_id_bundle),
+            (workspace.inherited_form, export_inherited_form_bundle),
         )
         return tuple(
             (result, exporter)
@@ -1814,17 +1816,18 @@ class ProjectRepository:
                     request.include_pronunciation
                     or request.include_meter
                     or request.include_phonology
+                    or request.include_inherited_form
                 ),
                 "pronunciation_prosody_foundation",
                 request.pronunciation_configuration,
             ),
             (
-                request.include_meter,
+                request.include_meter or request.include_inherited_form,
                 "candidate_meter_and_rhythmic_regularity",
                 request.meter_configuration,
             ),
             (
-                request.include_phonology,
+                request.include_phonology or request.include_inherited_form,
                 "rhyme_and_phonological_patterns",
                 request.phonological_configuration,
             ),
@@ -1837,6 +1840,11 @@ class ProjectRepository:
                 request.include_poetry_id,
                 "poetry_id",
                 request.poetry_id_configuration,
+            ),
+            (
+                request.include_inherited_form,
+                "inherited_form",
+                request.inherited_form_configuration,
             ),
         )
         return {
