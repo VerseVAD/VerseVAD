@@ -90,7 +90,7 @@ def test_pronunciation_fragment_approval_requests_full_app_rerun() -> None:
         node
         for node in ast.walk(tree)
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_render_pronunciation_attention"
+        and node.name == "_render_pronunciation_attention_contents"
     )
     reruns = [
         node
@@ -830,10 +830,12 @@ def test_interface_applies_dictionary_candidate_from_words_needing_attention() -
     _button(app, "Analyze Poem").click()
     app.run(timeout=90)
 
-    assert any(
-        heading.value == "Words Needing Attention"
-        for heading in app.subheader
+    attention = next(
+        panel
+        for panel in app.expander
+        if panel.label == "Words Needing Attention"
     )
+    assert not attention.proto.expanded
     candidate = next(
         field
         for field in app.selectbox
@@ -902,6 +904,15 @@ def test_interface_keeps_g2p_unmatched_until_user_approves_edit() -> None:
     ).set_value(True)
     app.run(timeout=90)
     _button(app, "Analyze Poem").click()
+    app.run(timeout=90)
+
+    out_of_dictionary = next(
+        field
+        for field in app.toggle
+        if field.label == "Show Out-of-Dictionary Words"
+    )
+    assert not out_of_dictionary.value
+    out_of_dictionary.set_value(True)
     app.run(timeout=90)
 
     predicted = next(

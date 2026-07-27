@@ -6,6 +6,15 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Collapsed **Words Needing Attention** by default and placed provisional G2P
+  review behind a default-off **Show Out-of-Dictionary Words** control, keeping
+  the pronunciation report compact until review is requested.
+- Changed Stage 5 contraction handling to look up each preserved complete
+  spelling once. Forms such as `you're`, `can't`, `won't`, and `'tis` no longer
+  expose linguistic-model fragments such as `'re`, `ca`, `wo`, or `n't` as
+  separate out-of-dictionary words. The fragments remain explicit
+  `not_eligible` audit rows, and the complete form supplies downstream syllable,
+  stress, meter, rhyme/sound, and inherited-form evidence.
 - Repaired **Apply Approved Pronunciations and Reanalyze** inside the
   fragment-scoped **Words Needing Attention** panel. A successful dictionary
   selection or approved/edited G2P candidate now requests one full-app rerun,

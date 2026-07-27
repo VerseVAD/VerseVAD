@@ -25,6 +25,10 @@ DICTIONARY_ROWS = (
     "cat K AE1 T",
     "hm HH M",
     "hat HH AE1 T",
+    "i'd AY1 D",
+    "i'm AY1 M",
+    "isn't IH1 Z AH0 N T",
+    "didn't D IH1 D AH0 N T",
     "love L AH1 V",
     "motion M OW1 SH AH0 N",
     "move M UW1 V",
@@ -35,6 +39,7 @@ DICTIONARY_ROWS = (
     "permit(2) P ER1 M IH2 T",
     "rings R IH1 NG Z",
     "seat S IY1 T",
+    "she'll SH IY1 L",
     "silver S IH1 L V ER0",
     "sing S IH1 NG",
     "sit S IH1 T",
@@ -43,6 +48,12 @@ DICTIONARY_ROWS = (
     "the DH AH0",
     "the(2) DH AH1",
     "true T R UW1",
+    "we'll W IY1 L",
+    "you Y UW1",
+    "you're Y UW1 R",
+    "can't K AE1 N T",
+    "won't W OW1 N T",
+    "'tis T IH1 Z",
     "wind W IH1 N D",
     "wind(2) W AY1 N D",
 )
@@ -73,6 +84,7 @@ PHONE_ROWS = (
     "T\tstop",
     "V\tfricative",
     "W\tsemivowel",
+    "Y\tsemivowel",
     "Z\tfricative",
 )
 SYMBOL_ROWS = tuple(
@@ -100,6 +112,7 @@ SYMBOL_ROWS = tuple(
         "T",
         "V",
         "W",
+        "Y",
         "Z",
     ]
 )
@@ -266,6 +279,52 @@ def test_proper_names_are_eligible_and_exact_observed_forms_are_used(
     assert by_surface["Alice"].resolved
     assert by_surface["stone's"].status is PronunciationStatus.UNMATCHED
     assert by_surface["O\u2019er"].resolved
+
+
+def test_recorded_contractions_use_complete_observed_form_not_model_fragments(
+    tmp_path: Path,
+    preprocessor,
+) -> None:
+    result = _analyze(
+        tmp_path,
+        preprocessor,
+        "You're can't won't I\u2019m I\u2019d we'll she'll isn't didn't \u2019tis.",
+    )
+    eligible = [item for item in result.token_audit if item.eligible]
+    excluded = [item for item in result.token_audit if not item.eligible]
+
+    assert [item.lookup_form for item in eligible] == [
+        "you're",
+        "can't",
+        "won't",
+        "i'm",
+        "i'd",
+        "we'll",
+        "she'll",
+        "isn't",
+        "didn't",
+        "'tis",
+    ]
+    assert all(item.resolved for item in eligible)
+    assert all(
+        "preserved contraction span" in item.reason
+        for item in eligible
+    )
+    assert {item.surface_form for item in excluded} >= {
+        "'re",
+        "n't",
+        "\u2019",
+    }
+    assert all(
+        item.status is PronunciationStatus.NOT_ELIGIBLE
+        for item in excluded
+    )
+    assert result.summary.eligible_token_count == 10
+    assert result.summary.resolved_token_count == 10
+    assert result.summary.unmatched_token_count == 0
+    assert result.line_summaries[0].is_complete
+    assert result.line_summaries[0].syllable_count == 12
+    assert result.line_summaries[0].compact_stress_sequence == "111111110101"
 
 
 def test_override_parser_requires_notes_and_rejects_unknown_symbols(

@@ -612,21 +612,29 @@ when there is one candidate or all candidates agree on syllable count and the
 full stress sequence. Otherwise it remains visibly ambiguous. Missing and
 ambiguous values are not set to zero.
 
-Under **Words Needing Attention**, materially ambiguous words have a selector
-for every retained dictionary candidate. Each displayed ARPAbet sequence has a
-**Hear** speaker control. Choose only when the poem's context supports that
-reading, then select **Apply Approved Pronunciations and Reanalyze**. VerseVAD
-copies the choice into the editable session override field and recalculates
-pronunciation, meter, rhyme/sound, and inherited-form evidence once.
+Contractions are analyzed as the complete spelling preserved in the poem.
+Thus `you're`, `can't`, `won't`, and `'tis` receive one exact pronunciation
+lookup apiece. Internal tokenizer components such as `'re`, `ca`, `wo`, and
+`n't` remain auditable but are not counted as pronunciation words and do not
+appear as separate out-of-dictionary forms.
 
-Words absent from CMUdict remain visibly **unmatched**. VerseVAD shows a local
-US-English eSpeak NG G2P candidate labeled **provisional—not confirmed**.
-Choose **Leave explicitly unresolved** to keep all pronunciation-dependent
-evidence missing, which is the default. Alternatively, approve the prediction
-or edit its ARPAbet directly, choose **Approve or edit for this session**, and
-apply it. Only that explicit approval creates a source-labeled session
-override and recalculates dependent evidence. Playing **Hear** does not approve
-the candidate.
+Expand the default-collapsed **Words Needing Attention** panel to review
+materially ambiguous words. They have a selector for every retained dictionary
+candidate, and each displayed ARPAbet sequence has a **Hear** speaker control.
+Choose only when the poem's context supports that reading, then select **Apply
+Approved Pronunciations and Reanalyze**. VerseVAD copies the choice into the
+editable session override field and recalculates pronunciation, meter,
+rhyme/sound, and inherited-form evidence once.
+
+Words absent from CMUdict remain visibly **unmatched**. Inside **Words Needing
+Attention**, turn on the default-off **Show Out-of-Dictionary Words** control
+to reveal their local US-English eSpeak NG G2P candidates, each labeled
+**provisional—not confirmed**. Choose **Leave explicitly unresolved** to keep
+all pronunciation-dependent evidence missing, which is the default.
+Alternatively, approve the prediction or edit its ARPAbet directly, choose
+**Approve or edit for this session**, and apply it. Only that explicit approval
+creates a source-labeled session override and recalculates dependent evidence.
+Playing **Hear** does not approve the candidate.
 
 To document a context-sensitive, dialectal, historical, performed, or
 poetically elided reading, open **Advanced methodology settings** and enter:

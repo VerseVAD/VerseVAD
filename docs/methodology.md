@@ -519,6 +519,19 @@ the observed surface, normalized form, lemma, and every dictionary candidate
 remain separate. No lemma, possessive-base, spelling repair, or pronunciation
 prediction is substituted automatically.
 
+The shared linguistic model may internally split a contraction into components
+such as `you` + `'re`, `ca` + `n't`, or `wo` + `n't`. Stage 5 instead consumes
+the complete contraction span preserved during preprocessing and performs one
+exact lookup for the observed spelling, such as `you're`, `can't`, or `won't`.
+The component tokens remain visible in the token audit but are marked
+`not_eligible`, preventing fragments such as `'re` and `n't` from appearing as
+out-of-dictionary words or inflating pronunciation denominators. A
+leading-apostrophe form such as `'tis` is joined only when the complete form has
+exact dictionary evidence or an explicit session override, so an opening
+quotation mark is not mistaken for a contraction. If a preserved complete
+contraction has no entry, that complete spelling—not its model-token
+fragments—remains unmatched and enters the ordinary review-only G2P flow.
+
 One dictionary candidate resolves directly. Multiple candidates resolve only
 when every candidate agrees on both syllable count and the complete lexical-
 stress digit sequence; phone-string alternatives remain visible. A difference
@@ -527,21 +540,23 @@ a poem-specific scholar override supplies validated ARPAbet phones and a
 required rationale. Confidence labels describe this categorical resolution
 status and are not probabilities.
 
-The one-text **Words Needing Attention** interface lets the scholar explicitly
-select one of those retained materially different dictionary candidates. The
-selection is serialized into the same reversible session-only override
-configuration and is labeled as a user selection from dictionary evidence,
-not as an automatically preferred candidate. Dependent pronunciation, meter,
-rhyme/sound, and inherited-form results are then recomputed.
+The one-text **Words Needing Attention** interface is collapsed by default and
+lets the scholar explicitly select one of those retained materially different
+dictionary candidates. The selection is serialized into the same reversible
+session-only override configuration and is labeled as a user selection from
+dictionary evidence, not as an automatically preferred candidate. Dependent
+pronunciation, meter, rhyme/sound, and inherited-form results are then
+recomputed.
 
 Unmatched, ambiguous, and source-vowelless observations have missing
 pronunciation, syllable, and stress values. A physical line receives a total
 and stress sequence only when every eligible lexical token resolves. This
 prevents partial coverage from creating deceptively short lines.
 
-For an out-of-dictionary form, **Words Needing Attention** may generate a
-review-only US-English pronunciation with the bundled eSpeak NG 1.52.0
-G2P/text-to-phoneme system and a documented IPA-to-ARPAbet mapping.
+For an out-of-dictionary form, the default-hidden **Show Out-of-Dictionary
+Words** subsection may generate a review-only US-English pronunciation with
+the bundled eSpeak NG 1.52.0 G2P/text-to-phoneme system and a documented
+IPA-to-ARPAbet mapping.
 The row retains `unmatched` status, and its pronunciation, syllable, stress,
 line, meter, rhyme/sound, and inherited-form evidence remain missing. The user
 may leave it explicitly unresolved, approve the provisional ARPAbet, or edit

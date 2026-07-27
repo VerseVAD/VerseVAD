@@ -79,6 +79,15 @@ is NFC-normalized, and apostrophe styles are made comparable. VerseVAD does
 not silently use a lemma, strip a possessive suffix, or substitute another
 spelling. Those operations can change pronunciation.
 
+When the linguistic model splits a contraction, Stage 5 uses the complete
+orthographic contraction span recorded by shared preprocessing. For example,
+`you're`, `can't`, and `won't` each receive one exact observed-form lookup;
+their internal model-token components are retained as `not_eligible` audit
+rows rather than analyzed as independent words. Leading-apostrophe spellings
+such as `'tis` are joined only when the complete form has exact CMUdict evidence
+or an explicit override. An unmatched complete contraction remains one
+unmatched review item and is never replaced by fragment-level G2P candidates.
+
 Resolution states are:
 
 - `dictionary_unique`: one source pronunciation;
@@ -108,6 +117,11 @@ and the default scenario to `cmudict-prosody-foundation-v2`, so cached and
 exported provenance cannot silently conflate earlier results with the new
 dictionary-user-selection label.
 
+Complete-contraction lookup advances the module to `1.2.0` and the default
+scenario to `cmudict-prosody-foundation-v3`. That cache boundary prevents
+results produced by fragment-level lookup from being reused after the
+contraction policy changed.
+
 ## Scholar overrides
 
 Advanced methodology settings accept one row per observed word:
@@ -131,20 +145,21 @@ editing or removing the row, and kept distinct from the retained dictionary
 candidates. Stage 5 does not yet offer occurrence-specific selection or
 Projects & Corpus persistence.
 
-The **Words Needing Attention** interface provides a selector for materially
-different retained dictionary candidates and writes the chosen candidate into
-this same editable session override configuration. **Apply Approved
-Pronunciations and Reanalyze** recalculates pronunciation and dependent meter,
-rhyme/sound, and inherited-form evidence.
+The default-collapsed **Words Needing Attention** interface provides a selector
+for materially different retained dictionary candidates and writes the chosen
+candidate into this same editable session override configuration. **Apply
+Approved Pronunciations and Reanalyze** recalculates pronunciation and
+dependent meter, rhyme/sound, and inherited-form evidence.
 
-For an out-of-dictionary word, the interface also requests a local,
-provisional US-English G2P candidate from eSpeak NG 1.52.0 and maps the
-separated IPA result to validated CMUdict-style ARPAbet. The word remains
-`unmatched`. **Leave explicitly unresolved** is selected by default. The user
-may instead approve the prediction or edit its ARPAbet and approve the edited
-reading. Only that explicit action copies a source-labeled row into the
-session override configuration. A prediction failure likewise leaves the word
-unmatched while permitting fully manual ARPAbet entry.
+For an out-of-dictionary word, the default-off **Show Out-of-Dictionary Words**
+subsection also requests a local, provisional US-English G2P candidate from
+eSpeak NG 1.52.0 and maps the separated IPA result to validated CMUdict-style
+ARPAbet. The word remains `unmatched`. **Leave explicitly unresolved** is
+selected by default. The user may instead approve the prediction or edit its
+ARPAbet and approve the edited reading. Only that explicit action copies a
+source-labeled row into the session override configuration. A prediction
+failure likewise leaves the word unmatched while permitting fully manual
+ARPAbet entry.
 
 Each pronunciation candidate in **Words Needing Attention** and Lexicon
 Explorer has a

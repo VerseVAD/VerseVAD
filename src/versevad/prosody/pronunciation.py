@@ -28,6 +28,7 @@ from versevad.adapters.cmudict import (
     normalize_pronunciation_key,
 )
 from versevad.analysis.statistics import descriptive_statistics
+from versevad.core import OrthographicFeatureKind
 from versevad.core.modules import (
     ModuleCoverage,
     ModuleInput,
@@ -241,7 +242,7 @@ class PronunciationConfiguration:
     low_coverage_warning_threshold: float = 0.8
     minimum_complete_lines: int = 2
     minimum_resolved_tokens: int = 3
-    scenario_id: str = "cmudict-prosody-foundation-v2"
+    scenario_id: str = "cmudict-prosody-foundation-v3"
 
     def __post_init__(self) -> None:
         if not 0 <= self.low_coverage_warning_threshold <= 1:
@@ -452,6 +453,144 @@ def _ineligible_token(token: TokenRecord) -> PronunciationTokenResult:
     )
 
 
+@dataclass(frozen=True)
+class _ContractionGroup:
+    raw_text: str
+    member_token_ids: tuple[str, ...]
+    representative_token_id: str
+    character_start: int
+    character_end: int
+
+
+_APOSTROPHE_CHARACTERS = frozenset({"'", "\u2018", "\u2019", "\u02bc", "\uff07"})
+
+
+def _contraction_groups(
+    module_input: ModuleInput,
+    lexicon: CMUDictLexicon,
+    override_by_lookup: dict[str, PronunciationOverride],
+) -> dict[str, _ContractionGroup]:
+    """Map model-token components to their preserved contraction span."""
+
+    poem_document = module_input.poem_document
+    if poem_document is None:
+        return {}
+    token_by_id = {token.token_id: token for token in module_input.tokens}
+    groups: list[_ContractionGroup] = []
+    grouped_ids: set[str] = set()
+
+    for span in poem_document.orthographic_spans:
+        if span.kind is not OrthographicFeatureKind.CONTRACTION:
+            continue
+        members = tuple(
+            token_by_id[token_id]
+            for token_id in span.token_ids
+            if token_id in token_by_id
+        )
+        lexical_members = tuple(token for token in members if token.is_lexical)
+        if len(members) < 2 or not lexical_members:
+            continue
+        group = _ContractionGroup(
+            raw_text=span.raw_text,
+            member_token_ids=tuple(token.token_id for token in members),
+            representative_token_id=lexical_members[0].token_id,
+            character_start=span.character_start,
+            character_end=span.character_end,
+        )
+        groups.append(group)
+        grouped_ids.update(group.member_token_ids)
+
+    # spaCy separates a leading apostrophe from forms such as "'tis". Stage 1
+    # records those as adjacent apostrophe-form tokens rather than contraction
+    # spans, so join only when the complete spelling has dictionary evidence or
+    # an explicit scholar override. This avoids treating an opening quotation
+    # mark plus an ordinary word as a contraction.
+    tokens = module_input.tokens
+    for index, token in enumerate(tokens[:-1]):
+        following = tokens[index + 1]
+        if (
+            token.token_id in grouped_ids
+            or following.token_id in grouped_ids
+            or token.surface_form not in _APOSTROPHE_CHARACTERS
+            or not token.is_punctuation
+            or not following.is_lexical
+            or token.character_end != following.character_start
+            or token.line_number != following.line_number
+        ):
+            continue
+        raw_text = module_input.document.original_text[
+            token.character_start : following.character_end
+        ]
+        lookup_form = normalize_pronunciation_key(raw_text)
+        if (
+            lexicon.lookup(lookup_form) is None
+            and lookup_form not in override_by_lookup
+        ):
+            continue
+        group = _ContractionGroup(
+            raw_text=raw_text,
+            member_token_ids=(token.token_id, following.token_id),
+            representative_token_id=following.token_id,
+            character_start=token.character_start,
+            character_end=following.character_end,
+        )
+        groups.append(group)
+        grouped_ids.update(group.member_token_ids)
+
+    return {
+        token_id: group
+        for group in groups
+        for token_id in group.member_token_ids
+    }
+
+
+def _contraction_lookup_token(
+    representative: TokenRecord,
+    group: _ContractionGroup,
+) -> TokenRecord:
+    lookup_form = normalize_pronunciation_key(group.raw_text)
+    return replace(
+        representative,
+        character_start=group.character_start,
+        character_end=group.character_end,
+        surface_form=group.raw_text,
+        lowercase_form=group.raw_text.casefold(),
+        punctuation_stripped_form=group.raw_text,
+        normalized_form=lookup_form,
+        lemma=group.raw_text,
+        normalized_lemma=lookup_form,
+        is_punctuation=False,
+        is_numeric=False,
+        preprocessing_warnings=(
+            *representative.preprocessing_warnings,
+            "Pronunciation lookup used the preserved contraction span.",
+        ),
+    )
+
+
+def _suppressed_contraction_component(
+    token: TokenRecord,
+    group: _ContractionGroup,
+) -> PronunciationTokenResult:
+    return PronunciationTokenResult(
+        **_base_token_values(token),
+        eligible=False,
+        resolved=False,
+        status=PronunciationStatus.NOT_ELIGIBLE,
+        **_dictionary_fields(None),
+        resolved_phones=None,
+        resolved_stress_pattern=None,
+        resolved_syllable_count=None,
+        confidence_label="Resolved through recorded contraction span",
+        override_note="",
+        reason=(
+            f"This model-token component is excluded from the pronunciation "
+            f"denominator because the preserved contraction {group.raw_text!r} "
+            "is looked up once as a complete observed form."
+        ),
+    )
+
+
 def _resolve_override(
     token: TokenRecord,
     entry: CMUDictEntry | None,
@@ -619,8 +758,48 @@ def _token_audit(
     override_by_lookup = {
         item.lookup_form: item for item in configuration.overrides
     }
+    contraction_by_token_id = _contraction_groups(
+        module_input,
+        lexicon,
+        override_by_lookup,
+    )
     rows: list[PronunciationTokenResult] = []
     for token in module_input.tokens:
+        contraction = contraction_by_token_id.get(token.token_id)
+        if contraction is not None:
+            if token.token_id != contraction.representative_token_id:
+                rows.append(
+                    _suppressed_contraction_component(token, contraction)
+                )
+                continue
+            lookup_token = _contraction_lookup_token(token, contraction)
+            lookup_form = normalize_pronunciation_key(
+                contraction.raw_text
+            )
+            entry = lexicon.lookup(lookup_form)
+            override = override_by_lookup.get(lookup_form)
+            resolved = (
+                _resolve_override(
+                    lookup_token,
+                    entry,
+                    override,
+                    lexicon,
+                )
+                if override is not None
+                else _resolve_dictionary(lookup_token, entry)
+            )
+            rows.append(
+                replace(
+                    resolved,
+                    reason=(
+                        resolved.reason
+                        + " Lookup used the preserved contraction span rather "
+                        "than treating its model-token components as separate "
+                        "words."
+                    ),
+                )
+            )
+            continue
         if not token.is_lexical:
             rows.append(_ineligible_token(token))
             continue
@@ -1137,7 +1316,7 @@ def _load_cached(
 
 class PronunciationModule:
     name = "pronunciation_prosody_foundation"
-    version = "1.1.0"
+    version = "1.2.0"
 
     def __init__(
         self,
@@ -1328,15 +1507,18 @@ class PronunciationModule:
                 configuration_id=configuration.configuration_id,
                 scenario_id=configuration.scenario_id,
                 lookup_policy=(
-                    "Exact normalized observed-form lookup only; retain every "
-                    "dictionary variant; resolve multiple variants only when "
-                    "syllable count and lexical stress agree; explicit validated "
-                    f"scholar overrides; pronouncing {pronouncing_version}; "
+                    "Exact normalized observed-form lookup, with recorded "
+                    "contraction spans looked up once instead of model-token "
+                    "fragments; retain every dictionary variant; resolve "
+                    "multiple variants only when syllable count and lexical "
+                    "stress agree; explicit validated scholar overrides; "
+                    f"pronouncing {pronouncing_version}; "
                     f"cmudict package {cmudict_version}."
                 ),
                 inclusion_policy=(
                     "All lexical tokens including proper nouns are eligible. "
-                    "Punctuation and numeric/non-lexical tokens are excluded. "
+                    "Model-token components consumed by a recorded contraction, "
+                    "punctuation, and numeric/non-lexical tokens are excluded. "
                     "Unmatched, materially ambiguous, and vowelless source "
                     "entries remain missing. Incomplete line totals remain missing."
                 ),

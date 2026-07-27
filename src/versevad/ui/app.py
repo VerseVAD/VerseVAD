@@ -55,7 +55,7 @@ _application_was_reloaded = (
     or getattr(_repository_services, "SCHEMA_VERSION", 0) < 3
     or (
         getattr(_pronunciation_services.PronunciationModule, "version", "")
-        != "1.1.0"
+        != "1.2.0"
     )
 )
 if _application_was_reloaded:
@@ -385,8 +385,7 @@ def _queue_pronunciation_resolutions(
         return False
 
 
-@st.fragment
-def _render_pronunciation_attention(pronunciation) -> None:
+def _render_pronunciation_attention_contents(pronunciation) -> None:
     """Render auditable ambiguity resolution without rerunning the whole page."""
 
     unresolved = [
@@ -394,7 +393,7 @@ def _render_pronunciation_attention(pronunciation) -> None:
         for item in pronunciation.token_audit
         if item.eligible and not item.resolved
     ]
-    st.subheader("Words Needing Attention")
+    st.markdown("#### Review Summary")
     if not unresolved:
         st.success(
             "Every eligible observed word form has resolved dictionary "
@@ -521,8 +520,24 @@ def _render_pronunciation_attention(pronunciation) -> None:
                         f"`{selected}`"
                     )
 
-    if unmatched_by_form:
-        st.markdown("#### Review Out-of-Dictionary Predictions")
+    show_out_of_dictionary = (
+        st.toggle(
+            "Show Out-of-Dictionary Words",
+            value=False,
+            key=(
+                "show_out_of_dictionary_"
+                + pronunciation.module_result.result_id
+            ),
+            help=(
+                "Reveal provisional G2P candidates and session approval "
+                "controls for words absent from CMUdict."
+            ),
+        )
+        if unmatched_by_form
+        else False
+    )
+    if unmatched_by_form and show_out_of_dictionary:
+        st.markdown("#### Out-of-Dictionary Words")
         st.warning(
             "These words remain **unmatched**. The displayed G2P pronunciation "
             "is provisional—not confirmed evidence—and does not affect any "
@@ -691,6 +706,14 @@ def _render_pronunciation_attention(pronunciation) -> None:
         "the displayed ARPAbet sequence. It is an orientation aid—not a "
         "recording, dialect authority, or claim about performance."
     )
+
+
+@st.fragment
+def _render_pronunciation_attention(pronunciation) -> None:
+    """Render pronunciation review in a compact, default-collapsed panel."""
+
+    with st.expander("Words Needing Attention", expanded=False):
+        _render_pronunciation_attention_contents(pronunciation)
 
 
 def _display_self_test() -> None:

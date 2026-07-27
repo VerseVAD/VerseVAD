@@ -1,5 +1,17 @@
 # VerseVAD Implementation Plan
 
+## Completed compact pronunciation review and contraction handling
+
+- [x] Collapse **Words Needing Attention** by default and keep
+  **Out-of-Dictionary Words** hidden behind its own default-off reveal control.
+- [x] Use preserved full contraction spellings for exact pronunciation lookup
+  while retaining model-token components as explicit, excluded audit rows.
+- [x] Cover regular, irregular, and leading-apostrophe examples so `you're`,
+  `can't`, `won't`, and `'tis` do not produce fragment-level unmatched items.
+- [x] Advance pronunciation module/scenario cache identities and verify complete
+  contraction evidence remains available to downstream prosody and form
+  analysis.
+
 ## Completed pronunciation-review fragment rerun repair
 
 - [x] Preserve the fragment-scoped pronunciation review controls for responsive
