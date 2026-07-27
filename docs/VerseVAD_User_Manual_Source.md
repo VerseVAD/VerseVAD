@@ -645,7 +645,7 @@ than displaying a deceptively low partial total.
 Advanced settings accept poem-specific scholar overrides:
 
 ```text
-permit = P ER0 M IH1 T | noun reading in this line
+permit = P ER0 M IH1 T | verb reading in this line
 ```
 
 Phones must use uppercase symbols from the pinned local CMUdict inventory and
@@ -882,7 +882,8 @@ label. Optional author, date/year, and source/edition notes are available under
 bibliographic metadata. The live word, physical-line, and text-block counts
 are orientation only; the actual analysis uses the shared linguistic
 tokenizer. **Clear text** requires confirmation. The optional workspace name
-labels the temporary session but does not create a persistent corpus project.
+is blank by default, is not required, and labels the temporary session if
+supplied; it does not create a persistent corpus project.
 
 **Other Text** reuses this interface and the same analysis engines with
 **Analyze Text** terminology. Pronunciation, meter, and rhyme remain available,
@@ -1025,9 +1026,25 @@ complete line, lexical stress density, complete-line coverage, physical-line
 totals and stress sequences, words needing attention, every candidate
 pronunciation, scholar overrides, warnings, and three-file source provenance.
 
-Use **Words needing attention** to find out-of-dictionary and materially
-ambiguous forms. Add an override only when you can document the intended
-reading. Removing an override and analyzing again reverses it.
+Use **Words Needing Attention** to find out-of-dictionary and materially
+ambiguous forms. For an ambiguous dictionary entry, select a retained CMUdict
+candidate, use its **Hear** speaker control when useful, and choose **Apply
+Approved Pronunciations and Reanalyze**. The selection is copied into the
+editable session override field and dependent meter, rhyme/sound, and
+inherited-form evidence is recomputed.
+
+An out-of-dictionary word remains visibly **unmatched**. VerseVAD displays a
+local eSpeak NG 1.52.0 US-English G2P candidate as **provisional—not
+confirmed**. **Leave explicitly unresolved** is the default and keeps
+pronunciation-dependent evidence missing. You may instead approve the
+prediction or edit its ARPAbet directly, choose **Approve or edit for this
+session**, and apply it. Only this explicit action creates a source-labeled
+session override and recomputes dependent evidence. Removing the override and
+analyzing again reverses it.
+
+The speaker controls synthesize the exact displayed ARPAbet sequence locally
+with bundled eSpeak NG. The robotic preview is an orientation aid, not a human
+recording, dialect authority, or context-sensitive performance.
 
 The North American dictionary warning remains visible. `0`, `1`, and `2` are
 lexical-stress digits, not metrical beats. The Stage 5 tab does not report
@@ -1420,6 +1437,11 @@ CMUdict resources. It reports source-supplied concreteness fields; Zipf,
 frequency, contextual diversity, and source POS fields; AoA ratings and
 response evidence; and every exact CMUdict pronunciation candidate with
 ARPAbet phones, syllable count, and lexical-stress digits.
+
+Every displayed CMUdict candidate includes a **Hear** speaker control. It
+synthesizes that exact ARPAbet sequence locally with eSpeak NG; no query or
+audio is sent to a service. The preview is not a recording or an additional
+source of pronunciation evidence.
 
 **Matched**, **Source unrated**, **Unmatched**, and **Resource unavailable** are
 different statuses. A missing field remains missing. Pronunciation alternatives
@@ -2030,8 +2052,10 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   can make a line incomplete until a scholar documents an override.
 - Pronunciation overrides apply to an exact observed type within the current
   one-poem analysis, not to one individual occurrence.
-- Stage 5 includes no grapheme-to-phoneme prediction or hidden pronunciation
-  selection. Its own tab does not classify meter or rhyme.
+- Stage 5 may show a local, review-only G2P candidate for an unmatched form,
+  but never applies it through hidden pronunciation selection. The word stays
+  unmatched until explicit approval; its own tab does not classify meter or
+  rhyme.
 - Corpus pronunciation results persist by work. The current corpus controls use
   the recorded default pronunciation configuration rather than offering
   project-wide scholar overrides.

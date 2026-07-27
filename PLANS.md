@@ -1,5 +1,27 @@
 # VerseVAD Implementation Plan
 
+## Completed pronunciation review and local audible previews
+
+- [x] Leave out-of-dictionary words explicitly unmatched while showing a
+  clearly labeled, local provisional G2P candidate that is never used without
+  explicit approval.
+- [x] Let the user approve the prediction, edit its ARPAbet before approval, or
+  leave the word explicitly unresolved; write only approved/edited values into
+  reversible session overrides with predictor provenance.
+- [x] Add type-level CMUdict-candidate selection under title-cased **Words
+  Needing Attention**, copy choices into reversible session overrides, and
+  automatically recompute dependent pronunciation, meter, rhyme/sound, and
+  inherited-form evidence.
+- [x] Add lazily generated, offline eSpeak NG speaker previews for every
+  displayed candidate in the one-text workflow and Lexicon Explorer, with
+  cross-platform locked wheels and explicit synthetic-audio cautions.
+- [x] Make the optional workspace name blank by default and move textarea focus
+  indication to the complete input boundary rather than drawing a line inside
+  the poem.
+- [x] Add IPA-to-ARPAbet mapping, G2P missingness safeguards, WAV, override,
+  analysis, interface, styling, dependency, documentation, and cross-platform
+  regression coverage.
+
 ## Completed structural count summary
 
 - [x] Reuse the existing nonblank-line and stanza lexical-token counts to
@@ -637,7 +659,7 @@ review required.
   primary/secondary stress counts, stress density, token/type/line coverage,
   line summaries, and out-of-dictionary/ambiguity evidence.
 - [x] Add optional One Poem controls, a dedicated Pronunciation & Prosody tab,
-  readable summary rows, complete CSV/JSON audit exports, and an explicit
+  readable summary rows, complete CSV/DOCX audit exports, and an explicit
   North American English/source-coverage warning.
 - [x] Add synthetic adapter, unique/multiple/consensus/ambiguous pronunciation,
   override, Unicode/apostrophe, proper-name, repeated-word, empty-input,

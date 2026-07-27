@@ -283,8 +283,11 @@ combined with VAD, emotion, concreteness, frequency, or AoA.
 One dictionary candidate resolves directly. Several candidates resolve only
 when they agree on syllable count and the full stress sequence. A materially
 different alternative remains ambiguous until the scholar documents a
-poem-specific ARPAbet override. Out-of-dictionary forms remain missing; no
-pronunciation is predicted.
+poem-specific ARPAbet override. Out-of-dictionary forms remain missing in the
+analysis. **Words Needing Attention** may show a local eSpeak NG US-English
+G2P candidate labeled **provisional—not confirmed**, but the form stays
+unmatched until the scholar explicitly approves or edits the ARPAbet into a
+session-only override. **Leave explicitly unresolved** is the default.
 
 | Stress digit | Dictionary meaning |
 |---|---|
@@ -1139,7 +1142,7 @@ its line total and sequence remain missing.
 If the scholar documents:
 
 ```text
-permit = P ER0 M IH1 T | noun reading in this line
+permit = P ER0 M IH1 T | verb reading in this line
 ```
 
 the second line resolves as 3 syllables and `01 | 1`. The override is not a
@@ -1290,6 +1293,7 @@ Include these elements for every numeric claim:
 | Relative affinity | Inverse-distance comparison normalized across all 27 PoetryID centroids; not a probability |
 | Pronunciation candidate | One exact CMUdict phone sequence retained for an observed spelling |
 | Pronunciation coverage | Resolved eligible lexical-token occurrences divided by all eligible lexical-token occurrences |
+| Provisional G2P candidate | Local out-of-dictionary ARPAbet suggestion for review; remains unmatched and unused until explicitly approved or edited into a session override |
 | Resource unavailable | Expected local resource is missing or fails validation; distinct from an unmatched word |
 | Prosodic consensus | Multiple dictionary candidates whose phone strings differ but syllable count and full stress sequence agree |
 | Review scenario | Named, versioned set of scholar-authored decision revisions |

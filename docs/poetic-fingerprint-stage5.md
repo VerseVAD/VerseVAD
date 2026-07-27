@@ -41,6 +41,12 @@ Its dependency `cmudict==1.1.3` is recorded for reproducibility, but VerseVAD
 does not use that package's bundled data at analysis time. The exact local
 official files above remain authoritative.
 
+`espeakng-loader==0.2.4` supplies a project-local eSpeak NG shared library and
+voice data for Windows and Intel/Apple-silicon macOS. It is used only when the
+scholar requests an audible preview of an explicit displayed ARPAbet
+candidate. It is not an analysis source and does not select or predict a
+pronunciation.
+
 ## Source contract
 
 The read-only adapter verifies:
@@ -79,6 +85,8 @@ Resolution states are:
 - `dictionary_prosodic_consensus`: several source pronunciations whose phone
   strings differ but whose syllable count and full lexical-stress sequence
   agree;
+- `dictionary_user_selection`: the scholar explicitly selected one retained
+  CMUdict candidate for the observed form in the current session;
 - `scholar_override`: a validated poem-specific ARPAbet selection with a
   required note;
 - `ambiguous_dictionary`: source alternatives differ in syllable count or
@@ -88,18 +96,24 @@ Resolution states are:
 - `unmatched`: no exact observed-form entry; and
 - `not_eligible`: punctuation or numeric/non-lexical material.
 
-An ambiguous, unmatched, or unusable source row remains missing. Stage 5 has
-no grapheme-to-phoneme fallback.
+An ambiguous, unmatched, or unusable source row remains missing. A provisional
+G2P candidate shown for review is not an analytical fallback and does not
+change that missingness unless explicitly approved or edited into an override.
 
 The displayed confidence label is categorical source-resolution evidence, not
 a calibrated probability.
+
+The session-selection addition advances the pronunciation module to `1.1.0`
+and the default scenario to `cmudict-prosody-foundation-v2`, so cached and
+exported provenance cannot silently conflate earlier results with the new
+dictionary-user-selection label.
 
 ## Scholar overrides
 
 Advanced methodology settings accept one row per observed word:
 
 ```text
-permit = P ER0 M IH1 T | noun reading in this line
+permit = P ER0 M IH1 T | verb reading in this line
 fire = F AY1 ER0 | two-syllable reading for this performance
 ```
 
@@ -116,6 +130,28 @@ one-poem analysis. They are part of the configuration identity, reversible by
 editing or removing the row, and kept distinct from the retained dictionary
 candidates. Stage 5 does not yet offer occurrence-specific selection or
 Projects & Corpus persistence.
+
+The **Words Needing Attention** interface provides a selector for materially
+different retained dictionary candidates and writes the chosen candidate into
+this same editable session override configuration. **Apply Approved
+Pronunciations and Reanalyze** recalculates pronunciation and dependent meter,
+rhyme/sound, and inherited-form evidence.
+
+For an out-of-dictionary word, the interface also requests a local,
+provisional US-English G2P candidate from eSpeak NG 1.52.0 and maps the
+separated IPA result to validated CMUdict-style ARPAbet. The word remains
+`unmatched`. **Leave explicitly unresolved** is selected by default. The user
+may instead approve the prediction or edit its ARPAbet and approve the edited
+reading. Only that explicit action copies a source-labeled row into the
+session override configuration. A prediction failure likewise leaves the word
+unmatched while permitting fully manual ARPAbet entry.
+
+Each pronunciation candidate in **Words Needing Attention** and Lexicon
+Explorer has a
+**Hear** control. It converts that displayed ARPAbet sequence to eSpeak NG
+phoneme notation and synthesizes a local WAV preview on demand. The result is a
+robotic orientation aid rather than a recording or an additional source of
+pronunciation evidence. Hearing a G2P candidate does not approve it.
 
 ## Metrics and missingness
 
@@ -152,7 +188,7 @@ beats.
 
 Enable **Pronunciation & prosody foundation (CMUdict)** in One Poem. The
 dedicated **Pronunciation & Prosody** tab shows coverage, summary metrics,
-complete-line evidence, words needing attention, candidate pronunciations,
+complete-line evidence, **Words Needing Attention**, candidate pronunciations,
 overrides, warnings, and provenance.
 
 The full audit ZIP adds:
@@ -160,8 +196,9 @@ The full audit ZIP adds:
 - `pronunciation_summary.csv`;
 - `pronunciation_lines.csv`;
 - `pronunciation_types.csv`;
-- `pronunciation_token_audit.csv`; and
-- `pronunciation_result.json`.
+- `pronunciation_token_audit.csv`;
+- `pronunciation_manifest.csv`; and
+- `pronunciation_report.docx`.
 
 The readable scholar summary and CSV reading guide include pronunciation rows.
 

@@ -38,6 +38,15 @@ def test_macos_helpers_are_project_local_locked_and_private() -> None:
     lock = (ROOT / "uv.lock").read_text(encoding="utf-8")
     assert "cp312-cp312-macosx_11_0_arm64.whl" in lock
     assert "cp312-cp312-macosx_10_13_x86_64.whl" in lock
+    assert (
+        "espeakng_loader-0.2.4-py3-none-macosx_11_0_arm64.whl"
+        in lock
+    )
+    assert (
+        "espeakng_loader-0.2.4-py3-none-macosx_10_12_x86_64.whl"
+        in lock
+    )
+    assert "espeakng_loader-0.2.4-py3-none-win_amd64.whl" in lock
 
 
 def test_browser_styles_include_safari_and_narrow_layout_safeguards() -> None:

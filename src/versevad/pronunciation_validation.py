@@ -140,7 +140,7 @@ def run_synthetic_pronunciation_validation(
                     PronunciationOverride(
                         term="permit",
                         phones=("P", "ER0", "M", "IH1", "T"),
-                        note="Noun reading in the invented validation line.",
+                        note="Verb reading in the invented validation line.",
                     ),
                 )
             ),
@@ -196,7 +196,9 @@ def run_synthetic_pronunciation_validation(
             PronunciationStatus.DICTIONARY_PROSODIC_CONSENSUS.value
         ),
         "ambiguous_status": PronunciationStatus.AMBIGUOUS_DICTIONARY.value,
-        "override_status": PronunciationStatus.SCHOLAR_OVERRIDE.value,
+        "override_status": (
+            PronunciationStatus.DICTIONARY_USER_SELECTION.value
+        ),
     }
     for field, value in expected.items():
         if getattr(report, field) != value:
@@ -254,7 +256,7 @@ def main() -> int:
     )
     print(
         "Unique, prosodically agreeing, materially ambiguous, and explicit "
-        "scholar-override cases followed the expected audit."
+        "dictionary-user-selection cases followed the expected audit."
     )
     print("The generated synthetic dictionary files remained unchanged.")
     return 0

@@ -142,6 +142,13 @@ SUBTLEX-US, Kuperman AoA, and CMUdict for exact entries, phrases, explicitly
 labeled lemma-derived or user-mapped lookups, ratings, frequency fields,
 pronunciation/stress candidates, emotion associations/intensities, Warriner
 uncertainty fields, source provenance, and derived normalized comparisons.
+CMUdict alternatives include on-demand offline speaker previews of their exact
+ARPAbet sequences; the same local preview and session selection workflow is
+available for ambiguous words under **Words Needing Attention**. A word absent
+from CMUdict remains unmatched, but the same panel can show a clearly labeled
+provisional US-English G2P candidate. The default is to leave it unresolved;
+only an explicit approve/edit action copies ARPAbet into the session override
+configuration and permits dependent analysis to use it.
 Each completed lookup can be downloaded as a printable narrative Word report
 containing all available evidence and provenance shown for that query.
 Warriner's 102 and NRC VAD v1's 132

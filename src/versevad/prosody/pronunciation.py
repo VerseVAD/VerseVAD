@@ -109,6 +109,7 @@ class PronunciationStatus(StrEnum):
     NOT_ELIGIBLE = "not_eligible"
     DICTIONARY_UNIQUE = "dictionary_unique"
     DICTIONARY_PROSODIC_CONSENSUS = "dictionary_prosodic_consensus"
+    DICTIONARY_USER_SELECTION = "dictionary_user_selection"
     SCHOLAR_OVERRIDE = "scholar_override"
     AMBIGUOUS_DICTIONARY = "ambiguous_dictionary"
     SOURCE_WITHOUT_MARKED_VOWEL = "source_without_marked_vowel"
@@ -199,13 +200,48 @@ def parse_pronunciation_overrides(text: str) -> tuple[PronunciationOverride, ...
     return tuple(overrides)
 
 
+def serialize_pronunciation_overrides(
+    overrides: tuple[PronunciationOverride, ...],
+) -> str:
+    """Serialize validated session overrides in the editable UI format."""
+
+    return "\n".join(
+        f"{override.term} = {override.phones_text} | {override.note}"
+        for override in overrides
+    )
+
+
+def upsert_pronunciation_override_text(
+    text: str,
+    *,
+    term: str,
+    phones_text: str,
+    note: str,
+) -> str:
+    """Add or replace one normalized observed-form override."""
+
+    replacement = PronunciationOverride(
+        term=term.strip(),
+        phones=tuple(phones_text.strip().upper().split()),
+        note=note.strip(),
+    )
+    current = list(parse_pronunciation_overrides(text))
+    for index, override in enumerate(current):
+        if override.lookup_form == replacement.lookup_form:
+            current[index] = replacement
+            break
+    else:
+        current.append(replacement)
+    return serialize_pronunciation_overrides(tuple(current))
+
+
 @dataclass(frozen=True)
 class PronunciationConfiguration:
     overrides: tuple[PronunciationOverride, ...] = ()
     low_coverage_warning_threshold: float = 0.8
     minimum_complete_lines: int = 2
     minimum_resolved_tokens: int = 3
-    scenario_id: str = "cmudict-prosody-foundation-v1"
+    scenario_id: str = "cmudict-prosody-foundation-v2"
 
     def __post_init__(self) -> None:
         if not 0 <= self.low_coverage_warning_threshold <= 1:
@@ -431,22 +467,45 @@ def _resolve_override(
     phones_text = override.phones_text
     stress_pattern = pronouncing.stresses(phones_text)
     syllable_count = pronouncing.syllable_count(phones_text)
+    selected_dictionary_candidate = (
+        entry is not None
+        and any(
+            candidate.phones_text == phones_text
+            for candidate in entry.pronunciations
+        )
+    )
     return PronunciationTokenResult(
         **_base_token_values(token),
         eligible=True,
         resolved=True,
-        status=PronunciationStatus.SCHOLAR_OVERRIDE,
+        status=(
+            PronunciationStatus.DICTIONARY_USER_SELECTION
+            if selected_dictionary_candidate
+            else PronunciationStatus.SCHOLAR_OVERRIDE
+        ),
         **_dictionary_fields(entry),
         resolved_phones=phones_text,
         resolved_stress_pattern=stress_pattern,
         resolved_syllable_count=syllable_count,
         confidence_label=(
-            "Explicit scholar override; not a calibrated probability"
+            (
+                "Explicit user selection from retained dictionary candidates; "
+                "not a calibrated probability"
+            )
+            if selected_dictionary_candidate
+            else "Explicit scholar override; not a calibrated probability"
         ),
         override_note=override.note,
         reason=(
-            "A validated poem-specific scholar override supplied this "
-            "pronunciation. Dictionary candidates remain visible separately."
+            (
+                "The user selected one retained dictionary candidate for this "
+                "observed form in the current session."
+            )
+            if selected_dictionary_candidate
+            else (
+                "A validated poem-specific scholar override supplied this "
+                "pronunciation. Dictionary candidates remain visible separately."
+            )
         ),
     )
 
@@ -771,7 +830,11 @@ def _summary(
             for item in eligible
         ),
         override_token_count=sum(
-            item.status is PronunciationStatus.SCHOLAR_OVERRIDE
+            item.status
+            in {
+                PronunciationStatus.DICTIONARY_USER_SELECTION,
+                PronunciationStatus.SCHOLAR_OVERRIDE,
+            }
             for item in eligible
         ),
         multi_candidate_token_count=sum(
@@ -871,8 +934,9 @@ def _warnings(
                 code="material_pronunciation_ambiguity",
                 message=(
                     "Some dictionary alternatives differ in syllable count or "
-                    "lexical stress. They remain unresolved until a scholar "
-                    "override selects a pronunciation."
+                    "lexical stress. They remain unresolved until the user "
+                    "selects a retained candidate or supplies a validated "
+                    "scholar override."
                 ),
                 technical_detail=(
                     f"{summary.ambiguous_token_count} token occurrence(s)."
@@ -940,8 +1004,9 @@ def _warnings(
             ModuleWarning(
                 code="scholar_overrides_active",
                 message=(
-                    "One or more poem-specific scholar pronunciation overrides "
-                    "are active and remain distinct from dictionary evidence."
+                    "One or more poem-specific pronunciation selections or "
+                    "scholar overrides are active and remain distinct from "
+                    "automatic dictionary resolution."
                 ),
                 severity=WarningSeverity.INFORMATION,
                 technical_detail=(
@@ -1072,7 +1137,7 @@ def _load_cached(
 
 class PronunciationModule:
     name = "pronunciation_prosody_foundation"
-    version = "1.0.0"
+    version = "1.1.0"
 
     def __init__(
         self,

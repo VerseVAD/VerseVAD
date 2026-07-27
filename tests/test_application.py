@@ -45,6 +45,10 @@ from versevad.preprocessing import (
     SpacyEnglishPreprocessor,
     create_text_document,
 )
+from versevad.prosody import (
+    PronunciationConfiguration,
+    PronunciationOverride,
+)
 from tests.test_pronunciation import _module as synthetic_pronunciation_module
 
 
@@ -263,6 +267,22 @@ def test_workspace_requires_title_text_and_lexicon(preprocessor) -> None:
         run_workspace_analysis(
             AnalysisRequest(**base, lexicon_ids=()), preprocessor=preprocessor
         )
+
+
+def test_workspace_name_is_optional_for_temporary_analysis(preprocessor) -> None:
+    workspace = run_workspace_analysis(
+        AnalysisRequest(
+            project_name="",
+            title="Untitled workspace",
+            original_text="Stone.",
+            lexicon_ids=(),
+            include_lexical_style=True,
+        ),
+        preprocessor=preprocessor,
+    )
+
+    assert workspace.request.project_name == ""
+    assert workspace.document.title == "Untitled workspace"
 
 
 def test_readable_views_keep_constructs_and_denominators_separate(
@@ -696,6 +716,73 @@ def test_workspace_can_run_phonology_and_automatically_include_pronunciation(
             "phonological_sounds.csv",
             "rhyme_report.docx",
         } <= names
+
+
+def test_approved_session_pronunciation_updates_all_enabled_sound_dependencies(
+    tmp_path,
+    preprocessor,
+) -> None:
+    text = "quorvax stone\nstone quorvax"
+    module = synthetic_pronunciation_module(tmp_path)
+    unresolved = run_workspace_analysis(
+        AnalysisRequest(
+            project_name="Unresolved G2P review",
+            title="Before approval",
+            original_text=text,
+            lexicon_ids=(),
+            include_inherited_form=True,
+            analysis_cache_enabled=False,
+        ),
+        preprocessor=preprocessor,
+        resource_root=tmp_path,
+        pronunciation_module=module,
+    )
+    approved = run_workspace_analysis(
+        AnalysisRequest(
+            project_name="Approved G2P review",
+            title="After approval",
+            original_text=text,
+            lexicon_ids=(),
+            pronunciation_configuration=PronunciationConfiguration(
+                overrides=(
+                    PronunciationOverride(
+                        term="quorvax",
+                        phones=("K", "W", "AO1", "R", "V", "AE0", "K", "S"),
+                        note=(
+                            "User approved the provisional G2P candidate "
+                            "for this session."
+                        ),
+                    ),
+                )
+            ),
+            include_inherited_form=True,
+            analysis_cache_enabled=False,
+        ),
+        preprocessor=preprocessor,
+        resource_root=tmp_path,
+        pronunciation_module=module,
+    )
+
+    assert unresolved.pronunciation is not None
+    assert unresolved.meter is not None
+    assert unresolved.phonology is not None
+    assert unresolved.inherited_form is not None
+    assert approved.pronunciation is not None
+    assert approved.meter is not None
+    assert approved.phonology is not None
+    assert approved.inherited_form is not None
+    assert unresolved.pronunciation.summary.unmatched_token_count == 2
+    assert unresolved.pronunciation.summary.complete_line_count == 0
+    assert unresolved.meter.summary.line_coverage == 0.0
+    assert unresolved.phonology.summary.ending_coverage == 0.5
+    assert approved.pronunciation.summary.unmatched_token_count == 0
+    assert approved.pronunciation.summary.complete_line_count == 2
+    assert approved.meter.summary.line_coverage == 1.0
+    assert approved.phonology.summary.ending_coverage == 1.0
+    assert (
+        unresolved.inherited_form.module_result.result_id
+        != approved.inherited_form.module_result.result_id
+    )
 
 
 def test_workspace_can_run_lexical_style_without_external_resources(

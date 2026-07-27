@@ -20,6 +20,12 @@ from versevad.prosody.pronunciation import (
     PronunciationTypeSummary,
     parse_pronunciation_overrides,
 )
+from versevad.prosody.g2p import (
+    G2P_MODEL_ID,
+    G2PPredictionError,
+    ProvisionalG2PPrediction,
+    predict_arpabet,
+)
 from versevad.prosody.meter import (
     FOOT_COUNT_NAMES,
     FOOT_STRESS_PATTERNS,
@@ -91,6 +97,10 @@ __all__ = [
     "PronunciationTokenResult",
     "PronunciationTypeSummary",
     "parse_pronunciation_overrides",
+    "G2P_MODEL_ID",
+    "G2PPredictionError",
+    "ProvisionalG2PPrediction",
+    "predict_arpabet",
     "FOOT_COUNT_NAMES",
     "FOOT_STRESS_PATTERNS",
     "PRIMARY_FOOT_PATTERNS",

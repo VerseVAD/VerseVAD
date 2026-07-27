@@ -61,7 +61,7 @@ Before an override, the expected result is:
 The command then applies:
 
 ```text
-permit = P ER0 M IH1 T | noun reading in the invented validation line
+permit = P ER0 M IH1 T | verb reading in the invented validation line
 ```
 
 The expected result becomes:
@@ -112,7 +112,7 @@ The installed source must match official repository commit
 
    ```text
    the = DH AH0 | unstressed article in this reading
-   permit = P ER0 M IH1 T | noun reading
+   permit = P ER0 M IH1 T | verb reading
    ```
 
 8. Click **Analyze this text**.

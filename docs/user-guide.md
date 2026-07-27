@@ -547,6 +547,12 @@ pronunciation alternatives, derived comparisons, missing-resource statuses,
 and provenance. It does not alter or replace the CSV audit exports produced by
 poem and corpus analyses.
 
+Each CMUdict alternative also has a **Hear** speaker control. The preview is
+generated locally from that exact ARPAbet sequence with bundled eSpeak NG
+formant synthesis; no query or audio is sent elsewhere. The synthetic voice is
+an orientation aid, not a human recording, dialect authority, or
+context-sensitive performance.
+
 ## Downloads and the audit bundle
 
 The easiest download has a filename ending in `_scholar_summary.csv`. It
@@ -606,6 +612,22 @@ when there is one candidate or all candidates agree on syllable count and the
 full stress sequence. Otherwise it remains visibly ambiguous. Missing and
 ambiguous values are not set to zero.
 
+Under **Words Needing Attention**, materially ambiguous words have a selector
+for every retained dictionary candidate. Each displayed ARPAbet sequence has a
+**Hear** speaker control. Choose only when the poem's context supports that
+reading, then select **Apply Approved Pronunciations and Reanalyze**. VerseVAD
+copies the choice into the editable session override field and recalculates
+pronunciation, meter, rhyme/sound, and inherited-form evidence once.
+
+Words absent from CMUdict remain visibly **unmatched**. VerseVAD shows a local
+US-English eSpeak NG G2P candidate labeled **provisional—not confirmed**.
+Choose **Leave explicitly unresolved** to keep all pronunciation-dependent
+evidence missing, which is the default. Alternatively, approve the prediction
+or edit its ARPAbet directly, choose **Approve or edit for this session**, and
+apply it. Only that explicit approval creates a source-labeled session
+override and recalculates dependent evidence. Playing **Hear** does not approve
+the candidate.
+
 To document a context-sensitive, dialectal, historical, performed, or
 poetically elided reading, open **Advanced methodology settings** and enter:
 
@@ -616,13 +638,18 @@ word = UPPERCASE ARPAbet phones | brief scholarly note
 For example:
 
 ```text
-permit = P ER0 M IH1 T | noun reading in this line
+permit = P ER0 M IH1 T | verb reading in this line
 ```
 
 The note is required. Symbols and stress are validated against the pinned local
 CMUdict inventory. The override applies to the exact observed word type in the
 current analysis, remains separate from dictionary candidates, and can be
 reversed by removing it and analyzing again.
+
+Audible previews use bundled eSpeak NG formant synthesis entirely on the local
+computer. They pronounce the displayed phone sequence but are not recordings
+and should not be treated as evidence for dialect, historical realization, or
+performed scansion.
 
 A line total and stress sequence appear only when every eligible word on that
 physical line resolves. This prevents partial coverage from making a line look

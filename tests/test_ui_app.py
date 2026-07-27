@@ -51,7 +51,9 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     navigation = app.get("button_group")[0]
     assert navigation.label == "Workspace"
     assert navigation.value == "Single Poem"
-    assert "Poem title or working label" in [field.label for field in app.text_input]
+    text_inputs = {field.label: field for field in app.text_input}
+    assert "Poem title or working label" in text_inputs
+    assert text_inputs["Workspace name"].value == ""
     assert "Analyze Poem" in [button.label for button in app.button]
     assert "Apply preset" in [button.label for button in app.button]
     assert "Appearance" in [field.label for field in app.selectbox]
@@ -291,6 +293,16 @@ def test_lexicon_explorer_offers_printable_word_report() -> None:
         for button in app.get("download_button")
     }
     assert "Download printable Word report" in downloads
+    resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
+    if all(
+        (resource_root / filename).is_file()
+        for filename in ("cmudict.dict", "cmudict.phones", "cmudict.symbols")
+    ):
+        hear = next(button for button in app.button if button.label == "Hear")
+        hear.click()
+        app.run(timeout=60)
+        assert not app.exception
+        assert app.get("audio")
 
 
 def test_interface_reuses_single_text_workflow_for_other_text() -> None:
@@ -728,7 +740,7 @@ def test_interface_runs_optional_pronunciation_and_override_workflow() -> None:
     )
     overrides.input(
         "the = DH AH0 | unstressed article in this reading\n"
-        "permit = P ER0 M IH1 T | noun reading"
+        "permit = P ER0 M IH1 T | verb reading"
     )
     app.run(timeout=90)
     _button(app, "Analyze Poem").click()
@@ -748,6 +760,113 @@ def test_interface_runs_optional_pronunciation_and_override_workflow() -> None:
         "CMUdict supplies North American dictionary pronunciations"
         in warning.value
         for warning in app.warning
+    )
+
+
+def test_interface_applies_dictionary_candidate_from_words_needing_attention() -> None:
+    resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
+    if not all(
+        (resource_root / filename).is_file()
+        for filename in ("cmudict.dict", "cmudict.phones", "cmudict.symbols")
+    ):
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    ).input("Pronunciation resolution validation")
+    app.text_area[0].input("The permit rings.")
+    app.multiselect[0].set_value([])
+    next(
+        field
+        for field in app.checkbox
+        if field.label == "Pronunciation & prosody foundation (CMUdict)"
+    ).set_value(True)
+    app.run(timeout=90)
+    _button(app, "Analyze Poem").click()
+    app.run(timeout=90)
+
+    assert any(
+        heading.value == "Words Needing Attention"
+        for heading in app.subheader
+    )
+    candidate = next(
+        field
+        for field in app.selectbox
+        if field.label == "Pronunciation for permit"
+    )
+    candidate.set_value("P ER0 M IH1 T")
+    app.run(timeout=90)
+    _button(app, "Apply Approved Pronunciations and Reanalyze").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert "permit = P ER0 M IH1 T" in app.session_state[
+        "pronunciation_overrides"
+    ]
+    assert any(
+        "pronunciation choice(s) applied" in message.value
+        for message in app.success
+    )
+
+
+def test_interface_keeps_g2p_unmatched_until_user_approves_edit() -> None:
+    resource_root = APP_PATH.parents[3] / "resources" / "pronunciation"
+    if not all(
+        (resource_root / filename).is_file()
+        for filename in ("cmudict.dict", "cmudict.phones", "cmudict.symbols")
+    ):
+        return
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=90).run()
+    next(
+        field
+        for field in app.text_input
+        if field.label == "Poem title or working label"
+    ).input("G2P review validation")
+    app.text_area[0].input("Quorvax rings.")
+    app.multiselect[0].set_value([])
+    next(
+        field
+        for field in app.checkbox
+        if field.label == "Pronunciation & prosody foundation (CMUdict)"
+    ).set_value(True)
+    app.run(timeout=90)
+    _button(app, "Analyze Poem").click()
+    app.run(timeout=90)
+
+    predicted = next(
+        field
+        for field in app.text_input
+        if field.label == "Provisional ARPAbet for Quorvax (editable)"
+    )
+    assert predicted.value == "K W AO1 R V AE0 K S"
+    decision = next(
+        field
+        for field in app.radio
+        if field.label == "Decision for Quorvax"
+    )
+    assert decision.value == "Leave explicitly unresolved"
+    assert "quorvax =" not in app.session_state["pronunciation_overrides"]
+
+    predicted.input("K W AO1 R V AH0 K S")
+    decision.set_value("Approve or edit for this session")
+    app.run(timeout=90)
+    _button(app, "Apply Approved Pronunciations and Reanalyze").click()
+    app.run(timeout=90)
+
+    assert not app.exception
+    assert "Quorvax = K W AO1 R V AH0 K S" in app.session_state[
+        "pronunciation_overrides"
+    ]
+    assert "User edited and approved" in app.session_state[
+        "pronunciation_overrides"
+    ]
+    assert any(
+        "pronunciation choice(s) applied" in message.value
+        for message in app.success
     )
 
 

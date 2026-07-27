@@ -11,6 +11,10 @@ from versevad.exports.lexicon_explorer import (
     lexicon_explorer_report_filename,
 )
 from versevad.preprocessing import TextPreprocessor
+from versevad.prosody.audio import (
+    PronunciationAudioError,
+    synthesize_arpabet_wav,
+)
 from versevad.ui.dataframes import heterogeneous_display_value
 from versevad.ui.design import (
     render_dataframe,
@@ -318,6 +322,61 @@ def _supplementary_evidence_frame(
     return frame
 
 
+@st.fragment
+def _render_pronunciation_previews(entries) -> None:
+    pronunciation_entries = tuple(
+        entry
+        for entry in entries
+        if entry.construct == "pronunciation" and entry.status == "matched"
+    )
+    if not pronunciation_entries:
+        return
+    st.markdown("#### Audible Pronunciation Candidates")
+    st.caption(
+        "Each speaker plays an offline synthetic preview of the exact displayed "
+        "ARPAbet sequence. Alternatives remain separate."
+    )
+    for entry in pronunciation_entries:
+        values = {value.field: value.value for value in entry.values}
+        phones_text = str(values.get("ARPAbet phones", ""))
+        columns = st.columns([2, 5, 2, 1])
+        columns[0].markdown(f"**{entry.variant_label}**")
+        columns[1].code(phones_text, language=None)
+        columns[2].caption(
+            f"{values.get('Syllable count', '—')} syllable(s) · "
+            f"stress {values.get('Lexical stress', '—')}"
+        )
+        play = columns[3].button(
+            "Hear",
+            icon=":material/volume_up:",
+            help="Play this exact ARPAbet candidate locally.",
+            type="tertiary",
+            key=(
+                "explorer_pronunciation_audio_"
+                + str(
+                    entry.source_rows[0]
+                    if entry.source_rows
+                    else entry.variant_label
+                )
+            ),
+        )
+        if play:
+            try:
+                st.audio(
+                    synthesize_arpabet_wav(phones_text),
+                    format="audio/wav",
+                    autoplay=True,
+                    width="stretch",
+                )
+            except PronunciationAudioError as error:
+                st.warning(str(error))
+    st.caption(
+        "The preview uses bundled eSpeak NG formant synthesis. It is an "
+        "orientation aid—not a human recording, dialect authority, or "
+        "context-sensitive performance."
+    )
+
+
 def _render_supplementary(result: LexiconExplorerResult) -> None:
     if not result.supplementary_entries:
         return
@@ -344,6 +403,8 @@ def _render_supplementary(result: LexiconExplorerResult) -> None:
         hide_index=True,
         width="stretch",
     )
+
+    _render_pronunciation_previews(result.supplementary_entries)
 
     evidence_frame = _supplementary_evidence_frame(result)
     if not evidence_frame.empty:

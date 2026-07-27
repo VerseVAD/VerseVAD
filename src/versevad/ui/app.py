@@ -18,6 +18,7 @@ import streamlit as st
 import versevad.application as _application_services
 import versevad.adapters.nrc_vad as _nrc_vad_services
 import versevad.db.repository as _repository_services
+import versevad.prosody.pronunciation as _pronunciation_services
 import versevad.ui.design as _design_services
 import versevad.ui.preferences as _preference_services
 
@@ -52,6 +53,10 @@ _application_was_reloaded = (
     or getattr(_nrc_vad_services.NrcVadV1Adapter, "adapter_version", "") != "0.3.0"
     or not _nrc_vad_services.NrcVadV1Adapter.configuration.phrase_support
     or getattr(_repository_services, "SCHEMA_VERSION", 0) < 3
+    or (
+        getattr(_pronunciation_services.PronunciationModule, "version", "")
+        != "1.1.0"
+    )
 )
 if _application_was_reloaded:
     # Reload the framework-independent dependency graph in type-definition
@@ -160,7 +165,18 @@ from versevad.models import PhrasePolicy
 from versevad.preprocessing import SpacyEnglishPreprocessor
 from versevad.prosody.pronunciation import (
     PronunciationConfiguration,
+    PronunciationStatus,
     parse_pronunciation_overrides,
+    upsert_pronunciation_override_text,
+)
+from versevad.prosody.audio import (
+    PronunciationAudioError,
+    normalize_arpabet_phones,
+    synthesize_arpabet_wav,
+)
+from versevad.prosody.g2p import (
+    G2PPredictionError,
+    predict_arpabet,
 )
 from versevad.prosody.meter import (
     MeterAnalysisMode,
@@ -297,6 +313,373 @@ def _frame(rows, rename: dict[str, str] | None = None) -> pd.DataFrame:
     return data.rename(columns=rename or {})
 
 
+def _queue_pronunciation_resolutions(
+    selections: tuple[tuple[str, str, str, str, str], ...],
+) -> None:
+    """Copy selected candidates into the editable session overrides."""
+
+    try:
+        override_text = st.session_state.get("pronunciation_overrides", "")
+        prepared: list[tuple[str, str, str]] = []
+        for (
+            surface_form,
+            state_key,
+            source_kind,
+            provisional_phones,
+            source_label,
+        ) in selections:
+            phones_text = st.session_state.get(state_key)
+            if not phones_text:
+                continue
+            normalized_phones = normalize_arpabet_phones(str(phones_text))
+            if source_kind == "g2p":
+                predicted_phones = (
+                    normalize_arpabet_phones(provisional_phones)
+                    if provisional_phones
+                    else ""
+                )
+                if predicted_phones and normalized_phones == predicted_phones:
+                    note = (
+                        "User approved this provisional G2P prediction in "
+                        f"Words Needing Attention; source: {source_label}."
+                    )
+                else:
+                    note = (
+                        "User edited and approved this session pronunciation "
+                        "in Words Needing Attention"
+                        + (
+                            f"; provisional source: {source_label}."
+                            if source_label
+                            else "."
+                        )
+                    )
+            else:
+                note = (
+                    "User selected this retained CMUdict candidate in "
+                    "Words Needing Attention."
+                )
+            prepared.append((surface_form, normalized_phones, note))
+        if not prepared:
+            raise ValueError(
+                "Select or approve at least one pronunciation candidate."
+            )
+        for surface_form, phones_text, note in prepared:
+            override_text = upsert_pronunciation_override_text(
+                override_text,
+                term=surface_form,
+                phones_text=phones_text,
+                note=note,
+            )
+        st.session_state["pronunciation_overrides"] = override_text
+        st.session_state["_apply_pronunciation_resolutions"] = True
+        st.session_state["_pronunciation_resolution_count"] = len(prepared)
+        st.session_state.pop("_pronunciation_resolution_error", None)
+    except (PronunciationAudioError, ValueError) as error:
+        st.session_state["_pronunciation_resolution_error"] = str(error)
+
+
+@st.fragment
+def _render_pronunciation_attention(pronunciation) -> None:
+    """Render auditable ambiguity resolution without rerunning the whole page."""
+
+    unresolved = [
+        item
+        for item in pronunciation.token_audit
+        if item.eligible and not item.resolved
+    ]
+    st.subheader("Words Needing Attention")
+    if not unresolved:
+        st.success(
+            "Every eligible observed word form has resolved dictionary "
+            "syllable and lexical-stress evidence."
+        )
+        return
+
+    render_dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Surface": item.surface_form,
+                    "Line": item.line_number,
+                    "Status": item.status.value.replace("_", " "),
+                    "Candidate phones": " | ".join(
+                        item.dictionary_candidate_phones
+                    ),
+                    "Candidate stresses": " | ".join(
+                        item.dictionary_candidate_stresses
+                    ),
+                    "Candidate syllables": " | ".join(
+                        str(value)
+                        for value in item.dictionary_candidate_syllable_counts
+                    ),
+                    "Why": item.reason,
+                }
+                for item in unresolved
+            ]
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+
+    ambiguous_by_form = {}
+    unmatched_by_form = {}
+    for item in unresolved:
+        if item.status is PronunciationStatus.AMBIGUOUS_DICTIONARY:
+            ambiguous_by_form.setdefault(item.normalized_form, item)
+        elif item.status is PronunciationStatus.UNMATCHED:
+            unmatched_by_form.setdefault(item.normalized_form, item)
+
+    selections: list[tuple[str, str, str, str, str]] = []
+    if ambiguous_by_form:
+        st.markdown("#### Resolve Dictionary Ambiguities for This Session")
+        st.caption(
+            "Choose only when the poem's context supports one retained CMUdict "
+            "candidate. Applying choices updates the session override field and "
+            "reanalyzes pronunciation, meter, sound, and inherited-form evidence."
+        )
+        for normalized_form, item in ambiguous_by_form.items():
+            line_numbers = sorted(
+                {
+                    row.line_number
+                    for row in unresolved
+                    if row.normalized_form == normalized_form
+                }
+            )
+            with st.container(border=True):
+                st.markdown(
+                    f"**{item.surface_form}** · "
+                    f"line{'s' if len(line_numbers) != 1 else ''} "
+                    + ", ".join(str(value) for value in line_numbers)
+                )
+                options = tuple(item.dictionary_candidate_phones)
+                state_key = (
+                    "pronunciation_resolution_"
+                    + hashlib.sha256(
+                        (
+                            pronunciation.module_result.result_id
+                            + "|"
+                            + normalized_form
+                        ).encode("utf-8")
+                    ).hexdigest()[:16]
+                )
+                selected = st.selectbox(
+                    f"Pronunciation for {item.surface_form}",
+                    options=options,
+                    index=None,
+                    placeholder="Select a CMUdict candidate",
+                    key=state_key,
+                    format_func=lambda phones: phones,
+                )
+                selections.append(
+                    (item.surface_form, state_key, "dictionary", "", "CMUdict")
+                )
+                for candidate_index, phones_text in enumerate(options):
+                    stress = item.dictionary_candidate_stresses[
+                        candidate_index
+                    ]
+                    syllables = item.dictionary_candidate_syllable_counts[
+                        candidate_index
+                    ]
+                    phone_column, detail_column, audio_column = st.columns(
+                        [5, 2, 1]
+                    )
+                    phone_column.code(phones_text, language=None)
+                    detail_column.caption(
+                        f"{syllables} syllable"
+                        f"{'s' if syllables != 1 else ''} · stress {stress}"
+                    )
+                    play = audio_column.button(
+                        "Hear",
+                        icon=":material/volume_up:",
+                        help=(
+                            "Play a local synthetic preview of this exact "
+                            "ARPAbet candidate."
+                        ),
+                        key=f"{state_key}_audio_{candidate_index}",
+                        type="tertiary",
+                    )
+                    if play:
+                        try:
+                            st.audio(
+                                synthesize_arpabet_wav(phones_text),
+                                format="audio/wav",
+                                autoplay=True,
+                                width="stretch",
+                            )
+                        except PronunciationAudioError as error:
+                            st.warning(str(error))
+                if selected:
+                    st.success(
+                        "Selected for the next session analysis: "
+                        f"`{selected}`"
+                    )
+
+    if unmatched_by_form:
+        st.markdown("#### Review Out-of-Dictionary Predictions")
+        st.warning(
+            "These words remain **unmatched**. The displayed G2P pronunciation "
+            "is provisional—not confirmed evidence—and does not affect any "
+            "result unless you explicitly approve or edit it."
+        )
+        st.caption(
+            "Leave explicitly unresolved is the default. Approving or editing "
+            "creates a reversible session-only pronunciation override and "
+            "reanalyzes pronunciation, meter, sound, and inherited-form evidence."
+        )
+        for normalized_form, item in unmatched_by_form.items():
+            line_numbers = sorted(
+                {
+                    row.line_number
+                    for row in unresolved
+                    if row.normalized_form == normalized_form
+                }
+            )
+            state_seed = hashlib.sha256(
+                (
+                    pronunciation.module_result.result_id
+                    + "|g2p|"
+                    + normalized_form
+                ).encode("utf-8")
+            ).hexdigest()[:16]
+            phones_key = f"pronunciation_g2p_phones_{state_seed}"
+            decision_key = f"pronunciation_g2p_decision_{state_seed}"
+            prediction_phones = ""
+            prediction_label = ""
+            prediction_ipa = ""
+            prediction_error = ""
+            try:
+                prediction = predict_arpabet(item.surface_form)
+                prediction_phones = prediction.phones_text
+                prediction_label = prediction.source_label
+                prediction_ipa = prediction.ipa_text
+            except G2PPredictionError as error:
+                prediction_error = str(error)
+
+            st.session_state.setdefault(phones_key, prediction_phones)
+            st.session_state.setdefault(
+                decision_key,
+                "Leave explicitly unresolved",
+            )
+            with st.container(border=True):
+                st.markdown(
+                    f"**{item.surface_form}** · "
+                    f"line{'s' if len(line_numbers) != 1 else ''} "
+                    + ", ".join(str(value) for value in line_numbers)
+                )
+                st.markdown(
+                    "**Status: unmatched** · "
+                    "**Prediction: provisional—not confirmed**"
+                )
+                if prediction_error:
+                    st.warning(
+                        prediction_error
+                        + " You can still enter a reviewed ARPAbet sequence "
+                        "manually below or leave the word unresolved."
+                    )
+                else:
+                    st.caption(
+                        f"Prediction source: {prediction_label}. "
+                        f"Intermediate IPA: `{prediction_ipa}`"
+                    )
+                edited_phones = st.text_input(
+                    f"Provisional ARPAbet for {item.surface_form} (editable)",
+                    key=phones_key,
+                    placeholder="Enter spaced CMUdict-style ARPAbet phones",
+                    help=(
+                        "Editing this field alone does not resolve the word. "
+                        "Choose the approval option and apply before it becomes "
+                        "a session pronunciation override."
+                    ),
+                )
+                decision = st.radio(
+                    f"Decision for {item.surface_form}",
+                    options=(
+                        "Leave explicitly unresolved",
+                        "Approve or edit for this session",
+                    ),
+                    key=decision_key,
+                    horizontal=True,
+                    help=(
+                        "No prediction is used unless you explicitly choose "
+                        "the approval option and apply it."
+                    ),
+                )
+                audio_column, explanation_column = st.columns([1, 5])
+                play = audio_column.button(
+                    "Hear",
+                    icon=":material/volume_up:",
+                    help=(
+                        "Play a local synthetic preview of the currently "
+                        "displayed editable ARPAbet."
+                    ),
+                    key=f"{phones_key}_audio",
+                    type="tertiary",
+                    disabled=not bool(edited_phones.strip()),
+                )
+                explanation_column.caption(
+                    "The preview follows the editable field; hearing it does "
+                    "not approve it."
+                )
+                if play:
+                    try:
+                        st.audio(
+                            synthesize_arpabet_wav(edited_phones),
+                            format="audio/wav",
+                            autoplay=True,
+                            width="stretch",
+                        )
+                    except PronunciationAudioError as error:
+                        st.warning(str(error))
+                if decision == "Approve or edit for this session":
+                    selections.append(
+                        (
+                            item.surface_form,
+                            phones_key,
+                            "g2p",
+                            prediction_phones,
+                            prediction_label,
+                        )
+                    )
+                    st.info(
+                        "Pending approval for the next session analysis. "
+                        "Use the Apply button below to confirm."
+                    )
+
+    if ambiguous_by_form or unmatched_by_form:
+        st.button(
+            "Apply Approved Pronunciations and Reanalyze",
+            type="primary",
+            icon=":material/check_circle:",
+            width="stretch",
+            disabled=not any(
+                st.session_state.get(state_key)
+                for _, state_key, _, _, _ in selections
+            ),
+            on_click=_queue_pronunciation_resolutions,
+            args=(tuple(selections),),
+            key=(
+                "apply_pronunciation_resolutions_"
+                + pronunciation.module_result.result_id
+            ),
+        )
+
+    if st.session_state.get("_pronunciation_resolution_error"):
+        st.error(st.session_state["_pronunciation_resolution_error"])
+
+    st.info(
+        "Dictionary choices and explicitly approved or edited G2P candidates "
+        "become poem-specific ARPAbet overrides in Advanced methodology "
+        "settings. Unapproved predictions remain unmatched and unresolved. "
+        "Approved choices apply to every exact occurrence of that observed "
+        "form in this temporary session."
+    )
+    st.caption(
+        "The speaker plays an offline eSpeak NG synthetic preview derived from "
+        "the displayed ARPAbet sequence. It is an orientation aid—not a "
+        "recording, dialect authority, or claim about performance."
+    )
+
+
 def _display_self_test() -> None:
     with st.spinner("Checking the model, formulas, and five local lexicons…"):
         checks = run_self_test()
@@ -382,12 +765,17 @@ if workspace_page == "Lexicon Explorer":
 
 if workspace_page in {"Single Poem", "Other Text"}:
     is_other_text = workspace_page == "Other Text"
-    st.session_state.setdefault("project_name", "Temporary private workspace")
+    st.session_state.setdefault("project_name", "")
+    if not st.session_state.get("_workspace_name_blank_default_migrated"):
+        if st.session_state["project_name"] == "Temporary private workspace":
+            st.session_state["project_name"] = ""
+        st.session_state["_workspace_name_blank_default_migrated"] = True
     st.session_state.setdefault("poem_title", "")
     st.session_state.setdefault("poem_text", "")
     st.session_state.setdefault("text_author", "")
     st.session_state.setdefault("text_year", "")
     st.session_state.setdefault("text_source_notes", "")
+    st.session_state.setdefault("pronunciation_overrides", "")
     st.session_state.setdefault("workspace", None)
 
     with st.sidebar:
@@ -456,7 +844,10 @@ if workspace_page in {"Single Poem", "Other Text"}:
             st.text_input(
                 "Workspace name",
                 key="project_name",
-                help="A temporary label for this session; Phase 3 does not create a persistent database.",
+                help=(
+                    "Optional. Leave blank or add a temporary session label; "
+                    "this does not create a persistent project."
+                ),
             )
         with right:
             st.text_input(
@@ -1240,14 +1631,13 @@ if workspace_page in {"Single Poem", "Other Text"}:
             st.markdown("**Pronunciation & prosody-foundation settings**")
             pronunciation_overrides_text = st.text_area(
                 "Poem-specific pronunciation overrides",
-                value="",
                 key="pronunciation_overrides",
                 disabled=not (
                     include_pronunciation or include_meter or include_phonology
                 ),
                 height=120,
                 placeholder=(
-                    "permit = P ER0 M IH1 T | noun reading in this line\n"
+                    "permit = P ER0 M IH1 T | verb reading in this line\n"
                     "fire = F AY1 ER0 | two-syllable reading"
                 ),
                 help=(
@@ -1297,9 +1687,12 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 ),
             )
             st.caption(
-                "Exact observed forms only: no lemma, possessive-base, or "
-                "grapheme-to-phoneme fallback. Multiple dictionary candidates "
-                "resolve only when syllable count and lexical stress agree."
+                "Analysis uses exact observed forms only: no lemma or "
+                "possessive-base fallback. Out-of-dictionary G2P candidates "
+                "are review-only and remain unmatched unless explicitly "
+                "approved or edited into a session override. Multiple "
+                "dictionary candidates resolve automatically only when "
+                "syllable count and lexical stress agree."
             )
             st.markdown("**Meter and rhythmic-regularity settings**")
             meter_mode_labels = {
@@ -1739,6 +2132,11 @@ if workspace_page in {"Single Poem", "Other Text"}:
         if include_phonology or include_inherited_form:
             st.warning(phonological_configuration_error)
 
+    automatic_pronunciation_update = bool(
+        st.session_state.pop("_apply_pronunciation_resolutions", False)
+    )
+    analyze_clicked = analyze_clicked or automatic_pronunciation_update
+
     if analyze_clicked:
         try:
             if concreteness_configuration_error:
@@ -1797,7 +2195,14 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     True,
                 ),
             )
-            with st.status("Analyzing locally…", expanded=True) as analysis_status:
+            with st.status(
+                (
+                    "Updating pronunciation and dependent evidence locally…"
+                    if automatic_pronunciation_update
+                    else "Analyzing locally…"
+                ),
+                expanded=True,
+            ) as analysis_status:
                 st.write("Preparing one shared linguistic representation.")
                 if selected_lexicons:
                     st.write("Analyzing selected affective lexicons independently.")
@@ -1825,10 +2230,21 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     state="complete",
                     expanded=False,
                 )
-            st.success(
-                "Analysis complete. Start with Overview; use Evidence & Diagnostics "
-                "when you want to inspect why."
-            )
+            if automatic_pronunciation_update:
+                applied_count = st.session_state.pop(
+                    "_pronunciation_resolution_count",
+                    0,
+                )
+                st.success(
+                    f"{applied_count} pronunciation choice(s) applied; "
+                    "pronunciation, meter, sound, and inherited-form evidence "
+                    "are updated."
+                )
+            else:
+                st.success(
+                    "Analysis complete. Start with Overview; use Evidence & "
+                    "Diagnostics when you want to inspect why."
+                )
         except (TextImportError, WorkspaceAnalysisError, ValueError) as error:
             st.error(str(error))
         except Exception as error:  # pragma: no cover - defensive UI boundary
@@ -3982,51 +4398,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "A vertical bar separates words."
             )
 
-            unresolved = [
-                item
-                for item in pronunciation.token_audit
-                if item.eligible and not item.resolved
-            ]
-            st.markdown("**Words needing attention**")
-            if unresolved:
-                render_dataframe(
-                    pd.DataFrame(
-                        [
-                            {
-                                "Surface": item.surface_form,
-                                "Line": item.line_number,
-                                "Status": item.status.value.replace("_", " "),
-                                "Candidate phones": " | ".join(
-                                    item.dictionary_candidate_phones
-                                ),
-                                "Candidate stresses": " | ".join(
-                                    item.dictionary_candidate_stresses
-                                ),
-                                "Candidate syllables": " | ".join(
-                                    str(value)
-                                    for value in (
-                                        item.dictionary_candidate_syllable_counts
-                                    )
-                                ),
-                                "Why": item.reason,
-                            }
-                            for item in unresolved
-                        ]
-                    ),
-                    hide_index=True,
-                    width="stretch",
-                )
-                st.info(
-                    "To resolve a context-sensitive, archaic, dialectal, or "
-                    "poetically elided form, add a poem-specific override in "
-                    "Advanced methodology settings using: "
-                    "`word = ARPAbet phones | scholarly note`, then analyze again."
-                )
-            else:
-                st.success(
-                    "Every eligible observed word form has resolved dictionary "
-                    "syllable and lexical-stress evidence."
-                )
+            _render_pronunciation_attention(pronunciation)
 
             with st.expander(
                 f"Pronunciation token audit ({len(pronunciation.token_audit):,} rows)"

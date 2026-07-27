@@ -15,6 +15,7 @@ from versevad.prosody.pronunciation import (
     PronunciationOverride,
     PronunciationStatus,
     parse_pronunciation_overrides,
+    upsert_pronunciation_override_text,
 )
 
 
@@ -206,14 +207,14 @@ def test_unique_consensus_ambiguous_unmatched_and_vowelless_are_distinct(
     assert result.summary.token_coverage == pytest.approx(0.4)
 
 
-def test_poem_specific_override_is_validated_and_auditable(
+def test_dictionary_candidate_selection_is_validated_and_auditable(
     tmp_path: Path,
     preprocessor,
 ) -> None:
     override = PronunciationOverride(
         term="permit",
         phones=("P", "ER0", "M", "IH1", "T"),
-        note="Noun reading in this line.",
+        note="Verb reading in this line.",
     )
     result = _analyze(
         tmp_path,
@@ -223,14 +224,15 @@ def test_poem_specific_override_is_validated_and_auditable(
     )
     permit = result.token_audit[0]
 
-    assert permit.status is PronunciationStatus.SCHOLAR_OVERRIDE
+    assert permit.status is PronunciationStatus.DICTIONARY_USER_SELECTION
     assert permit.resolved_syllable_count == 2
     assert permit.resolved_stress_pattern == "01"
-    assert permit.override_note == "Noun reading in this line."
+    assert permit.override_note == "Verb reading in this line."
     assert permit.dictionary_candidate_count == 2
     assert result.line_summaries[0].is_complete
     assert result.line_summaries[0].syllable_count == 3
     assert result.line_summaries[0].lexical_stress_sequence == "01 | 1"
+    assert result.summary.override_token_count == 1
 
 
 def test_incomplete_lines_remain_missing_instead_of_undercounted(
@@ -271,7 +273,7 @@ def test_override_parser_requires_notes_and_rejects_unknown_symbols(
     preprocessor,
 ) -> None:
     parsed = parse_pronunciation_overrides(
-        "# poem-specific readings\npermit = P ER0 M IH1 T | noun reading"
+        "# poem-specific readings\npermit = P ER0 M IH1 T | verb reading"
     )
     assert parsed[0].lookup_form == "permit"
 
@@ -279,7 +281,7 @@ def test_override_parser_requires_notes_and_rejects_unknown_symbols(
         parse_pronunciation_overrides("permit = P ER0 M IH1 T")
     with pytest.raises(ValueError, match="Duplicate"):
         parse_pronunciation_overrides(
-            "permit = P ER0 M IH1 T | noun\nPERMIT = P ER1 M IH2 T | verb"
+            "permit = P ER0 M IH1 T | verb\nPERMIT = P ER1 M IH2 T | noun"
         )
     with pytest.raises(PronunciationModuleError, match="Unknown CMUdict symbol"):
         _analyze(
@@ -296,6 +298,28 @@ def test_override_parser_requires_notes_and_rejects_unknown_symbols(
                 )
             ),
         )
+
+
+def test_session_override_upsert_adds_and_replaces_normalized_word() -> None:
+    text = upsert_pronunciation_override_text(
+        "fire = F AY1 ER0 | two syllables",
+        term="permit",
+        phones_text="P ER0 M IH1 T",
+        note="Selected dictionary candidate.",
+    )
+    parsed = parse_pronunciation_overrides(text)
+    assert [row.lookup_form for row in parsed] == ["fire", "permit"]
+
+    replaced = upsert_pronunciation_override_text(
+        text,
+        term="PERMIT",
+        phones_text="P ER1 M IH2 T",
+        note="Context supports the noun reading.",
+    )
+    parsed_replacement = parse_pronunciation_overrides(replaced)
+    assert len(parsed_replacement) == 2
+    assert parsed_replacement[1].phones_text == "P ER1 M IH2 T"
+    assert parsed_replacement[1].note == "Context supports the noun reading."
 
 
 def test_empty_input_and_repeated_words_are_deterministic(

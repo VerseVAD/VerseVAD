@@ -1457,7 +1457,8 @@ class PhonologicalModule:
             lookup_policy=(
                 "Consumes retained Stage 5 exact observed-form CMUdict or "
                 "scholar-override phones. Every material dictionary alternative "
-                "is retained; no pronunciation is predicted or silently selected."
+                "is retained; no unapproved provisional pronunciation is "
+                "consumed or silently selected."
             ),
             inclusion_policy=(
                 "Scheme groups use robust perfect/identical rhyme parts from the "

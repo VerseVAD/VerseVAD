@@ -19,6 +19,8 @@ from versevad.performance_meter_validation import (
     run_synthetic_performance_meter_validation,
 )
 from versevad.preprocessing import SpacyEnglishPreprocessor, create_text_document
+from versevad.prosody.audio import synthesize_arpabet_wav
+from versevad.prosody.g2p import predict_arpabet
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,45 @@ def run_runtime_self_test() -> tuple[DiagnosticCheck, ...]:
         )
     except Exception as error:  # pragma: no cover - exercised only on broken installs
         checks.append(DiagnosticCheck("Graphical framework", False, str(error)))
+
+    try:
+        preview = synthesize_arpabet_wav("T EH1 S T")
+        checks.append(
+            DiagnosticCheck(
+                "Offline pronunciation preview",
+                preview.startswith(b"RIFF") and len(preview) > 44,
+                "Bundled eSpeak NG generated a local ARPAbet WAV preview.",
+            )
+        )
+    except Exception as error:
+        checks.append(
+            DiagnosticCheck(
+                "Offline pronunciation preview",
+                False,
+                str(error),
+            )
+        )
+
+    try:
+        prediction = predict_arpabet("quorvax")
+        checks.append(
+            DiagnosticCheck(
+                "Provisional G2P review",
+                prediction.phones_text == "K W AO1 R V AE0 K S",
+                (
+                    "Bundled eSpeak NG generated a local review-only ARPAbet "
+                    "candidate without resolving an analysis token."
+                ),
+            )
+        )
+    except Exception as error:
+        checks.append(
+            DiagnosticCheck(
+                "Provisional G2P review",
+                False,
+                str(error),
+            )
+        )
 
     try:
         preprocessor = SpacyEnglishPreprocessor()

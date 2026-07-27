@@ -19,6 +19,9 @@ The initial technology choices are:
 - the Python `sqlite3` module plus explicit, numbered SQL migrations;
 - pandas for tabular analysis and interchange;
 - spaCy with a pinned English pipeline for POS-sensitive lemmatization;
+- eSpeak NG, loaded from a pinned cross-platform wheel, for optional offline
+  synthesis of explicit ARPAbet pronunciation previews and review-only
+  US-English G2P candidates for unmatched observed forms;
 - Altair through Streamlit for current interactive charts;
 - openpyxl for reading the user-supplied XLSX normative resources;
 - python-docx for local narrative Word reports;
@@ -36,6 +39,17 @@ Phase 1 selected and locked Python 3.12, spaCy 3.8.14,
 `en_core_web_sm` 3.8.0, Click 8.4.2, and pytest 9.1.1 in `uv.lock`. The working
 runtime, package cache, and `uv` executable are kept in ignored project-local
 directories rather than installed computer-wide.
+
+The pronunciation assistance layer pins `espeakng-loader==0.2.4`, whose lock
+entries provide the
+bundled eSpeak NG shared library and data for Windows x86-64/ARM64, macOS Intel/
+Apple silicon, and supported Linux architectures. It is initialized lazily
+when a preview or unmatched-word review needs it. eSpeak NG 1.52.0's `en-us`
+text-to-phoneme system produces separated IPA, and VerseVAD maps only its
+documented supported inventory to provisional CMUdict-style ARPAbet. The
+analytical pronunciation engine does not treat that output as evidence: the
+token remains unmatched until the scholar approves or edits the candidate
+into a session override. No text or phones are sent to a service.
 
 Phase 2 adds no runtime dependency. Its adapter, phrase, categorical, intensity,
 comparison, and CSV-export logic remains in the framework-independent Python

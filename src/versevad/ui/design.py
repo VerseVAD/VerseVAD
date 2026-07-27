@@ -413,10 +413,18 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       border-color: var(--color-accent) !important;
       color: var(--color-accent-strong) !important;
     }}
-    button:focus-visible, input:focus-visible, textarea:focus-visible,
+    button:focus-visible, input:focus-visible,
     [role="button"]:focus-visible, [role="tab"]:focus-visible {{
       outline: 3px solid var(--color-focus) !important;
       outline-offset: 2px !important;
+    }}
+    [data-testid="stTextAreaRootElement"]:focus-within {{
+      border-radius: var(--radius-small);
+      outline: 3px solid var(--color-focus) !important;
+      outline-offset: 2px !important;
+    }}
+    [data-testid="stTextAreaRootElement"] textarea:focus-visible {{
+      outline: none !important;
     }}
     .versevad-shell {{
       background: var(--color-surface-raised);

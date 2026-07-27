@@ -6,6 +6,19 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Made the optional one-text **Workspace Name** blank by default and confirmed
+  that temporary analysis does not require it. Textarea keyboard/mouse focus
+  now outlines the complete poem-input boundary instead of appearing as a
+  stray blue line inside the field.
+- Promoted **Words Needing Attention** to title case and added explicit
+  retained-CMUdict candidate selection. Applying one or more choices writes
+  reversible session overrides and automatically recalculates pronunciation,
+  meter, rhyme/sound, and inherited-form evidence.
+- Added local, review-only US-English G2P candidates for words absent from
+  CMUdict. Such words retain `unmatched` status and missing syllable/stress
+  evidence until the user explicitly approves or edits the provisional
+  ARPAbet. **Leave explicitly unresolved** is the default; approval writes a
+  source-labeled session override before dependent evidence is recalculated.
 - Isolated the Inherited Form report as a Streamlit fragment so selecting a
   profile in **All Inherited Forms** refreshes only that report and no longer
   recollapses the surrounding Sound & Form sections.
@@ -67,6 +80,12 @@ All notable VerseVAD changes will be recorded here.
 
 ### Added
 
+- Added on-demand **Hear** controls for every displayed ARPAbet candidate in
+  **Words Needing Attention** and Lexicon Explorer. Pinned cross-platform
+  eSpeak NG formant synthesis produces each preview locally on Windows and
+  Intel/Apple-silicon macOS; the interface labels it as a synthetic
+  orientation aid rather than a recording, dialect authority, or analytical
+  source.
 - Added **Inherited Form Analysis** to Sound & Form with a versioned,
   source-backed registry of ten initial profiles: Elizabethan, Petrarchan, and
   Spenserian sonnets; villanelle; sestina; limerick; an explicitly narrow

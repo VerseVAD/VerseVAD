@@ -39,7 +39,7 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
         assert "```" not in text
         assert "Common meter" not in text
         assert "meter_schemes.csv" not in text
-        assert "permit = P ER0 M IH1 T | noun reading in this line" in text
+        assert "permit = P ER0 M IH1 T | verb reading in this line" in text
         for required in (
             "Dual VAD reporting and stopwords",
             "Single Poem and Other Text Workspaces",
@@ -75,6 +75,9 @@ def test_comprehensive_user_manual_is_current_and_structurally_sound() -> None:
             "Dictionary pronunciation, syllables, and lexical stress",
             "Pronunciation & Prosody",
             "pronunciation_token_audit.csv",
+            "provisional—not confirmed",
+            "Leave explicitly unresolved",
+            "Approve or edit for this session",
             "Candidate meter and rhythmic regularity",
             "Meter & Rhythm section",
             "meter_alignment_operations.csv",
@@ -229,6 +232,8 @@ def test_beginner_values_guide_defines_requested_terms_and_formulas() -> None:
             "Numeric-response proportion",
             "Dictionary Pronunciation, Syllables, and Lexical Stress",
             "poem-specific ARPAbet override",
+            "provisional—not confirmed",
+            "Provisional G2P candidate",
             "Candidate Meter and Fit",
             "Rhyme and Recurring Phonological Patterns",
             "slant_similarity = 0.35(stressed_vowel)",

@@ -67,6 +67,11 @@ def test_stylesheet_uses_semantic_tokens_and_accessibility_modes() -> None:
         assert "prefers-reduced-motion" in sheet
         assert "focus-visible" in sheet
         assert '[data-testid="stTextAreaRootElement"]' in sheet
+        assert '[data-testid="stTextAreaRootElement"]:focus-within' in sheet
+        assert (
+            '[data-testid="stTextAreaRootElement"] textarea:focus-visible'
+            in sheet
+        )
         assert '[data-testid="stTextInputRootElement"]' in sheet
         assert '[data-testid="stBaseButton-primary"]' in sheet
         assert '[aria-label="Project section"]' in sheet
