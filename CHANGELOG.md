@@ -6,6 +6,12 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Repaired **Apply Approved Pronunciations and Reanalyze** inside the
+  fragment-scoped **Words Needing Attention** panel. A successful dictionary
+  selection or approved/edited G2P candidate now requests one full-app rerun,
+  allowing the queued session override to rebuild pronunciation, syllable,
+  meter, rhyme/sound, and inherited-form evidence instead of merely refreshing
+  the review panel.
 - Standardized ordinary, form-submit, download, primary, secondary, tertiary,
   hover, and disabled button foregrounds through shared contrast-tested theme
   tokens. Nested Streamlit labels and icons now inherit those explicit colors,

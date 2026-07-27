@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -81,6 +82,47 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
 
 def test_inherited_form_report_uses_fragment_scoped_widget_reruns() -> None:
     assert hasattr(render_inherited_form, "__wrapped__")
+
+
+def test_pronunciation_fragment_approval_requests_full_app_rerun() -> None:
+    tree = ast.parse(APP_PATH.read_text(encoding="utf-8"))
+    review_function = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_render_pronunciation_attention"
+    )
+    reruns = [
+        node
+        for node in ast.walk(review_function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "st"
+        and node.func.attr == "rerun"
+    ]
+    assert len(reruns) == 1
+    assert any(
+        keyword.arg == "scope"
+        and isinstance(keyword.value, ast.Constant)
+        and keyword.value.value == "app"
+        for keyword in reruns[0].keywords
+    )
+    apply_button = next(
+        node
+        for node in ast.walk(review_function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "button"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value
+        == "Apply Approved Pronunciations and Reanalyze"
+    )
+    assert all(
+        keyword.arg not in {"on_click", "args"}
+        for keyword in apply_button.keywords
+    )
 
 
 def test_interface_state_migration_and_preset_emit_no_widget_default_warning(
@@ -806,6 +848,31 @@ def test_interface_applies_dictionary_candidate_from_words_needing_attention() -
     assert "permit = P ER0 M IH1 T" in app.session_state[
         "pronunciation_overrides"
     ]
+    permit_tokens = [
+        token
+        for token in app.session_state["workspace"].pronunciation.token_audit
+        if token.normalized_form == "permit"
+    ]
+    assert permit_tokens
+    assert all(token.resolved for token in permit_tokens)
+    assert {
+        token.resolved_phones
+        for token in permit_tokens
+    } == {
+        "P ER0 M IH1 T"
+    }
+    assert {
+        override.term
+        for override in app.session_state[
+            "workspace"
+        ].request.pronunciation_configuration.overrides
+    } == {"permit"}
+    assert all(
+        override.phones_text == "P ER0 M IH1 T"
+        for override in app.session_state[
+            "workspace"
+        ].request.pronunciation_configuration.overrides
+    )
     assert any(
         "pronunciation choice(s) applied" in message.value
         for message in app.success
@@ -864,6 +931,31 @@ def test_interface_keeps_g2p_unmatched_until_user_approves_edit() -> None:
     assert "User edited and approved" in app.session_state[
         "pronunciation_overrides"
     ]
+    quorvax_tokens = [
+        token
+        for token in app.session_state["workspace"].pronunciation.token_audit
+        if token.normalized_form == "quorvax"
+    ]
+    assert quorvax_tokens
+    assert all(token.resolved for token in quorvax_tokens)
+    assert {
+        token.resolved_phones
+        for token in quorvax_tokens
+    } == {
+        "K W AO1 R V AH0 K S"
+    }
+    assert {
+        override.term
+        for override in app.session_state[
+            "workspace"
+        ].request.pronunciation_configuration.overrides
+    } == {"Quorvax"}
+    assert all(
+        override.phones_text == "K W AO1 R V AH0 K S"
+        for override in app.session_state[
+            "workspace"
+        ].request.pronunciation_configuration.overrides
+    )
     assert any(
         "pronunciation choice(s) applied" in message.value
         for message in app.success

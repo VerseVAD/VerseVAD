@@ -315,7 +315,7 @@ def _frame(rows, rename: dict[str, str] | None = None) -> pd.DataFrame:
 
 def _queue_pronunciation_resolutions(
     selections: tuple[tuple[str, str, str, str, str], ...],
-) -> None:
+) -> bool:
     """Copy selected candidates into the editable session overrides."""
 
     try:
@@ -370,12 +370,19 @@ def _queue_pronunciation_resolutions(
                 phones_text=phones_text,
                 note=note,
             )
-        st.session_state["pronunciation_overrides"] = override_text
+        # The editable Advanced methodology textarea owns
+        # ``pronunciation_overrides``. A result fragment runs after that widget
+        # was instantiated, so Streamlit forbids writing its key here. Stage
+        # the serialized value under a non-widget key; the ensuing full rerun
+        # copies it into the widget state before recreating the textarea.
+        st.session_state["_pending_pronunciation_overrides"] = override_text
         st.session_state["_apply_pronunciation_resolutions"] = True
         st.session_state["_pronunciation_resolution_count"] = len(prepared)
         st.session_state.pop("_pronunciation_resolution_error", None)
+        return True
     except (PronunciationAudioError, ValueError) as error:
         st.session_state["_pronunciation_resolution_error"] = str(error)
+        return False
 
 
 @st.fragment
@@ -646,7 +653,7 @@ def _render_pronunciation_attention(pronunciation) -> None:
                     )
 
     if ambiguous_by_form or unmatched_by_form:
-        st.button(
+        apply_clicked = st.button(
             "Apply Approved Pronunciations and Reanalyze",
             type="primary",
             icon=":material/check_circle:",
@@ -655,13 +662,19 @@ def _render_pronunciation_attention(pronunciation) -> None:
                 st.session_state.get(state_key)
                 for _, state_key, _, _, _ in selections
             ),
-            on_click=_queue_pronunciation_resolutions,
-            args=(tuple(selections),),
             key=(
                 "apply_pronunciation_resolutions_"
                 + pronunciation.module_result.result_id
             ),
         )
+        if apply_clicked and _queue_pronunciation_resolutions(
+            tuple(selections)
+        ):
+            # Ordinary fragment widgets rerun only this panel. The analysis
+            # request lives in the full app, so promote a successful apply to
+            # one app-scoped rerun after the state write. Streamlit explicitly
+            # treats st.rerun() inside an on_click callback as a no-op.
+            st.rerun(scope="app")
 
     if st.session_state.get("_pronunciation_resolution_error"):
         st.error(st.session_state["_pronunciation_resolution_error"])
@@ -776,6 +789,14 @@ if workspace_page in {"Single Poem", "Other Text"}:
     st.session_state.setdefault("text_year", "")
     st.session_state.setdefault("text_source_notes", "")
     st.session_state.setdefault("pronunciation_overrides", "")
+    pending_pronunciation_overrides = st.session_state.pop(
+        "_pending_pronunciation_overrides",
+        None,
+    )
+    if pending_pronunciation_overrides is not None:
+        st.session_state["pronunciation_overrides"] = str(
+            pending_pronunciation_overrides
+        )
     st.session_state.setdefault("workspace", None)
 
     with st.sidebar:

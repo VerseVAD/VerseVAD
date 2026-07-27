@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed pronunciation-review fragment rerun repair
+
+- [x] Preserve the fragment-scoped pronunciation review controls for responsive
+  candidate selection and audio previews.
+- [x] Request a full-app rerun after a valid dictionary or G2P approval so the
+  queued override reaches the shared analysis request.
+- [x] Verify that applied words leave **Words Needing Attention** and that
+  downstream pronunciation-dependent evidence is recalculated.
+
 ## Completed cross-theme button contrast audit
 
 - [x] Give primary, secondary, tertiary, hover, and disabled button states
