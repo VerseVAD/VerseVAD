@@ -845,23 +845,18 @@ PoetryID downloads are six CSV files and one narrative Word report.
 
 ## Inherited Form Analysis
 
-Enable **Inherited Form Analysis (10 candidate profiles)** under **Sound and
-Form**. VerseVAD automatically reuses its pronunciation, meter, and graded
-rhyme results, even when those dependency checkboxes were not separately
-selected. The module does not rescan the poem.
+Enable **Inherited Form Analysis (comprehensive profile registry)** under the
+default-collapsed **Additional Optional Models** panel. VerseVAD automatically
+reuses its pronunciation, meter, and graded rhyme results, even when those
+dependency checkboxes were not separately selected. The module does not
+rescan the poem.
 
-The first registry contains:
-
-- Elizabethan / Shakespearean sonnet;
-- Petrarchan / Italian sonnet;
-- Spenserian sonnet;
-- villanelle;
-- sestina;
-- limerick;
-- English-language 5–7–5 haiku profile;
-- pantoum;
-- terza rima; and
-- ghazal.
+Registry version 2.0 contains 169 source-documented profiles: 58 automatic,
+27 partial, and 84 manual. Manual profiles include forms whose defining
+context, visual layout, language-specific practice, theme, or compositional
+procedure VerseVAD cannot responsibly infer. They remain selectable and keep
+their defining requirement visible and unscored, but they cannot become
+automatic suggestions.
 
 Read the result in this order:
 
@@ -880,9 +875,11 @@ Read the result in this order:
 
 Hover over the classification metric or read the blue information box to see
 the candidate's traditional definition and the poem's main agreements and
-departures. Use **Inspect candidate evidence** for expected/detected values,
-roles, weights, scores, coverage, and source modules. The sources and
-limitations expander links to the supporting definitions.
+departures. When nothing qualifies, **Ten Nearest Profiles** shows only the
+ten closest candidates. Use **All Inherited Forms** to select any of the 169
+profiles—even one that is obviously not a match—and inspect expected/detected
+values, roles, weights, scores, coverage, source modules, assessment mode,
+sources, and limitations.
 
 The haiku entry is deliberately named **English-Language 5–7–5 Haiku
 Profile**. It tests three lines and 5/7/5 syllables; it does not equate haiku
@@ -897,7 +894,8 @@ table to compare potential match, classification, consistency, coverage,
 confidence, nearest alternative, and margin. Results remain work-level; no
 single form is assigned to the collection.
 
-Downloads contain:
+Downloads contain the complete registry, not only the ten candidates displayed
+in a no-match view:
 
 - `inherited_form_summary.csv`;
 - `inherited_form_candidates.csv`;

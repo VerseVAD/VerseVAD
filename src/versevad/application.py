@@ -2110,8 +2110,9 @@ def overview_notes(workspace: WorkspaceAnalysis) -> tuple[str, ...]:
         )
     if workspace.inherited_form is not None:
         notes.append(
-            "Inherited Form Analysis reports structural resemblance to ten "
-            "versioned traditional profiles. A potential match, consistency "
+            "Inherited Form Analysis reports structural resemblance to a "
+            "comprehensive, versioned registry of traditional and inherited "
+            "form profiles. A potential match, consistency "
             "index, and confidence band are not a declaration of genre identity "
             "or a probability."
         )
@@ -3243,7 +3244,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
             (
                 {
                     "section": "Inherited Form Analysis",
-                    "lexicon": "Ten-profile inherited-form registry",
+                    "lexicon": "Comprehensive inherited-form registry",
                     "analysis_view": inherited.configuration.scenario_id,
                     "metric": "Potential inherited-form match",
                     "value": best.profile_name if best else "No inherited-form match",
@@ -3264,7 +3265,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 },
                 {
                     "section": "Inherited Form Analysis",
-                    "lexicon": "Ten-profile inherited-form registry",
+                    "lexicon": "Comprehensive inherited-form registry",
                     "analysis_view": inherited.configuration.scenario_id,
                     "metric": "Form consistency",
                     "value": (
@@ -3281,7 +3282,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 },
                 {
                     "section": "Inherited Form Analysis",
-                    "lexicon": "Ten-profile inherited-form registry",
+                    "lexicon": "Comprehensive inherited-form registry",
                     "analysis_view": inherited.configuration.scenario_id,
                     "metric": "Evidence coverage",
                     "value": (
@@ -3298,7 +3299,7 @@ def scholar_summary_csv(workspace: WorkspaceAnalysis) -> bytes:
                 },
                 {
                     "section": "Inherited Form Analysis",
-                    "lexicon": "Ten-profile inherited-form registry",
+                    "lexicon": "Comprehensive inherited-form registry",
                     "analysis_view": inherited.configuration.scenario_id,
                     "metric": "Nearest alternative",
                     "value": (

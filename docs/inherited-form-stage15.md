@@ -1,5 +1,10 @@
 # Stage 15: Inherited Form Analysis
 
+> Historical foundation note: this document records the initial version-1
+> ten-profile implementation. Registry version 2.0 now contains 169 profiles
+> and is documented in
+> [`inherited-form-registry-v2.md`](inherited-form-registry-v2.md).
+
 ## Objective
 
 Stage 15 adds a transparent candidate-ranking system for inherited poetic

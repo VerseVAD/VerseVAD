@@ -91,6 +91,7 @@ def export_inherited_form_candidates_csv(
         "profile_name",
         "classification",
         "suggested",
+        "assessment_mode",
         "consistency_index",
         "evidence_coverage",
         "required_feature_agreement",
@@ -111,6 +112,7 @@ def export_inherited_form_candidates_csv(
                 "profile_name": item.profile_name,
                 "classification": item.classification,
                 "suggested": item.suggested,
+                "assessment_mode": item.assessment_mode,
                 "consistency_index": (
                     item.consistency if item.consistency is not None else ""
                 ),
@@ -201,6 +203,7 @@ def export_inherited_form_profiles_csv(
         "profile_name",
         "family",
         "tradition",
+        "assessment_mode",
         "traditional_definition",
         "tooltip_definition",
         "source_urls",
@@ -215,6 +218,7 @@ def export_inherited_form_profiles_csv(
                 "profile_name": profile.name,
                 "family": profile.family,
                 "tradition": profile.tradition,
+                "assessment_mode": profile.assessment_mode,
                 "traditional_definition": profile.definition,
                 "tooltip_definition": profile.tooltip_definition,
                 "source_urls": " | ".join(profile.source_urls),
@@ -256,6 +260,15 @@ def export_inherited_form_methodology_csv(
             "note": (
                 "VerseVAD measures resemblance to a documented profile; it does "
                 "not declare the poem's genre, quality, intent, or historical identity."
+            ),
+        },
+        {
+            "section": "method",
+            "item": "assessment modes",
+            "value": "automatic / partial / manual",
+            "note": (
+                "Manual profiles remain in the registry and exports for direct "
+                "inspection but cannot become automatic suggestions."
             ),
         },
     ]
@@ -328,7 +341,7 @@ def export_inherited_form_bundle(
                         if alternative.consistency is not None
                         else "unavailable"
                     ),
-                    "denominator": "same ten-profile registry",
+                    "denominator": "same comprehensive profile registry",
                     "note": "Retained because related forms can share structural features.",
                 }
             )
@@ -359,6 +372,27 @@ def export_inherited_form_bundle(
                 ),
             }
         )
+        summary_rows.extend(
+            {
+                "section": "ten nearest inherited-form profiles",
+                "metric": candidate.profile_name,
+                "value": (
+                    f"{candidate.consistency:.1%}"
+                    if candidate.consistency is not None
+                    else "unavailable"
+                ),
+                "unit_or_scale": candidate.classification,
+                "denominator": (
+                    f"{candidate.evidence_coverage:.1%} of weighted evidence"
+                ),
+                "note": (
+                    f"Assessment mode: {candidate.assessment_mode}. "
+                    "See the complete candidate and profile CSV files for the "
+                    "full registry."
+                ),
+            }
+            for candidate in result.candidates[:10]
+        )
     bundle["inherited_form_report.docx"] = build_narrative_report(
         profile=REPORT_PROFILES["inherited_form"],
         summary_rows=summary_rows,
@@ -371,7 +405,9 @@ def export_inherited_form_bundle(
         ),
         additional_paragraphs=(
             "Traditional definitions and their source URLs are recorded in "
-            "inherited_form_profiles.csv. Confidence is not a probability.",
+            "inherited_form_profiles.csv. The candidate CSV contains the full "
+            "registry; the interface and no-match narrative show only the ten "
+            "nearest profiles. Confidence is not a probability.",
         ),
     )
     return bundle

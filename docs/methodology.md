@@ -773,10 +773,18 @@ coverage cautions, and per-module methodology remain unchanged.
 
 ## Stage 15 inherited-form candidate ranking
 
-Inherited Form Analysis is a rule-based candidate-ranking system over ten
-versioned, source-backed profiles. It is not a trained classifier. Each
-profile declares required, preferred, and optional features with visible
-weights, expectations, sources, and limitations.
+Inherited Form Analysis is a rule-based candidate-ranking system over 169
+versioned, source-documented profiles in registry version 2.0. It is not a
+trained classifier. Each profile declares required, preferred, and optional
+features with visible weights, expectations, sources, limitations, and an
+assessment mode:
+
+- **automatic** means the encoded defining evidence can support a suggestion;
+- **partial** means VerseVAD can compare important observable structure while
+  explicitly leaving other conventions to interpretation; and
+- **manual** means a defining contextual, visual, linguistic, thematic, or
+  compositional requirement cannot be responsibly inferred. These profiles
+  remain fully selectable but can never become automatic suggestions.
 
 For each available feature, its rule weight is multiplied by its evidence
 coverage. Consistency is the weighted mean of the available feature scores;
@@ -790,7 +798,8 @@ coverage minimum, required-feature coverage minimum, and contradiction rule.
 Classification—Strict, Strongly conforming, Modified, Form-derived,
 Suggestive resemblance, or No inherited-form match—describes conformity.
 Confidence—low, moderate, or high—also considers coverage, required-feature
-contradictions, and margin over the runner-up. Neither value is a probability.
+contradictions, and the coverage-adjusted margin over the next automatically
+suggestible profile. Neither value is a probability.
 
 Rhyme-scheme comparison balances expected-rhyme and expected-difference
 relationships so numerous non-rhyming line pairs cannot overwhelm the
@@ -802,5 +811,11 @@ rescanned.
 Suggested candidates expose a tooltip containing the traditional definition
 and poem-specific agreements and departures. Complete source URLs,
 limitations, weights, detected values, scores, and coverage remain visible in
-the evidence table and exports. See
-[`inherited-form-stage15.md`](inherited-form-stage15.md).
+the evidence table and exports. If nothing qualifies, the concise ranking is
+limited to ten nearest profiles. The **All Inherited Forms** selector and full
+CSV exports retain all 169 entries, including obviously distant and
+manual-confirmation forms. See
+[`inherited-form-stage15.md`](inherited-form-stage15.md) for the original
+ten-profile foundation and
+[`inherited-form-registry-v2.md`](inherited-form-registry-v2.md) for the
+expanded registry policy.

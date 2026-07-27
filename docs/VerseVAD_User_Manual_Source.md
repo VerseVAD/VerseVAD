@@ -767,17 +767,12 @@ how the poem must be pronounced, performed, heard, or intended.
 
 ## Inherited-form candidate analysis
 
-When enabled, **Inherited Form Analysis** compares the poem with ten versioned,
-source-backed profiles:
-
-- Elizabethan / Shakespearean, Petrarchan / Italian, and Spenserian sonnets;
-- villanelle;
-- sestina;
-- limerick;
-- English-language 5–7–5 haiku profile;
-- pantoum;
-- terza rima; and
-- ghazal.
+When enabled, **Inherited Form Analysis** compares the poem with registry
+version 2.0's 169 source-documented profiles. Fifty-eight profiles are
+automatically assessable, 27 are partially assessable, and 84 retain defining
+requirements for manual scholarly confirmation. A manual profile remains
+selectable and keeps its requirement visible and unscored, but it cannot
+become an automatic suggestion.
 
 It automatically reuses the shared poem document, pronunciation, meter, and
 graded-rhyme results. It does not retokenize, reload CMUdict, or perform an
@@ -1078,10 +1073,8 @@ can document the intended pronunciation.
 This section appears when **Inherited-form candidate analysis** is enabled. It
 reuses the poem's preserved line and stanza structure plus the existing
 pronunciation, meter, and rhyme results; it does not rescan those layers
-independently. The initial registry ranks ten documented profiles:
-Elizabethan/Shakespearean sonnet, Petrarchan sonnet, Spenserian sonnet,
-villanelle, sestina, limerick, English-language 5-7-5 haiku profile, pantoum,
-terza rima, and ghazal.
+independently. Registry version 2.0 ranks 169 source-documented automatic,
+partial, and manual profiles.
 
 Read **Potential match**, **Classification**, **Consistency**, **Evidence
 coverage**, **Required evidence**, **Confidence**, and **Nearest alternative**
@@ -1091,12 +1084,14 @@ contradicts the profile. Confidence is rule-based and non-probabilistic.
 
 Hover over the suggested match or its classification to read the form's
 traditional definition, followed by poem-specific **Agreement** and
-**Departures**. The full ranking table keeps all ten candidates visible, and
-the candidate-evidence selector exposes each feature's role, weight, score,
-coverage, observed evidence, and explanation. The sources and limitations
-panel documents the profile definitions and boundary decisions. If the
-evidence is insufficient or conflicting, VerseVAD reports **No inherited-form
-match** rather than forcing the nearest profile into a suggestion.
+**Departures**. A no-match result displays only the ten nearest profiles.
+**All Inherited Forms** keeps every registry entry selectable, including
+obviously distant and manual-confirmation forms, and exposes each feature's
+role, weight, score, coverage, observed evidence, and explanation. The sources
+and limitations panel documents the profile definitions and boundary
+decisions. If the evidence is insufficient or conflicting, VerseVAD reports
+**No inherited-form match** rather than forcing the nearest profile into a
+suggestion.
 
 ## Structure: Lexical and Structural Measures section
 
@@ -1517,7 +1512,7 @@ module-specific Word reports, and the following detailed CSV files.
 | `phonological_sounds.csv` | Recurring initial consonants, stressed vowels, and consonants with occurrence and line counts |
 | `rhyme_report.docx` | Narrative rhyme/sound findings, denominators, coverage, cautions, and companion-file guide |
 | `inherited_form_summary.csv` | Suggested candidate, classification, consistency, total and required evidence coverage, confidence, nearest alternative, and margin |
-| `inherited_form_candidates.csv` | All ten ranked profiles with definitions, scores, coverage, contradictions, margins, and suggestion status |
+| `inherited_form_candidates.csv` | All 169 ranked profiles with definitions, assessment modes, scores, coverage, contradictions, margins, and suggestion status |
 | `inherited_form_features.csv` | Candidate-by-feature rule roles, weights, scores, local coverage, observed evidence, and explanations |
 | `inherited_form_profiles.csv` | Versioned profile definitions, traditions, rules, weights, and source references |
 | `inherited_form_methodology.csv` | Active thresholds, configuration, scoring explanations, limitations, and safe interpretive wording |
@@ -2062,9 +2057,9 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   authorial intention or perceptual effect.
 - Corpus rhyme/sound results persist as work-level evidence; scheme prevalence
   does not declare one corpus-wide rhyme scheme.
-- Stage 15 inherited-form analysis compares ten encoded, source-documented
-  profiles rather than every named, historical, regional, or contemporary
-  poetic form.
+- Registry version 2.0 compares 169 encoded, source-documented profiles. This
+  broad registry still does not claim a universal, closed taxonomy of every
+  named, historical, regional, community, or contemporary poetic practice.
 - Form suggestions are non-probabilistic rule-based affinities. They do not
   establish authorial intention, historical membership, literary value, or a
   definitive genre label.

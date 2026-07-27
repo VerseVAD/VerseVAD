@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 
-PROFILE_REGISTRY_VERSION = "1.0.0"
+PROFILE_REGISTRY_VERSION = "2.0.0"
 
 
 class RuleRole(StrEnum):
@@ -49,6 +49,7 @@ class FormProfile:
     rules: tuple[FormRule, ...]
     source_urls: tuple[str, ...]
     limitations: tuple[str, ...] = ()
+    assessment_mode: str = "automatic"
     registry_version: str = PROFILE_REGISTRY_VERSION
 
     def __post_init__(self) -> None:
@@ -60,6 +61,10 @@ class FormProfile:
             raise ValueError("Rule IDs must be unique within a form profile.")
         if not self.source_urls:
             raise ValueError("Every form profile requires at least one source.")
+        if self.assessment_mode not in {"automatic", "partial", "manual"}:
+            raise ValueError(
+                "Inherited-form assessment mode must be automatic, partial, or manual."
+            )
 
 
 def _rule(
@@ -94,7 +99,7 @@ POETS_TERZA_RIMA = "https://poets.org/glossary/terza-rima"
 POETS_GHAZAL = "https://poets.org/glossary/ghazal"
 
 
-FORM_PROFILES: tuple[FormProfile, ...] = (
+_CORE_FORM_PROFILES: tuple[FormProfile, ...] = (
     FormProfile(
         profile_id="elizabethan_sonnet",
         name="Elizabethan / Shakespearean Sonnet",
@@ -559,11 +564,21 @@ FORM_PROFILES: tuple[FormProfile, ...] = (
     ),
 )
 
+from versevad.inherited_form.expanded_profiles import (  # noqa: E402
+    build_expanded_form_profiles,
+)
+
+
+FORM_PROFILES = _CORE_FORM_PROFILES + build_expanded_form_profiles(
+    form_profile=FormProfile,
+    role=RuleRole,
+    rule=_rule,
+)
 
 FORM_PROFILE_BY_ID = {profile.profile_id: profile for profile in FORM_PROFILES}
 
-if len(FORM_PROFILE_BY_ID) != 10:
-    raise RuntimeError("Inherited-form registry version 1 must contain exactly ten profiles.")
+if len(FORM_PROFILE_BY_ID) != len(FORM_PROFILES):
+    raise RuntimeError("Inherited-form profile IDs must be globally unique.")
 
 
 __all__ = [

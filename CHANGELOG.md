@@ -6,6 +6,18 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Isolated the Inherited Form report as a Streamlit fragment so selecting a
+  profile in **All Inherited Forms** refreshes only that report and no longer
+  recollapses the surrounding Sound & Form sections.
+- Expanded Inherited Form Analysis from the initial ten-profile foundation to
+  a 169-profile, source-documented registry with automatic, partial, and manual
+  assessment modes. The no-match view now shows ten nearest profiles while the
+  **All Inherited Forms** selector and exports retain every profile, its
+  traditional definition, requirements, weights, sources, limitations, and
+  poem-specific evidence.
+- Promoted **Analysis Configuration and Methodology** to its own title-cased,
+  bordered section and grouped additional optional models into a prominent
+  default-collapsed panel to reduce initial page length.
 - Added a **Structural Count Summary** to **Lexical & Structural Measures** with
   average words per nonblank physical line, average words per stanza, and
   average nonblank physical lines per stanza, each paired with its within-poem

@@ -921,8 +921,8 @@ def _render_corpus_modules(
                 height=360,
             )
             st.caption(
-                "Potential matches compare each poem with the same versioned "
-                "ten-profile registry. Consistency measures agreement with "
+                "Potential matches compare each poem with the same comprehensive, "
+                "versioned registry. Consistency measures agreement with "
                 "available weighted evidence; coverage reports how much profile "
                 "evidence was available. Confidence is not a probability. The "
                 "stored profile CSV and Word report include each traditional "
@@ -1113,7 +1113,7 @@ def _render_analysis_tab(
             "Lexical diversity, word length, and structural word counts"
         ),
         "poetry_id": "PoetryID lexical-affective profiles",
-        "inherited_form": "Inherited Form Analysis (10 candidate profiles)",
+        "inherited_form": "Inherited Form Analysis (comprehensive profile registry)",
     }
     module_labels = {
         module_id: label

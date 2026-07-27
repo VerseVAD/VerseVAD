@@ -6,7 +6,7 @@ import zipfile
 
 from versevad.core import ModuleInput
 from versevad.exports.inherited_form import export_inherited_form_bundle
-from versevad.inherited_form import InheritedFormEngine
+from versevad.inherited_form import FORM_PROFILES, InheritedFormEngine
 from versevad.preprocessing import create_text_document
 
 from tests.test_inherited_form import _villanelle_text
@@ -58,7 +58,12 @@ def test_inherited_form_bundle_is_csv_and_narrative_docx_only(
     assert summary["best_candidate_id"] == "villanelle"
     assert "Traditionally:" in summary["suggestion_tooltip"]
     profiles = _rows(bundle["inherited_form_profiles.csv"])
-    assert len(profiles) == 10
+    assert len(profiles) == len(FORM_PROFILES)
+    assert {row["assessment_mode"] for row in profiles} == {
+        "automatic",
+        "partial",
+        "manual",
+    }
     assert all(row["source_urls"].startswith("https://") for row in profiles)
 
 

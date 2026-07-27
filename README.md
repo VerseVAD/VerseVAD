@@ -108,18 +108,21 @@ Word report. The one-text and corpus interfaces request both token scopes by
 default, and the one-text result provides independent VAD source, token-scope,
 and weighting selectors.
 
-Stage 15 adds **Inherited Form Analysis** to Sound & Form. It ranks ten
-source-backed profiles—three sonnet traditions, villanelle, sestina, limerick,
-an English-language 5–7–5 haiku profile, pantoum, terza rima, and ghazal—using
-weighted line, stanza, meter, graded-rhyme, syllable, refrain, line-length, and
-end-word evidence. The module reuses the completed pronunciation, meter, and
-rhyme engines; it does not rescan or duplicate them. Results separate candidate
-form, consistency, evidence coverage, runner-up margin, and a
-non-probabilistic confidence band. Missing evidence remains missing. Suggested
-matches include a tooltip with the traditional definition plus the poem's
-agreements and departures. Single Poem and Project / Corpus share the same
-engine, per-poem persisted metrics, six CSV audit tables, and one narrative
-Word report.
+Stage 15 adds **Inherited Form Analysis** to Sound & Form. Registry version
+2.0 contains 169 source-documented profiles spanning fixed forms, stanza
+forms, refrain and linked forms, syllabic and accentual structures, historical
+traditions, modern invented forms, and contextual or visual forms that require
+manual scholarly confirmation. Fifty-eight profiles are automatically
+assessable, 27 are partially assessable, and 84 remain manual. The module
+reuses completed pronunciation, meter, and rhyme evidence; it does not rescan
+or duplicate those engines. Results separate candidate form, consistency,
+evidence coverage, runner-up margin, and a non-probabilistic confidence band.
+Missing evidence remains missing. The main no-match view shows only the ten
+nearest profiles, while **All Inherited Forms** can compare the poem with any
+registry entry and expose definitions, requirements, weights, sources,
+limitations, and poem-specific evidence. Single Poem and Project / Corpus
+share the same engine, persisted metrics, six CSV audit tables, and one
+narrative Word report.
 
 State-backed report and project-section navigation preserves the selected
 section across Streamlit refreshes. Changing a view, weighting, lexicon, or

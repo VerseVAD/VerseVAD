@@ -634,241 +634,254 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     spec = spec_by_id[lexicon_id]
                     st.markdown(f"**{spec.display_name}:** {spec.short_description}")
 
-        st.markdown("#### Lexical Character")
-        include_concreteness = st.checkbox(
-            "Concreteness profile (Brysbaert et al. ratings)",
-            disabled=not concreteness_status.available,
-            key="include_concreteness",
-            help=(
-                "Measures matched normative lexical concreteness on the source "
-                "1-5 scale. The module is independent of the affective lexicons."
-            ),
-        )
-        if concreteness_status.available:
-            st.caption(
-                "Available locally. The source workbook is read in place, its "
-                "SHA-256 is recorded, and it is not added to source control."
-            )
-        else:
-            st.info(concreteness_status.message)
-
-        include_frequency = st.checkbox(
-            "Frequency & rarity profile (SUBTLEX-US Zipf)",
-            disabled=not frequency_status.available,
-            key="include_frequency",
-            help=(
-                "Describes corpus-relative word-form frequency using the "
-                "official local SUBTLEX-US Zipf workbook. No wordfreq fallback "
-                "is used."
-            ),
-        )
-        if frequency_status.available:
-            st.caption(
-                "Available locally. Zipf values come from the pinned official "
-                "SUBTLEX-US workbook, read in place with its SHA-256 recorded."
-            )
-        else:
-            st.info(frequency_status.message)
-
-        include_aoa = st.checkbox(
-            "Age of Acquisition profile (Kuperman et al. ratings)",
-            disabled=not aoa_status.available,
-            key="include_aoa",
-            help=(
-                "Optional retrospective normative lexical ratings in years. "
-                "This is not word difficulty, grade level, or a diagnostic "
-                "measure."
-            ),
-        )
-        if aoa_status.available:
-            st.caption(
-                "Available locally. VerseVAD reads the official erratum "
-                "supplement in place and records its SHA-256."
-            )
-        else:
-            st.info(aoa_status.message)
-
-        st.markdown("#### Structural and Lexical Measures")
-        include_lexical_style = st.checkbox(
-            "Lexical diversity, word length & structural word counts",
-            key="include_lexical_style",
-            help=(
-                "Reports normalized observed surface-form diversity, "
-                "alphabetic-character word lengths, and lexical-token counts "
-                "for each preserved physical line and stanza."
-            ),
-        )
+        st.subheader("Additional Optional Models")
         st.caption(
-            "Optional and off by default. This module needs no external dataset "
-            "and reuses the shared poetry-preserving processing record."
+            "Enable only the lexical-character, structural, PoetryID, sound, "
+            "and inherited-form models needed for this analysis."
         )
+        with st.expander("Choose Additional Optional Models", expanded=False):
+            st.markdown("#### Lexical Character")
+            include_concreteness = st.checkbox(
+                "Concreteness profile (Brysbaert et al. ratings)",
+                disabled=not concreteness_status.available,
+                key="include_concreteness",
+                help=(
+                    "Measures matched normative lexical concreteness on the source "
+                    "1-5 scale. The module is independent of the affective lexicons."
+                ),
+            )
+            if concreteness_status.available:
+                st.caption(
+                    "Available locally. The source workbook is read in place, its "
+                    "SHA-256 is recorded, and it is not added to source control."
+                )
+            else:
+                st.info(concreteness_status.message)
 
-        st.markdown("#### PoetryID")
+            include_frequency = st.checkbox(
+                "Frequency & rarity profile (SUBTLEX-US Zipf)",
+                disabled=not frequency_status.available,
+                key="include_frequency",
+                help=(
+                    "Describes corpus-relative word-form frequency using the "
+                    "official local SUBTLEX-US Zipf workbook. No wordfreq fallback "
+                    "is used."
+                ),
+            )
+            if frequency_status.available:
+                st.caption(
+                    "Available locally. Zipf values come from the pinned official "
+                    "SUBTLEX-US workbook, read in place with its SHA-256 recorded."
+                )
+            else:
+                st.info(frequency_status.message)
+
+            include_aoa = st.checkbox(
+                "Age of Acquisition profile (Kuperman et al. ratings)",
+                disabled=not aoa_status.available,
+                key="include_aoa",
+                help=(
+                    "Optional retrospective normative lexical ratings in years. "
+                    "This is not word difficulty, grade level, or a diagnostic "
+                    "measure."
+                ),
+            )
+            if aoa_status.available:
+                st.caption(
+                    "Available locally. VerseVAD reads the official erratum "
+                    "supplement in place and records its SHA-256."
+                )
+            else:
+                st.info(aoa_status.message)
+
+            st.markdown("#### Structural and Lexical Measures")
+            include_lexical_style = st.checkbox(
+                "Lexical diversity, word length & structural word counts",
+                key="include_lexical_style",
+                help=(
+                    "Reports normalized observed surface-form diversity, "
+                    "alphabetic-character word lengths, and lexical-token counts "
+                    "for each preserved physical line and stanza."
+                ),
+            )
+            st.caption(
+                "Optional and off by default. This module needs no external dataset "
+                "and reuses the shared poetry-preserving processing record."
+            )
+
+            st.markdown("#### PoetryID")
+            st.caption(
+                "PoetryID requires completed VAD evidence and reuses it without "
+                "rematching or recalculating the text."
+            )
+            available_poetry_id_sources = [
+                lexicon_id
+                for lexicon_id in selected_lexicons
+                if lexicon_id in SUPPORTED_VAD_LEXICON_IDS
+            ]
+            if not available_poetry_id_sources:
+                st.session_state["include_poetry_id"] = False
+            include_poetry_id = st.checkbox(
+                "PoetryID lexical-affective profile",
+                disabled=not available_poetry_id_sources,
+                key="include_poetry_id",
+                help=(
+                    "Classifies completed normalized VAD evidence against a "
+                    "transparent 27-profile grid. It does not rerun VAD or declare "
+                    "the poem's emotion."
+                ),
+            )
+            if not available_poetry_id_sources:
+                st.info(
+                    "Select Warriner VAD, NRC VAD v1, or NRC VAD v2.1 to enable "
+                    "PoetryID."
+                )
+            poetry_id_sources = st.multiselect(
+                "PoetryID VAD sources",
+                options=available_poetry_id_sources,
+                default=available_poetry_id_sources,
+                format_func=lambda lexicon_id: spec_by_id[lexicon_id].display_name,
+                disabled=not include_poetry_id,
+                key="poetry_id_sources",
+                help=(
+                    "Every source remains a separate result. PoetryID never creates "
+                    "a consensus VAD score."
+                ),
+            )
+            poetry_id_weightings = st.multiselect(
+                "PoetryID weighting views",
+                options=["token", "type"],
+                default=["token", "type"],
+                disabled=not include_poetry_id,
+                key="poetry_id_weightings",
+            )
+            poetry_id_views = st.multiselect(
+                "PoetryID analysis views",
+                options=["all_matched", "stopwords_excluded"],
+                default=["all_matched", "stopwords_excluded"],
+                format_func=lambda value: (
+                    "All matched tokens (including stopwords)"
+                    if value == "all_matched"
+                    else "Stopwords excluded"
+                ),
+                disabled=not include_poetry_id,
+                key="poetry_id_views",
+                help=(
+                    "Both views are kept separate. All matched tokens includes "
+                    "matched stopwords; unmatched vocabulary remains missing in "
+                    "both views and is never assigned a neutral value."
+                ),
+            )
+            available_character_dimensions = []
+            if include_concreteness:
+                available_character_dimensions.append("concreteness")
+            if include_frequency:
+                available_character_dimensions.append("frequency")
+            if include_aoa:
+                available_character_dimensions.append("age_of_acquisition")
+            poetry_id_lexical_dimensions = st.multiselect(
+                "Secondary PoetryID lexical character",
+                options=available_character_dimensions,
+                default=available_character_dimensions,
+                format_func=lambda value: value.replace("_", " ").title(),
+                disabled=not include_poetry_id,
+                key="poetry_id_lexical_dimensions",
+                help=(
+                    "Uses completed module summaries only. These descriptors never "
+                    "change the VAD archetype."
+                ),
+            )
+
+            st.markdown("#### Sound and Form")
+            if is_other_text:
+                st.info(
+                    "Pronunciation, meter, and rhyme remain available for close reading "
+                    "of prose, but meter and rhyme should be treated as experimental "
+                    "outside lineated poetry."
+                )
+            include_pronunciation = st.checkbox(
+                "Pronunciation & prosody foundation (CMUdict)",
+                disabled=not pronunciation_available,
+                key="include_pronunciation",
+                help=(
+                    "Optional exact observed-form dictionary pronunciations, "
+                    "syllable counts, and lexical stress. This Stage 5 module does "
+                    "not classify meter, rhyme, or performed scansion."
+                ),
+            )
+            if pronunciation_available:
+                st.caption(
+                    "Available locally. VerseVAD reads the pinned official CMUdict "
+                    "files in place, records all three SHA-256 checksums, and retains "
+                    "every pronunciation alternative."
+                )
+            else:
+                for status in pronunciation_statuses:
+                    if not status.available:
+                        st.info(status.message)
+
+            include_meter = st.checkbox(
+                "Meter & rhythmic regularity",
+                disabled=not pronunciation_available,
+                key="include_meter",
+                help=(
+                    "Stage 6 compares retained lexical-stress evidence against "
+                    "iambic, trochaic, anapestic, dactylic, and amphibrachic "
+                    "templates from monometer through octameter."
+                ),
+            )
+            if pronunciation_available:
+                st.caption(
+                    "Optional and off by default. Meter analysis automatically runs "
+                    "the pronunciation foundation, retains dictionary alternatives, "
+                    "and reports nearest candidates rather than definitive scansion."
+                )
+
+            include_phonology = st.checkbox(
+                "Rhyme & phonological patterns",
+                disabled=not pronunciation_available,
+                key="include_phonology",
+                help=(
+                    "Stage 7 derives end-rhyme groups and schemes, perfect, identical, "
+                    "masculine, feminine, multisyllabic, graded slant, eye, and "
+                    "internal-rhyme evidence plus alliteration, assonance, consonance, "
+                    "refrains, and coverage."
+                ),
+            )
+            if pronunciation_available:
+                st.caption(
+                    "Optional and off by default. Stage 7 automatically runs the "
+                    "pronunciation foundation. Dictionary, spelling, and repeated-text "
+                    "evidence remain separately labeled."
+                )
+
+            include_inherited_form = st.checkbox(
+                "Inherited Form Analysis (comprehensive profile registry)",
+                disabled=not pronunciation_available,
+                key="include_inherited_form",
+                help=(
+                    "Ranks source-backed inherited-form profiles using line, "
+                    "stanza, meter, graded rhyme, refrain, syllable, end-word, "
+                    "and other observable evidence. Profiles with defining "
+                    "contextual requirements remain manually inspectable but "
+                    "cannot become automatic suggestions."
+                ),
+            )
+            if pronunciation_available:
+                st.caption(
+                    "Optional and off by default. This automatically reuses the "
+                    "pronunciation, performance-aware meter, and graded rhyme "
+                    "modules. Its candidate tooltip explains the traditional "
+                    "definition and the poem's agreements and departures."
+                )
+
+    with st.container(border=True):
+        st.subheader("3. Analysis Configuration and Methodology")
         st.caption(
-            "PoetryID requires completed VAD evidence and reuses it without "
-            "rematching or recalculating the text."
+            "Fine-tune thresholds, matching policies, and evidence handling. "
+            "Defaults are suitable for an initial analysis."
         )
-        available_poetry_id_sources = [
-            lexicon_id
-            for lexicon_id in selected_lexicons
-            if lexicon_id in SUPPORTED_VAD_LEXICON_IDS
-        ]
-        if not available_poetry_id_sources:
-            st.session_state["include_poetry_id"] = False
-        include_poetry_id = st.checkbox(
-            "PoetryID lexical-affective profile",
-            disabled=not available_poetry_id_sources,
-            key="include_poetry_id",
-            help=(
-                "Classifies completed normalized VAD evidence against a "
-                "transparent 27-profile grid. It does not rerun VAD or declare "
-                "the poem's emotion."
-            ),
-        )
-        if not available_poetry_id_sources:
-            st.info(
-                "Select Warriner VAD, NRC VAD v1, or NRC VAD v2.1 to enable "
-                "PoetryID."
-            )
-        poetry_id_sources = st.multiselect(
-            "PoetryID VAD sources",
-            options=available_poetry_id_sources,
-            default=available_poetry_id_sources,
-            format_func=lambda lexicon_id: spec_by_id[lexicon_id].display_name,
-            disabled=not include_poetry_id,
-            key="poetry_id_sources",
-            help=(
-                "Every source remains a separate result. PoetryID never creates "
-                "a consensus VAD score."
-            ),
-        )
-        poetry_id_weightings = st.multiselect(
-            "PoetryID weighting views",
-            options=["token", "type"],
-            default=["token", "type"],
-            disabled=not include_poetry_id,
-            key="poetry_id_weightings",
-        )
-        poetry_id_views = st.multiselect(
-            "PoetryID analysis views",
-            options=["all_matched", "stopwords_excluded"],
-            default=["all_matched", "stopwords_excluded"],
-            format_func=lambda value: (
-                "All matched tokens (including stopwords)"
-                if value == "all_matched"
-                else "Stopwords excluded"
-            ),
-            disabled=not include_poetry_id,
-            key="poetry_id_views",
-            help=(
-                "Both views are kept separate. All matched tokens includes "
-                "matched stopwords; unmatched vocabulary remains missing in "
-                "both views and is never assigned a neutral value."
-            ),
-        )
-        available_character_dimensions = []
-        if include_concreteness:
-            available_character_dimensions.append("concreteness")
-        if include_frequency:
-            available_character_dimensions.append("frequency")
-        if include_aoa:
-            available_character_dimensions.append("age_of_acquisition")
-        poetry_id_lexical_dimensions = st.multiselect(
-            "Secondary PoetryID lexical character",
-            options=available_character_dimensions,
-            default=available_character_dimensions,
-            format_func=lambda value: value.replace("_", " ").title(),
-            disabled=not include_poetry_id,
-            key="poetry_id_lexical_dimensions",
-            help=(
-                "Uses completed module summaries only. These descriptors never "
-                "change the VAD archetype."
-            ),
-        )
-
-        st.markdown("#### Sound and Form")
-        if is_other_text:
-            st.info(
-                "Pronunciation, meter, and rhyme remain available for close reading "
-                "of prose, but meter and rhyme should be treated as experimental "
-                "outside lineated poetry."
-            )
-        include_pronunciation = st.checkbox(
-            "Pronunciation & prosody foundation (CMUdict)",
-            disabled=not pronunciation_available,
-            key="include_pronunciation",
-            help=(
-                "Optional exact observed-form dictionary pronunciations, "
-                "syllable counts, and lexical stress. This Stage 5 module does "
-                "not classify meter, rhyme, or performed scansion."
-            ),
-        )
-        if pronunciation_available:
-            st.caption(
-                "Available locally. VerseVAD reads the pinned official CMUdict "
-                "files in place, records all three SHA-256 checksums, and retains "
-                "every pronunciation alternative."
-            )
-        else:
-            for status in pronunciation_statuses:
-                if not status.available:
-                    st.info(status.message)
-
-        include_meter = st.checkbox(
-            "Meter & rhythmic regularity",
-            disabled=not pronunciation_available,
-            key="include_meter",
-            help=(
-                "Stage 6 compares retained lexical-stress evidence against "
-                "iambic, trochaic, anapestic, dactylic, and amphibrachic "
-                "templates from monometer through octameter."
-            ),
-        )
-        if pronunciation_available:
-            st.caption(
-                "Optional and off by default. Meter analysis automatically runs "
-                "the pronunciation foundation, retains dictionary alternatives, "
-                "and reports nearest candidates rather than definitive scansion."
-            )
-
-        include_phonology = st.checkbox(
-            "Rhyme & phonological patterns",
-            disabled=not pronunciation_available,
-            key="include_phonology",
-            help=(
-                "Stage 7 derives end-rhyme groups and schemes, perfect, identical, "
-                "masculine, feminine, multisyllabic, graded slant, eye, and "
-                "internal-rhyme evidence plus alliteration, assonance, consonance, "
-                "refrains, and coverage."
-            ),
-        )
-        if pronunciation_available:
-            st.caption(
-                "Optional and off by default. Stage 7 automatically runs the "
-                "pronunciation foundation. Dictionary, spelling, and repeated-text "
-                "evidence remain separately labeled."
-            )
-
-        include_inherited_form = st.checkbox(
-            "Inherited Form Analysis (10 candidate profiles)",
-            disabled=not pronunciation_available,
-            key="include_inherited_form",
-            help=(
-                "Ranks ten source-backed inherited-form profiles using line, "
-                "stanza, meter, graded rhyme, refrain, syllable, and end-word "
-                "evidence. Suggested matches are non-probabilistic and never "
-                "declare the poem's genre identity."
-            ),
-        )
-        if pronunciation_available:
-            st.caption(
-                "Optional and off by default. This automatically reuses the "
-                "pronunciation, performance-aware meter, and graded rhyme "
-                "modules. Its candidate tooltip explains the traditional "
-                "definition and the poem's agreements and departures."
-            )
-
-        with st.expander("3. Analysis configuration and methodology"):
+        with st.expander("Show Configuration Controls", expanded=False):
             policy_labels = {
                 "Prefer the longest phrase (recommended)": PhrasePolicy.PHRASE_PREFERRED,
                 "Use unigrams only": PhrasePolicy.UNIGRAM_ONLY,
@@ -1513,24 +1526,24 @@ if workspace_page in {"Single Poem", "Other Text"}:
                 "rhyme-part edit similarity, stress alignment, and syllable "
                 "similarity. It is a configurable heuristic, not a probability."
             )
-        st.markdown("**Stopword reporting**")
-        reporting_columns = st.columns(2)
-        show_all_matched = reporting_columns[0].checkbox(
-            "Show all-token results",
-            value=True,
-            key="show_all_matched_results",
-        )
-        show_stopword_excluded = reporting_columns[1].checkbox(
-            "Show stopword-excluded results",
-            value=True,
-            key="show_stopword_excluded_results",
-        )
-        st.caption(
-            "Stopword exclusion removes common grammatical words from the secondary "
-            "analysis only. The complete analysis and token audit remain available."
-        )
-        with st.expander("Stopword settings"):
-            stopword_settings = render_stopword_settings("one_poem")
+            st.markdown("**Stopword reporting**")
+            reporting_columns = st.columns(2)
+            show_all_matched = reporting_columns[0].checkbox(
+                "Show all-token results",
+                value=True,
+                key="show_all_matched_results",
+            )
+            show_stopword_excluded = reporting_columns[1].checkbox(
+                "Show stopword-excluded results",
+                value=True,
+                key="show_stopword_excluded_results",
+            )
+            st.caption(
+                "Stopword exclusion removes common grammatical words from the secondary "
+                "analysis only. The complete analysis and token audit remain available."
+            )
+            with st.expander("Stopword settings"):
+                stopword_settings = render_stopword_settings("one_poem")
 
         analyze_clicked = st.button(
             "Analyze Text" if is_other_text else "Analyze Poem",
@@ -1801,7 +1814,7 @@ if workspace_page in {"Single Poem", "Other Text"}:
                     st.write("Generating PoetryID from the completed VAD result.")
                 if include_inherited_form:
                     st.write(
-                        "Ranking ten inherited-form profiles from completed "
+                        "Ranking the inherited-form registry from completed "
                         "sound and structural evidence."
                     )
                 st.session_state["workspace"] = run_workspace_analysis(

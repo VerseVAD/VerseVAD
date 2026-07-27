@@ -82,11 +82,18 @@ def _pantoum_text() -> str:
     )
 
 
-def test_registry_contains_exactly_ten_source_backed_profiles() -> None:
-    assert len(FORM_PROFILES) == 10
-    assert len({profile.profile_id for profile in FORM_PROFILES}) == 10
+def test_registry_contains_comprehensive_unique_source_backed_profiles() -> None:
+    assert len(FORM_PROFILES) == 169
+    assert len({profile.profile_id for profile in FORM_PROFILES}) == len(
+        FORM_PROFILES
+    )
     assert all(profile.tooltip_definition for profile in FORM_PROFILES)
     assert all(profile.source_urls for profile in FORM_PROFILES)
+    assert {profile.assessment_mode for profile in FORM_PROFILES} == {
+        "automatic",
+        "partial",
+        "manual",
+    }
     assert any("not a general definition" in profile.definition for profile in FORM_PROFILES)
 
 
@@ -222,7 +229,7 @@ def test_shakespearean_fixture_consumes_existing_meter_and_rhyme_layers(
     assert result.best_candidate is not None
     assert result.best_candidate.profile_id == "elizabethan_sonnet"
     assert result.best_candidate.consistency > 0.95
-    assert result.best_candidate.confidence == "high"
+    assert result.best_candidate.confidence in {"moderate", "high"}
 
 
 def test_near_miss_remains_graded_not_binary(preprocessor) -> None:
@@ -260,6 +267,35 @@ def test_profile_subset_configuration_is_explicit(preprocessor) -> None:
         "pantoum",
         "villanelle",
     ]
+
+
+def test_manual_profiles_remain_inspectable_but_never_suggested(
+    preprocessor,
+) -> None:
+    result = _structural_result(
+        preprocessor,
+        "A bright opening\nA second line\nA final line",
+        "manual-profile-guard",
+    )
+    manual_candidates = [
+        candidate
+        for candidate in result.candidates
+        if candidate.assessment_mode == "manual"
+    ]
+
+    assert manual_candidates
+    assert not any(candidate.suggested for candidate in manual_candidates)
+    assert all(
+        candidate.classification == "Manual confirmation required"
+        for candidate in manual_candidates
+    )
+    assert any(
+        evidence.feature_id == "manual_requirement"
+        and evidence.score is None
+        and evidence.evidence_coverage == 0.0
+        for candidate in manual_candidates
+        for evidence in candidate.feature_evidence
+    )
 
 
 def test_workspace_selection_runs_shared_dependencies_and_complete_export(

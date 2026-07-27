@@ -1,5 +1,9 @@
 # Stage 15 Inherited Form Validation
 
+> Historical validation note: these results validate the original
+> ten-profile foundation. Registry version 2.0 expands that foundation to 169
+> profiles and adds separate expansion-regression checks.
+
 Validation date: 2026-07-26
 
 ## Outcome

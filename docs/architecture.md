@@ -483,7 +483,9 @@ then cached by immutable analysis identity.
 
 ## Expansion Stage 15 inherited-form architecture
 
-`versevad.inherited_form.profiles` owns the versioned ten-profile registry.
+`versevad.inherited_form.profiles` owns the core records and registry
+validation; `versevad.inherited_form.expanded_profiles` owns the source-backed
+version-2 expansion. Together they expose one 169-profile registry.
 `versevad.inherited_form.engine` owns feature extraction, ranking,
 classification, confidence, module metrics, coverage, warnings, and
 provenance. Streamlit and exporters consume typed results; they do not contain
@@ -514,7 +516,12 @@ produces six UTF-8 CSV files and a deterministic narrative DOCX report. The
 repository stores all seven artifacts with size and SHA-256; no schema
 migration and no JSON artifact are required.
 
+The engine ranks the full registry but the main no-match presentation renders
+only ten nearest candidates. The separate all-form selector and exports consume
+the full typed result. Manual profiles retain unscored defining requirements
+and are excluded from automatic suggestions.
+
 Adding a later form should ordinarily require a new registry record plus a
-feature detector only when the shared evidence cannot express the form.
-Every added profile must include sources, definitions, limitations, weights,
-tolerances, exact fixtures, and near-miss coverage.
+feature detector only when shared evidence cannot express the form. Every
+added profile must include sources, definitions, assessment mode, limitations,
+weights, tolerances, exact fixtures, and near-miss coverage.

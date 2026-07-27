@@ -606,7 +606,8 @@ interface set passed thirty tests.
 
 Focused tests cover:
 
-- exactly ten unique, source-backed profiles and tooltip definitions;
+- exactly 169 unique, source-documented profiles, tooltip definitions, source
+  URLs, and automatic/partial/manual assessment modes;
 - exact villanelle refrain positions and stanza architecture;
 - exact sestina end-word rotation and envoi;
 - exact pantoum ordered repetition;
@@ -619,7 +620,9 @@ Focused tests cover:
 - automatic pronunciation/meter/rhyme dependency execution;
 - per-poem project persistence and seven checksummed artifacts;
 - six CSV files plus deterministic narrative DOCX, with no JSON;
-- traditional-definition tooltip content; and
+- traditional-definition tooltip content;
+- ten-row concise no-match presentation plus an all-169-profile inspector and
+  complete profile/candidate exports; and
 - Single Poem, Project / Corpus, design, application, and existing module
   regressions.
 

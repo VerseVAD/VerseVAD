@@ -1,4 +1,4 @@
-"""Synthetic structural validation for the ten inherited-form profiles."""
+"""Synthetic structural validation for the inherited-form registry."""
 
 from __future__ import annotations
 
@@ -12,6 +12,10 @@ from versevad.preprocessing import SpacyEnglishPreprocessor, create_text_documen
 @dataclass(frozen=True)
 class InheritedFormValidationReport:
     profile_count: int
+    automatic_profile_count: int
+    partial_profile_count: int
+    manual_profile_count: int
+    manual_profile_suggested: bool
     villanelle_candidate: str
     villanelle_consistency: float | None
     sestina_candidate: str
@@ -96,6 +100,23 @@ def run_synthetic_inherited_form_validation(
     )
     report = InheritedFormValidationReport(
         profile_count=len(FORM_PROFILES),
+        automatic_profile_count=sum(
+            profile.assessment_mode == "automatic"
+            for profile in FORM_PROFILES
+        ),
+        partial_profile_count=sum(
+            profile.assessment_mode == "partial"
+            for profile in FORM_PROFILES
+        ),
+        manual_profile_count=sum(
+            profile.assessment_mode == "manual"
+            for profile in FORM_PROFILES
+        ),
+        manual_profile_suggested=any(
+            candidate.assessment_mode == "manual" and candidate.suggested
+            for result in (villanelle, sestina, pantoum, haiku)
+            for candidate in result.candidates
+        ),
         villanelle_candidate=(
             villanelle.best_candidate.profile_id
             if villanelle.best_candidate
@@ -125,7 +146,11 @@ def run_synthetic_inherited_form_validation(
     )
     problems = []
     expected = {
-        "profile_count": 10,
+        "profile_count": 169,
+        "automatic_profile_count": 58,
+        "partial_profile_count": 27,
+        "manual_profile_count": 84,
+        "manual_profile_suggested": False,
         "villanelle_candidate": "villanelle",
         "villanelle_consistency": 1.0,
         "sestina_candidate": "sestina",
@@ -152,8 +177,9 @@ def main() -> int:
         return 1
     print("VerseVAD inherited-form validation passed.")
     print(
-        "Ten source-backed profiles were present; exact structural fixtures "
-        "ranked villanelle, sestina, and pantoum first."
+        "The 169-profile registry contained 58 automatic, 27 partial, and 84 "
+        "manual profiles; exact structural fixtures ranked villanelle, sestina, "
+        "and pantoum first."
     )
     print(
         "Sestina end-word rotation and pantoum ordered repetition received "

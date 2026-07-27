@@ -5,6 +5,7 @@ from streamlit.testing.v1 import AppTest
 import versevad.application as application_services
 from versevad.db.repository import CorpusTextImport, ProjectRepository
 from versevad.ui.preferences import AppearanceMode, load_preferences
+from versevad.ui.inherited_form import render_inherited_form
 
 
 APP_PATH = Path(__file__).parents[1] / "src" / "versevad" / "ui" / "app.py"
@@ -61,7 +62,23 @@ def test_interface_starts_with_beginner_input_workflow() -> None:
     assert "Frequency & rarity profile (SUBTLEX-US Zipf)" in [
         field.label for field in app.checkbox
     ]
+    assert "Additional Optional Models" in [
+        heading.value for heading in app.subheader
+    ]
+    assert "3. Analysis Configuration and Methodology" in [
+        heading.value for heading in app.subheader
+    ]
+    assert "Choose Additional Optional Models" in [
+        panel.label for panel in app.expander
+    ]
+    assert "Show Configuration Controls" in [
+        panel.label for panel in app.expander
+    ]
     assert not app.tabs
+
+
+def test_inherited_form_report_uses_fragment_scoped_widget_reruns() -> None:
+    assert hasattr(render_inherited_form, "__wrapped__")
 
 
 def test_interface_state_migration_and_preset_emit_no_widget_default_warning(

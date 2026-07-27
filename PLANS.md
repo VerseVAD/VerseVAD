@@ -880,8 +880,14 @@ review required.
   do not add JSON.
 - [x] Add exact-form, modified-form, missing-evidence, persistence, UI, export,
   and direct synthetic validation coverage.
-- [ ] Expand beyond the first ten profiles only after the version-1 behavior
-  and terminology have been reviewed with representative poems.
+- [x] Expand the reviewed version-1 foundation to registry version 2.0 with
+  169 source-documented profiles and explicit automatic, partial, and manual
+  assessment modes.
+- [x] Limit the concise no-match ranking to ten nearest profiles while keeping
+  every form selectable through the full-registry inspector and available in
+  CSV/Word exports.
+- [x] Move optional models and methodology settings into prominent,
+  default-collapsed panels without changing analysis defaults.
 - [x] Select `GPL-3.0-only`, add its canonical license text, and clearly
   separate the software license from user-installed research-source terms.
 - [x] Document official resource pages, exact paths/names/checksums, and add

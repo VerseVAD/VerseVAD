@@ -40,7 +40,7 @@ from .profiles import (
 
 
 MODULE_NAME = "inherited_form"
-MODULE_VERSION = "1.0.0"
+MODULE_VERSION = "2.0.0"
 _PHONE_VOWEL = re.compile(r"^[A-Z]+[012]$")
 
 
@@ -48,14 +48,14 @@ _PHONE_VOWEL = re.compile(r"^[A-Z]+[012]$")
 class InheritedFormConfiguration:
     profile_ids: tuple[str, ...] = tuple(profile.profile_id for profile in FORM_PROFILES)
     suggestion_threshold: float = 0.45
-    minimum_evidence_coverage: float = 0.35
+    minimum_evidence_coverage: float = 0.70
     minimum_required_evidence_coverage: float = 0.70
     moderate_confidence_threshold: float = 0.58
     high_confidence_threshold: float = 0.75
     moderate_margin: float = 0.03
     high_margin: float = 0.08
     modified_refrain_floor: float = 0.70
-    scenario_id: str = "inherited-form-ten-profile-v1"
+    scenario_id: str = "inherited-form-comprehensive-v2"
 
     def __post_init__(self) -> None:
         if not self.profile_ids or len(set(self.profile_ids)) != len(self.profile_ids):
@@ -85,7 +85,7 @@ class InheritedFormConfiguration:
     @property
     def configuration_id(self) -> str:
         payload = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
-        return "inherited-form-config-v1:" + hashlib.sha256(
+        return "inherited-form-config-v2:" + hashlib.sha256(
             payload.encode("utf-8")
         ).hexdigest()[:16]
 
@@ -125,6 +125,7 @@ class FormCandidateResult:
     confidence: str
     classification: str
     suggested: bool
+    assessment_mode: str
     narrative: str
     feature_evidence: tuple[FormFeatureEvidence, ...]
 
@@ -145,10 +146,15 @@ class _Observations:
     line_numbers: tuple[int, ...]
     line_texts: tuple[str, ...]
     line_words: tuple[tuple[str, ...], ...]
+    line_word_proper_flags: tuple[tuple[bool, ...], ...]
     line_token_ids: tuple[tuple[str, ...], ...]
     stanza_lengths: tuple[int, ...]
     syllable_counts: tuple[int | None, ...]
+    stress_counts: tuple[int | None, ...]
     rhyme_labels: tuple[str, ...]
+    stanza_rhyme_labels: tuple[str, ...]
+    ending_stressed_vowels: tuple[str, ...]
+    line_alliteration_densities: tuple[float | None, ...]
 
     @property
     def line_count(self) -> int:
@@ -157,6 +163,10 @@ class _Observations:
     @property
     def ending_words(self) -> tuple[str, ...]:
         return tuple(words[-1] if words else "" for words in self.line_words)
+
+    @property
+    def word_counts(self) -> tuple[int, ...]:
+        return tuple(len(words) for words in self.line_words)
 
 
 def _clamp(value: float) -> float:
@@ -263,6 +273,127 @@ def _rhyme_pair_lookup(
             pair.similarity_score,
         )
     return lookup
+
+
+def _range_score(observed: float, minimum: float, maximum: float) -> float:
+    if minimum <= observed <= maximum:
+        return 1.0
+    distance = minimum - observed if observed < minimum else observed - maximum
+    return _clamp(1 - distance / max(2.0, (maximum - minimum + 1) * 0.5))
+
+
+def _ranking_score(
+    profile: FormProfile,
+    consistency: float | None,
+    evidence_coverage: float,
+) -> float:
+    if consistency is None:
+        return -1.0
+    mode_factor = {
+        "automatic": 1.0,
+        "partial": 0.90,
+        "manual": 0.50,
+    }[profile.assessment_mode]
+    return consistency * evidence_coverage * mode_factor
+
+
+def _numeric_pattern_score(
+    observed: Sequence[int | None],
+    expected: Sequence[int],
+    *,
+    repeating: bool = False,
+    tolerance: float = 3.0,
+) -> tuple[float | None, float]:
+    targets = (
+        tuple(expected[index % len(expected)] for index in range(len(observed)))
+        if repeating and expected
+        else tuple(expected)
+    )
+    pairs = [
+        (actual, target)
+        for actual, target in zip(observed, targets)
+        if actual is not None
+    ]
+    if not pairs:
+        return None, 0.0
+    return (
+        fmean(_clamp(1 - abs(actual - target) / tolerance) for actual, target in pairs),
+        len(pairs) / max(len(targets), 1),
+    )
+
+
+def _rhyme_relation_score(
+    observations: _Observations,
+    phonology: PhonologicalAnalysisResult | None,
+    first: int,
+    second: int,
+) -> tuple[float | None, float]:
+    if (
+        phonology is None
+        or first < 1
+        or second < 1
+        or first > observations.line_count
+        or second > observations.line_count
+    ):
+        return None, 0.0
+    left = observations.rhyme_labels[first - 1]
+    right = observations.rhyme_labels[second - 1]
+    if not left or not right or "?" in (left, right):
+        return None, 0.0
+    if left == right:
+        return 1.0, 1.0
+    relationship, similarity = _rhyme_pair_lookup(phonology).get(
+        (min(first, second), max(first, second)),
+        ("", None),
+    )
+    if relationship in {"perfect", "identical"}:
+        return 1.0, 1.0
+    if relationship == "slant":
+        return 0.45 + 0.45 * (similarity or 0.0), 1.0
+    if relationship == "eye":
+        return 0.25, 1.0
+    return 0.0, 1.0
+
+
+def _line_repetition_score(
+    observations: _Observations,
+    groups: Sequence[Sequence[int]],
+) -> tuple[float | None, float, str]:
+    comparisons: list[float] = []
+    possible = 0
+    for group in groups:
+        if not group:
+            continue
+        anchor_position = int(group[0])
+        for position in group[1:]:
+            possible += 1
+            if (
+                anchor_position <= observations.line_count
+                and int(position) <= observations.line_count
+            ):
+                comparisons.append(
+                    _sequence_similarity(
+                        observations.line_words[anchor_position - 1],
+                        observations.line_words[int(position) - 1],
+                    )
+                )
+    return (
+        fmean(comparisons) if comparisons else None,
+        len(comparisons) / possible if possible else 0.0,
+        f"{len(comparisons)} of {possible} prescribed line repetitions compared",
+    )
+
+
+def _scheme_for_repeated_blocks(scheme: str, line_count: int) -> str:
+    expected: list[str] = []
+    block = len(scheme)
+    for start in range(0, line_count, block):
+        symbol_map: dict[str, str] = {}
+        for symbol in scheme[: min(block, line_count - start)]:
+            if symbol not in symbol_map:
+                symbol_map[symbol] = chr(0x100 + len(expected) + len(symbol_map))
+            expected.append(symbol_map[symbol])
+    return "".join(expected)
 
 
 def _feature(
@@ -556,6 +687,521 @@ def _feature(
         sources.append("pronunciation_prosody_foundation")
         score, coverage, detected = _ghazal_score(observations, pronunciation)
         explanation = "Repeated lexical suffixes identify a radif candidate; the preceding resolved pronunciation supplies qafia-rhyme evidence."
+    elif feature_id == "line_count_range":
+        minimum = int(parameters["minimum"])
+        maximum = int(parameters["maximum"])
+        score = _range_score(observations.line_count, minimum, maximum)
+        detected = f"{observations.line_count} nonblank lines"
+        explanation = "Counts inside the documented range receive full credit; nearby counts receive graded credit."
+    elif feature_id == "syllable_pattern_repeating":
+        sources.append("pronunciation_prosody_foundation")
+        expected = tuple(int(item) for item in parameters["counts"])
+        score, coverage = _numeric_pattern_score(
+            observations.syllable_counts,
+            expected,
+            repeating=True,
+        )
+        detected = "/".join(
+            "?" if item is None else str(item)
+            for item in observations.syllable_counts
+        )
+        explanation = "The documented syllable sequence is repeated across all lines; unresolved lines lower coverage."
+    elif feature_id == "syllable_range":
+        sources.append("pronunciation_prosody_foundation")
+        minimum = int(parameters["minimum"])
+        maximum = int(parameters["maximum"])
+        counts = [item for item in observations.syllable_counts if item is not None]
+        score = (
+            fmean(_range_score(item, minimum, maximum) for item in counts)
+            if counts
+            else None
+        )
+        coverage = len(counts) / observations.line_count if observations.line_count else 0.0
+        detected = "/".join(
+            "?" if item is None else str(item)
+            for item in observations.syllable_counts
+        )
+        explanation = "Each fully resolved line is compared with the documented syllable range."
+    elif feature_id == "word_count_pattern":
+        expected = tuple(int(item) for item in parameters["counts"])
+        score, coverage = _numeric_pattern_score(
+            observations.word_counts,
+            expected,
+            tolerance=2.0,
+        )
+        detected = "/".join(map(str, observations.word_counts[: len(expected)]))
+        explanation = "Normalized lexical-word counts are compared line by line; punctuation and numbers are excluded."
+    elif feature_id == "alphabetic_line_initials":
+        initials = []
+        for text in observations.line_texts[:26]:
+            match = re.search(r"[A-Za-z]", text)
+            initials.append(match.group(0).lower() if match else "")
+        comparisons = [
+            1.0 if initial == chr(ord("a") + index) else 0.0
+            for index, initial in enumerate(initials)
+            if initial
+        ]
+        score = fmean(comparisons) if comparisons else None
+        coverage = len(comparisons) / min(observations.line_count, 26) if observations.line_count else 0.0
+        detected = "".join(initial or "?" for initial in initials) or "unavailable"
+        explanation = "The first Latin letter on successive lines is compared with A, B, C, and onward."
+    elif feature_id == "uniform_stanza_size":
+        size = int(parameters["size"])
+        minimum = int(parameters.get("minimum", 1))
+        if observations.stanza_lengths:
+            matching = sum(item == size for item in observations.stanza_lengths)
+            score = (
+                matching / len(observations.stanza_lengths)
+                * min(1.0, matching / minimum)
+            )
+            detected = "/".join(map(str, observations.stanza_lengths))
+        explanation = "Printed stanza lengths are tested for a uniform repeated size."
+    elif feature_id == "stress_count_pattern_repeating":
+        sources.append("pronunciation_prosody_foundation")
+        expected = tuple(int(item) for item in parameters["counts"])
+        score, coverage = _numeric_pattern_score(
+            observations.stress_counts,
+            expected,
+            repeating=True,
+            tolerance=2.0,
+        )
+        detected = "/".join(
+            "?" if item is None else str(item)
+            for item in observations.stress_counts
+        )
+        explanation = "Resolved lexical primary and secondary stresses are counted per line and compared with the repeating accentual pattern."
+    elif feature_id == "rhyme_absence":
+        sources.append("rhyme_and_phonological_patterns")
+        maximum = float(parameters["maximum_density"])
+        if phonology is not None and phonology.summary.rhyme_density is not None:
+            density = phonology.summary.rhyme_density
+            score = 1.0 if density <= maximum else _clamp(1 - (density - maximum) / max(1 - maximum, 0.01))
+            detected = f"rhyme density {density:.1%}"
+        else:
+            coverage = 0.0
+        explanation = "Low end-rhyme density supports an unrhymed form; unavailable rhyme evidence remains missing."
+    elif feature_id == "blues_repetition":
+        ranges = _line_ranges(observations.stanza_lengths)
+        triples = (
+            [item for item in ranges if len(item) == 3]
+            if any(len(item) == 3 for item in ranges)
+            else [
+                tuple(range(index, min(index + 3, observations.line_count)))
+                for index in range(0, observations.line_count, 3)
+                if index + 2 < observations.line_count
+            ]
+        )
+        comparisons = [
+            _sequence_similarity(
+                observations.line_words[group[0]],
+                observations.line_words[group[1]],
+            )
+            for group in triples
+        ]
+        score = fmean(comparisons) if comparisons else None
+        coverage = len(comparisons) / max(len(triples), 1)
+        detected = f"{len(comparisons)} A-to-A line comparisons"
+        explanation = "The first two lines of each available three-line unit are compared as an AAB repetition pattern."
+    elif feature_id == "line_length_variation":
+        sources.append("pronunciation_prosody_foundation")
+        minimum = float(parameters["minimum_cv"])
+        counts = [item for item in observations.syllable_counts if item is not None]
+        if len(counts) >= 3 and fmean(counts) > 0:
+            coefficient = pstdev(counts) / fmean(counts)
+            score = _clamp(coefficient / max(minimum, 0.01))
+            coverage = len(counts) / observations.line_count
+            detected = f"syllable-count coefficient of variation {coefficient:.3f}"
+        else:
+            coverage = len(counts) / observations.line_count if observations.line_count else 0.0
+        explanation = "Resolved syllable totals test the documented contrast in line lengths."
+    elif feature_id == "duplex_echo":
+        groups = tuple(
+            (position, position + 1)
+            for position in range(2, observations.line_count, 2)
+        )
+        score, coverage, detected = _line_repetition_score(observations, groups)
+        explanation = "Each couplet's second line is compared lexically with the next couplet's opening line; modified echoes receive graded credit."
+    elif feature_id == "first_last_line_echo":
+        score, coverage, detected = _line_repetition_score(
+            observations,
+            ((1, observations.line_count),),
+        )
+        explanation = "Opening and closing lines are compared lexically, with graded credit for a modified return."
+    elif feature_id == "glosa_refrains":
+        score, coverage, detected = _line_repetition_score(
+            observations,
+            ((1, 14), (2, 24), (3, 34), (4, 44)),
+        )
+        explanation = "The four epigraph lines are compared with the prescribed stanza-ending returns."
+    elif feature_id == "line_repetition_groups":
+        groups = tuple(tuple(int(item) for item in group) for group in parameters["groups"])
+        score, coverage, detected = _line_repetition_score(observations, groups)
+        explanation = "Prescribed repeated-line positions receive exact or graded lexical similarity credit."
+    elif feature_id == "stanza_refrain":
+        ranges = _line_ranges(observations.stanza_lengths)
+        positions = tuple(group[-1] + 1 for group in ranges if group)
+        score, coverage, detected = _line_repetition_score(
+            observations,
+            (positions,),
+        )
+        explanation = "The final line of each printed stanza is compared with the first available stanza-ending refrain."
+    elif feature_id == "bop_refrain":
+        if observations.stanza_lengths == (7, 9, 7):
+            positions = (7, 16, 23)
+        elif observations.stanza_lengths == (6, 1, 8, 1, 6, 1):
+            positions = (7, 16, 23)
+        else:
+            positions = (7, 16, 23)
+        score, coverage, detected = _line_repetition_score(
+            observations,
+            (positions,),
+        )
+        explanation = "The refrain positions following the six-, eight-, and six-line argument sections are compared lexically."
+    elif feature_id in {"rhyme_couplets", "terminal_rhyming_couplet"}:
+        sources.append("rhyme_and_phonological_patterns")
+        pairs = (
+            ((observations.line_count - 1, observations.line_count),)
+            if feature_id == "terminal_rhyming_couplet"
+            else tuple(
+                (position, position + 1)
+                for position in range(1, observations.line_count, 2)
+                if position + 1 <= observations.line_count
+            )
+        )
+        results = [
+            _rhyme_relation_score(observations, phonology, first, second)
+            for first, second in pairs
+        ]
+        available = [item for item in results if item[0] is not None]
+        score = fmean(float(item[0]) for item in available) if available else None
+        coverage = len(available) / len(pairs) if pairs else 0.0
+        detected = f"{len(available)} of {len(pairs)} couplet rhyme relations resolved"
+        explanation = "Adjacent line endings are scored with VerseVAD's perfect, identical, slant, eye, or non-rhyme evidence."
+    elif feature_id == "rhyme_scheme_repeating":
+        sources.append("rhyme_and_phonological_patterns")
+        if phonology is not None:
+            scheme = str(parameters["scheme"]).replace(" ", "")
+            expected = _scheme_for_repeated_blocks(scheme, observations.line_count)
+            score, coverage = _scheme_pair_score(
+                expected,
+                observations.rhyme_labels,
+                _rhyme_pair_lookup(phonology),
+            )
+            detected = phonology.summary.whole_poem_rhyme_scheme or "unavailable"
+        else:
+            coverage = 0.0
+        explanation = "The stanza scheme is repeated in independent rhyme classes and compared through graded rhyme relations."
+    elif feature_id == "terminal_line_longer":
+        sources.append("pronunciation_prosody_foundation")
+        period = int(parameters["period"])
+        comparisons = []
+        possible = 0
+        for end in range(period - 1, observations.line_count, period):
+            group = observations.syllable_counts[max(0, end - period + 1):end]
+            possible += 1
+            if observations.syllable_counts[end] is not None and all(item is not None for item in group):
+                terminal = observations.syllable_counts[end]
+                comparison = fmean(float(item) for item in group if item is not None)
+                comparisons.append(_clamp((float(terminal) - comparison + 1) / 3))
+        score = fmean(comparisons) if comparisons else None
+        coverage = len(comparisons) / possible if possible else 0.0
+        detected = f"{len(comparisons)} of {possible} stanza-final length relations resolved"
+        explanation = "Each stanza-final line is compared with the mean resolved syllable length of the preceding lines."
+    elif feature_id == "periodic_line_length_relation":
+        sources.append("pronunciation_prosody_foundation")
+        period = int(parameters["period"])
+        long_positions = tuple(int(item) for item in parameters["long_positions"])
+        short_positions = tuple(int(item) for item in parameters["short_positions"])
+        relations = []
+        possible = 0
+        for start in range(0, observations.line_count, period):
+            long_values = [
+                observations.syllable_counts[start + pos - 1]
+                for pos in long_positions
+                if start + pos - 1 < observations.line_count
+            ]
+            short_values = [
+                observations.syllable_counts[start + pos - 1]
+                for pos in short_positions
+                if start + pos - 1 < observations.line_count
+            ]
+            possible += 1
+            if long_values and short_values and all(item is not None for item in (*long_values, *short_values)):
+                long_mean = fmean(float(item) for item in long_values if item is not None)
+                short_mean = fmean(float(item) for item in short_values if item is not None)
+                relations.append(_clamp((long_mean - short_mean + 1) / 3))
+        score = fmean(relations) if relations else None
+        coverage = len(relations) / possible if possible else 0.0
+        detected = f"{len(relations)} of {possible} periodic long/short groups resolved"
+        explanation = "Documented long-line positions are compared with documented short-line positions in each stanza-sized block."
+    elif feature_id == "alternating_stanza_sizes":
+        sizes = tuple(int(item) for item in parameters["sizes"])
+        if observations.stanza_lengths:
+            expected = tuple(
+                sizes[index % len(sizes)]
+                for index in range(len(observations.stanza_lengths))
+            )
+            score = fmean(
+                _count_score(actual, target)
+                for actual, target in zip(observations.stanza_lengths, expected)
+            )
+            detected = "/".join(map(str, observations.stanza_lengths))
+        explanation = "Printed stanza sizes are compared with the repeating documented sequence."
+    elif feature_id == "total_syllable_range":
+        sources.append("pronunciation_prosody_foundation")
+        minimum = int(parameters["minimum"])
+        maximum = int(parameters["maximum"])
+        counts = [item for item in observations.syllable_counts if item is not None]
+        if counts and len(counts) == observations.line_count:
+            total = sum(counts)
+            score = _range_score(total, minimum, maximum)
+            detected = f"{total} resolved syllables"
+        else:
+            coverage = len(counts) / observations.line_count if observations.line_count else 0.0
+        explanation = "The whole-poem total is scored only when every line has a resolved syllable count."
+    elif feature_id == "partial_refrain_positions":
+        anchor = int(parameters["anchor"])
+        positions = tuple(int(item) for item in parameters["positions"])
+        comparisons = []
+        for position in positions:
+            if anchor <= observations.line_count and position <= observations.line_count:
+                opening = observations.line_words[anchor - 1]
+                target = observations.line_words[position - 1]
+                prefix = target[: min(len(opening), len(target), 5)]
+                comparisons.append(
+                    max(
+                        _sequence_similarity(opening, target),
+                        _sequence_similarity(opening[: len(prefix)], prefix),
+                    )
+                )
+        score = fmean(comparisons) if comparisons else None
+        coverage = len(comparisons) / len(positions) if positions else 0.0
+        detected = f"{len(comparisons)} of {len(positions)} rentrement positions compared"
+        explanation = "Opening words are compared with the prescribed partial-refrain positions; modified returns receive graded credit."
+    elif feature_id == "rondel_refrains":
+        groups = (
+            ((1, 7, 13), (2, 8, 14))
+            if observations.line_count >= 14
+            else ((1, 7, 13), (2, 8))
+        )
+        score, coverage, detected = _line_repetition_score(observations, groups)
+        explanation = "Opening lines are compared with the customary mid-poem and closing refrain positions."
+    elif feature_id == "rhyme_class_count":
+        sources.append("rhyme_and_phonological_patterns")
+        target = int(parameters["count"])
+        labels = [item for item in observations.rhyme_labels if item and item != "?"]
+        if labels:
+            observed = len(set(labels))
+            score = _count_score(observed, target)
+            coverage = len(labels) / observations.line_count
+            detected = f"{observed} resolved rhyme classes"
+        else:
+            coverage = 0.0
+        explanation = "The count of resolved whole-poem rhyme classes is compared with the documented constraint."
+    elif feature_id in {"even_line_assonance", "seguidilla_assonance"}:
+        sources.append("rhyme_and_phonological_patterns")
+        values = [
+            observations.ending_stressed_vowels[index]
+            for index in range(1, observations.line_count, 2)
+            if observations.ending_stressed_vowels[index]
+        ]
+        if values:
+            dominant = max(set(values), key=values.count)
+            score = values.count(dominant) / len(values)
+            coverage = len(values) / max(observations.line_count // 2, 1)
+            detected = f"dominant even-line stressed vowel {dominant} on {values.count(dominant)} of {len(values)} resolved endings"
+        else:
+            coverage = 0.0
+        explanation = "Resolved stressed vowels on even-numbered line endings supply conservative assonance evidence."
+    elif feature_id == "rubaiyat_chain":
+        sources.append("rhyme_and_phonological_patterns")
+        if phonology is not None:
+            expected = []
+            current = 0
+            for start in range(0, observations.line_count, 4):
+                a = chr(0x180 + current)
+                b = chr(0x180 + current + 1)
+                expected.extend((a, a, b, a)[: observations.line_count - start])
+                current += 1
+            score, coverage = _scheme_pair_score(
+                "".join(expected),
+                observations.rhyme_labels,
+                _rhyme_pair_lookup(phonology),
+            )
+            detected = phonology.summary.whole_poem_rhyme_scheme or "unavailable"
+        else:
+            coverage = 0.0
+        explanation = "Successive AABA-style quatrains are compared through graded rhyme evidence."
+    elif feature_id == "monorhyme":
+        sources.append("rhyme_and_phonological_patterns")
+        labels = [item for item in observations.rhyme_labels if item and item != "?"]
+        if labels:
+            dominant = max(set(labels), key=labels.count)
+            score = labels.count(dominant) / len(labels)
+            coverage = len(labels) / observations.line_count
+            detected = f"largest rhyme class contains {labels.count(dominant)} of {len(labels)} resolved endings"
+        else:
+            coverage = 0.0
+        explanation = "The share of resolved endings in the dominant rhyme family supplies monorhyme evidence."
+    elif feature_id == "terzanelle_refrains":
+        score, coverage, detected = _line_repetition_score(
+            observations,
+            ((1, 6, 12), (3, 10, 18)),
+        )
+        explanation = "The two principal refrain lines are compared with their customary later positions; variants require manual review."
+    elif feature_id == "terminal_line_shorter":
+        sources.append("pronunciation_prosody_foundation")
+        counts = observations.syllable_counts
+        if len(counts) >= 3 and counts[-1] is not None:
+            preceding = [item for item in counts[:-1] if item is not None]
+            if preceding:
+                mean = fmean(preceding)
+                score = _clamp((mean - counts[-1] + 1) / 3)
+                coverage = (len(preceding) + 1) / len(counts)
+                detected = f"final line {counts[-1]} syllables; preceding mean {mean:.1f}"
+        else:
+            coverage = sum(item is not None for item in counts) / len(counts) if counts else 0.0
+        explanation = "The resolved final line is compared with the mean length of preceding resolved lines."
+    elif feature_id == "sonnet_crown_links":
+        sonnet_count = int(parameters["sonnet_count"])
+        groups = tuple(
+            (14 * index, 14 * index + 1)
+            for index in range(1, sonnet_count - 1)
+        )
+        score, coverage, detected = _line_repetition_score(observations, groups)
+        explanation = "Each sonnet's closing line is compared with the next sonnet's opening line; master-sonnet gathering remains a scholarly check."
+    elif feature_id == "syllable_pattern_alternatives":
+        sources.append("pronunciation_prosody_foundation")
+        patterns = tuple(
+            tuple(int(item) for item in pattern)
+            for pattern in parameters["patterns"]
+        )
+        results = [
+            _numeric_pattern_score(observations.syllable_counts, pattern)
+            for pattern in patterns
+        ]
+        available = [item for item in results if item[0] is not None]
+        if available:
+            score, coverage = max(available, key=lambda item: float(item[0] or 0.0))
+        else:
+            coverage = 0.0
+        detected = "/".join(
+            "?" if item is None else str(item)
+            for item in observations.syllable_counts
+        )
+        explanation = "The resolved line totals are scored against each documented alternative and the strongest supported analysis is retained."
+    elif feature_id == "terminal_pair_rhyme":
+        sources.append("rhyme_and_phonological_patterns")
+        positions = tuple(int(item) for item in parameters["positions"])
+        if len(positions) == 2:
+            score, coverage = _rhyme_relation_score(
+                observations,
+                phonology,
+                positions[0],
+                positions[1],
+            )
+            detected = f"lines {positions[0]} and {positions[1]} compared"
+        explanation = "The specified terminal line endings are compared through graded rhyme evidence."
+    elif feature_id == "paradelle_repetition":
+        groups = []
+        for start in (1, 7, 13):
+            groups.extend(((start, start + 1), (start + 2, start + 3)))
+        score, coverage, detected = _line_repetition_score(observations, groups)
+        explanation = "The paired repeated lines in each of the first three sestets are compared exactly or with graded lexical similarity."
+    elif feature_id == "maximum_word_length":
+        maximum = int(parameters["maximum"])
+        exempt_proper = bool(parameters.get("exempt_proper_nouns", False))
+        values = []
+        for words, flags in zip(
+            observations.line_words,
+            observations.line_word_proper_flags,
+        ):
+            values.extend(
+                len(word)
+                for word, is_proper in zip(words, flags)
+                if not (exempt_proper and is_proper)
+            )
+        if values:
+            score = sum(item <= maximum for item in values) / len(values)
+            detected = f"{sum(item <= maximum for item in values)} of {len(values)} eligible words contain at most {maximum} letters"
+        explanation = "Normalized lexical forms are counted by letters; proper nouns are omitted when the profile specifies an exemption."
+    elif feature_id == "stress_count_range":
+        sources.append("pronunciation_prosody_foundation")
+        minimum = int(parameters["minimum"])
+        maximum = int(parameters["maximum"])
+        counts = [item for item in observations.stress_counts if item is not None]
+        score = (
+            fmean(_range_score(item, minimum, maximum) for item in counts)
+            if counts
+            else None
+        )
+        coverage = len(counts) / observations.line_count if observations.line_count else 0.0
+        detected = "/".join(
+            "?" if item is None else str(item)
+            for item in observations.stress_counts
+        )
+        explanation = "Resolved primary and secondary lexical stresses are counted per line and compared with the documented range."
+    elif feature_id == "alliteration_density":
+        sources.append("rhyme_and_phonological_patterns")
+        minimum = float(parameters["minimum"])
+        values = [
+            item
+            for item in observations.line_alliteration_densities
+            if item is not None
+        ]
+        if values:
+            mean = fmean(values)
+            score = _clamp(mean / max(minimum, 0.01))
+            coverage = len(values) / observations.line_count
+            detected = f"mean line alliteration density {mean:.1%}"
+        else:
+            coverage = 0.0
+        explanation = "This reuses VerseVAD's line-level repeated-initial-consonant density."
+    elif feature_id == "rondeau_redouble_refrains":
+        score, coverage, detected = _line_repetition_score(
+            observations,
+            ((1, 8), (2, 12), (3, 16), (4, 20)),
+        )
+        explanation = "The opening quatrain's lines are compared with their prescribed successive stanza-ending returns."
+    elif feature_id == "chanso_architecture":
+        lengths = observations.stanza_lengths
+        if len(lengths) >= 6:
+            body = lengths[:-1]
+            body_size = round(fmean(body))
+            uniformity = sum(item == body_size for item in body) / len(body)
+            envoi_fit = _count_score(lengths[-1], max(1, round(body_size / 2)))
+            stanza_count_fit = max(
+                _count_score(len(body), 5),
+                _count_score(len(body), 6),
+            )
+            score = fmean((uniformity, envoi_fit, stanza_count_fit))
+            detected = "/".join(map(str, lengths))
+        explanation = "Five or six equal body stanzas and an approximately half-length envoi are scored from printed stanza boundaries."
+    elif feature_id == "choka_syllable_pattern":
+        sources.append("pronunciation_prosody_foundation")
+        expected = [
+            5 if index % 2 == 0 else 7
+            for index in range(observations.line_count)
+        ]
+        if expected:
+            expected[-1] = 7
+        score, coverage = _numeric_pattern_score(
+            observations.syllable_counts,
+            expected,
+        )
+        detected = "/".join(
+            "?" if item is None else str(item)
+            for item in observations.syllable_counts
+        )
+        explanation = "English syllable totals approximate the traditional 5/7 sound-unit alternation and final additional 7-unit segment."
+    elif feature_id == "manual_requirement":
+        coverage = 0.0
+        detected = "manual scholarly confirmation required"
+        explanation = (
+            "This defining contextual, visual, thematic, linguistic, or "
+            "compositional requirement is not responsibly inferable from the "
+            "current automatic evidence. It remains visible and unscored."
+        )
     else:  # pragma: no cover - registry validation should make this unreachable
         raise ValueError(f"Unsupported inherited-form feature: {feature_id}")
 
@@ -679,6 +1325,10 @@ def _observations(
         tuple(token.normalized_form for token in tokens_by_line[number])
         for number in line_numbers
     )
+    line_word_proper_flags = tuple(
+        tuple(token.is_proper_noun for token in tokens_by_line[number])
+        for number in line_numbers
+    )
     line_token_ids = tuple(
         tuple(token.token_id for token in tokens_by_line[number])
         for number in line_numbers
@@ -692,25 +1342,61 @@ def _observations(
         if count:
             stanza_lengths.append(count)
     syllables = {}
+    stresses = {}
     if pronunciation is not None:
         syllables = {
             line.line_number: line.syllable_count if line.is_complete else None
             for line in pronunciation.line_summaries
         }
+        stresses = {
+            line.line_number: (
+                (line.primary_stress_count or 0)
+                + (line.secondary_stress_count or 0)
+                if line.is_complete
+                else None
+            )
+            for line in pronunciation.line_summaries
+        }
     rhyme = {}
+    stanza_rhyme = {}
+    stressed_vowels = {}
+    alliteration_densities = {}
     if phonology is not None:
         rhyme = {
             line.line_number: line.poem_scheme_label or "?"
+            for line in phonology.line_results
+        }
+        stanza_rhyme = {
+            line.line_number: line.stanza_scheme_label or "?"
+            for line in phonology.line_results
+        }
+        stressed_vowels = {
+            line.line_number: line.stressed_vowel
+            for line in phonology.line_results
+        }
+        alliteration_densities = {
+            line.line_number: line.alliteration_density
             for line in phonology.line_results
         }
     return _Observations(
         line_numbers=line_numbers,
         line_texts=tuple(line.content_text for line in lines),
         line_words=line_words,
+        line_word_proper_flags=line_word_proper_flags,
         line_token_ids=line_token_ids,
         stanza_lengths=tuple(stanza_lengths),
         syllable_counts=tuple(syllables.get(number) for number in line_numbers),
+        stress_counts=tuple(stresses.get(number) for number in line_numbers),
         rhyme_labels=tuple(rhyme.get(number, "?") for number in line_numbers),
+        stanza_rhyme_labels=tuple(
+            stanza_rhyme.get(number, "?") for number in line_numbers
+        ),
+        ending_stressed_vowels=tuple(
+            stressed_vowels.get(number, "") for number in line_numbers
+        ),
+        line_alliteration_densities=tuple(
+            alliteration_densities.get(number) for number in line_numbers
+        ),
     )
 
 
@@ -836,8 +1522,8 @@ class InheritedFormEngine:
             )
         raw.sort(
             key=lambda item: (
+                -_ranking_score(item[0], item[2], item[3]),
                 -(item[2] if item[2] is not None else -1),
-                -item[3],
                 item[0].profile_id,
             )
         )
@@ -851,13 +1537,24 @@ class InheritedFormEngine:
             required_coverage,
             contradictions,
         ) in enumerate(raw):
-            next_score = raw[index + 1][2] if index + 1 < len(raw) else None
+            next_item = next(
+                (
+                    item
+                    for item in raw[index + 1:]
+                    if item[0].assessment_mode != "manual"
+                    and item[2] is not None
+                ),
+                None,
+            )
             margin = (
-                consistency - next_score
-                if consistency is not None and next_score is not None
+                _ranking_score(profile, consistency, coverage)
+                - _ranking_score(next_item[0], next_item[2], next_item[3])
+                if consistency is not None and next_item is not None
                 else None
             )
             suggested = (
+                profile.assessment_mode != "manual"
+                and
                 consistency is not None
                 and consistency >= configuration.suggestion_threshold
                 and coverage >= configuration.minimum_evidence_coverage
@@ -882,7 +1579,9 @@ class InheritedFormEngine:
             else:
                 confidence = "low"
             classification = _classification(consistency, required)
-            if not suggested:
+            if profile.assessment_mode == "manual":
+                classification = "Manual confirmation required"
+            elif not suggested:
                 classification = "No inherited-form match"
             narrative = (
                 f"{classification} {profile.name} candidate. "
@@ -907,12 +1606,22 @@ class InheritedFormEngine:
                     confidence=confidence,
                     classification=classification,
                     suggested=suggested,
+                    assessment_mode=profile.assessment_mode,
                     narrative=narrative,
                     feature_evidence=evidence,
                 )
             )
-        best = candidates[0] if candidates and candidates[0].suggested else None
-        alternative = candidates[1] if best is not None and len(candidates) > 1 else None
+        best = next((candidate for candidate in candidates if candidate.suggested), None)
+        alternative = next(
+            (
+                candidate
+                for candidate in candidates
+                if candidate is not best
+                and candidate.consistency is not None
+                and candidate.assessment_mode != "manual"
+            ),
+            None,
+        ) if best is not None else None
         warnings = []
         if best is None:
             warnings.append(
@@ -968,7 +1677,7 @@ class InheritedFormEngine:
                 "suggested" if best is not None else "no_match",
                 ResultLayer.INTERPRETATION,
                 unit="status label",
-                denominator="ten enabled inherited-form profiles",
+                denominator=f"{len(candidates)} enabled inherited-form profiles",
                 note="A suggestion is a rule-based potential match, not a declaration of genre identity.",
             ),
             ModuleMetric(
@@ -1032,8 +1741,8 @@ class InheritedFormEngine:
                 "inherited_form.candidate_margin",
                 best.margin_over_next if best else None,
                 ResultLayer.COMPUTED_SUMMARY,
-                unit="consistency-index difference",
-                denominator="best minus second-ranked candidate",
+                unit="coverage-adjusted ranking-score difference",
+                denominator="best minus next automatically suggestible candidate",
             ),
         ]
         for candidate in candidates:
@@ -1084,6 +1793,19 @@ class InheritedFormEngine:
                         scope_id=scope_id,
                         unit="conformity label",
                         denominator="documented consistency thresholds",
+                    ),
+                    ModuleMetric(
+                        "inherited_form.candidate_assessment_mode",
+                        candidate.assessment_mode,
+                        ResultLayer.INTERPRETATION,
+                        scope="candidate",
+                        scope_id=scope_id,
+                        unit="assessment-mode label",
+                        denominator="versioned profile registry",
+                        note=(
+                            "Manual profiles remain inspectable but cannot become "
+                            "automatic suggestions."
+                        ),
                     ),
                 )
             )
