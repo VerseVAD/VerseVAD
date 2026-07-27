@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed cross-theme button contrast audit
+
+- [x] Give primary, secondary, tertiary, hover, and disabled button states
+  explicit, shared light/dark foreground and background tokens.
+- [x] Cover ordinary, form-submit, and download-button markup, including
+  Streamlit's suffixed base-button variants and nested labels/icons.
+- [x] Add WCAG AA contrast regression checks and retain semantic workspace
+  checks for **Create project** and **Search installed lexicons**.
+
 ## Completed pronunciation review and local audible previews
 
 - [x] Leave out-of-dictionary words explicitly unmatched while showing a

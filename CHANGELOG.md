@@ -6,6 +6,11 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Standardized ordinary, form-submit, download, primary, secondary, tertiary,
+  hover, and disabled button foregrounds through shared contrast-tested theme
+  tokens. Nested Streamlit labels and icons now inherit those explicit colors,
+  keeping controls such as **Create project** and **Search installed lexicons**
+  legible in both light and dark appearance modes.
 - Made the optional one-text **Workspace Name** blank by default and confirmed
   that temporary analysis does not require it. Textarea keyboard/mouse focus
   now outlines the complete poem-input boundary instead of appearing as a

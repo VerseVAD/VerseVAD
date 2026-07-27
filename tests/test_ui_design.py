@@ -73,7 +73,13 @@ def test_stylesheet_uses_semantic_tokens_and_accessibility_modes() -> None:
             in sheet
         )
         assert '[data-testid="stTextInputRootElement"]' in sheet
-        assert '[data-testid="stBaseButton-primary"]' in sheet
+        assert 'button[data-testid^="stBaseButton-primary"]' in sheet
+        assert '[data-testid="stFormSubmitButton"] button' in sheet
+        assert '[data-testid="stDownloadButton"] button' in sheet
+        assert '[data-testid^="stBaseButton-secondary"]' in sheet
+        assert '[data-testid^="stBaseButton-tertiary"]' in sheet
+        assert "[kind^=\"primary\"]" in sheet
+        assert "button:disabled" in sheet
         assert '[aria-label="Project section"]' in sheet
         assert '[data-testid="stSidebarCollapseButton"]' in sheet
         assert '[data-testid="stSidebarCollapsedControl"]' in sheet
@@ -118,6 +124,66 @@ def test_primary_text_and_focus_tokens_meet_contrast_expectations() -> None:
             _contrast(tokens["text-inverse"], tokens["accent-strong"]) >= 4.5
         )
         assert _contrast(tokens["text-inverse"], tokens["accent"]) >= 4.5
+
+
+def test_all_button_states_meet_text_contrast_expectations() -> None:
+    for tokens in (LIGHT_TOKENS, DARK_TOKENS):
+        assert (
+            _contrast(
+                tokens["button-primary-text"],
+                tokens["button-primary-background"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-primary-text"],
+                tokens["button-primary-hover"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-secondary-text"],
+                tokens["button-secondary-background"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-secondary-text"],
+                tokens["button-secondary-hover"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-tertiary-text"],
+                tokens["background"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-tertiary-text"],
+                tokens["surface"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-tertiary-text"],
+                tokens["accent-soft"],
+            )
+            >= 4.5
+        )
+        assert (
+            _contrast(
+                tokens["button-disabled-text"],
+                tokens["button-disabled-background"],
+            )
+            >= 4.5
+        )
 
 
 def test_presets_change_only_module_selection_not_advanced_settings() -> None:

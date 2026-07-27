@@ -33,6 +33,15 @@ LIGHT_TOKENS = {
     "text-primary": "#17242d",
     "text-secondary": "#59656d",
     "text-inverse": "#ffffff",
+    "button-primary-background": "#5f2619",
+    "button-primary-hover": "#7a3524",
+    "button-primary-text": "#ffffff",
+    "button-secondary-background": "#fffdf9",
+    "button-secondary-hover": "#f2e6df",
+    "button-secondary-text": "#17242d",
+    "button-tertiary-text": "#5f2619",
+    "button-disabled-background": "#eee9df",
+    "button-disabled-text": "#59656d",
     "border": "#d9d3c8",
     "border-strong": "#a9a197",
     "accent": "#7a3524",
@@ -60,6 +69,15 @@ DARK_TOKENS = {
     "text-primary": "#f3f0e9",
     "text-secondary": "#b8c1c5",
     "text-inverse": "#11171b",
+    "button-primary-background": "#efaa8f",
+    "button-primary-hover": "#d58a6d",
+    "button-primary-text": "#11171b",
+    "button-secondary-background": "#202a30",
+    "button-secondary-hover": "#28343b",
+    "button-secondary-text": "#f3f0e9",
+    "button-tertiary-text": "#efaa8f",
+    "button-disabled-background": "#28343b",
+    "button-disabled-text": "#b8c1c5",
     "border": "#3b484f",
     "border-strong": "#65737a",
     "accent": "#d58a6d",
@@ -295,18 +313,106 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       color: var(--color-text-secondary) !important;
       opacity: 1;
     }}
-    [data-testid="stBaseButton-primary"] {{
-      background: var(--color-accent-strong) !important;
-      border-color: var(--color-accent-strong) !important;
-      color: var(--color-text-inverse) !important;
+    /*
+     * Streamlit uses distinct test IDs for ordinary, form-submit, and
+     * download buttons, and some releases suffix the base-button variant
+     * (for example, primaryFormSubmit). Keep every visible label and icon on
+     * the same explicit, contrast-tested foreground instead of allowing a
+     * nested Markdown paragraph to restore Streamlit's theme default.
+     */
+    [data-testid="stButton"] button,
+    [data-testid="stFormSubmitButton"] button,
+    [data-testid="stDownloadButton"] button,
+    [data-testid^="stBaseButton-secondary"] {{
+      background: var(--color-button-secondary-background) !important;
+      border-color: var(--color-border-strong) !important;
+      color: var(--color-button-secondary-text) !important;
+      -webkit-text-fill-color: var(--color-button-secondary-text) !important;
+      opacity: 1;
     }}
-    [data-testid="stBaseButton-primary"] p,
-    [data-testid="stBaseButton-primary"] span {{
-      color: inherit !important;
-    }}
-    [data-testid="stBaseButton-primary"]:hover {{
-      background: var(--color-accent) !important;
+    [data-testid="stButton"] button:hover,
+    [data-testid="stFormSubmitButton"] button:hover,
+    [data-testid="stDownloadButton"] button:hover,
+    [data-testid^="stBaseButton-secondary"]:hover {{
+      background: var(--color-button-secondary-hover) !important;
       border-color: var(--color-accent) !important;
+      color: var(--color-button-secondary-text) !important;
+      -webkit-text-fill-color: var(--color-button-secondary-text) !important;
+    }}
+    button[data-testid^="stBaseButton-primary"],
+    [data-testid="stButton"] button[data-testid^="stBaseButton-primary"],
+    [data-testid="stFormSubmitButton"] button[data-testid^="stBaseButton-primary"],
+    [data-testid="stDownloadButton"] button[data-testid^="stBaseButton-primary"],
+    [data-testid="stButton"] button[kind^="primary"],
+    [data-testid="stFormSubmitButton"] button[kind^="primary"],
+    [data-testid="stDownloadButton"] button[kind^="primary"] {{
+      background: var(--color-button-primary-background) !important;
+      border-color: var(--color-button-primary-background) !important;
+      color: var(--color-button-primary-text) !important;
+      -webkit-text-fill-color: var(--color-button-primary-text) !important;
+      opacity: 1;
+    }}
+    button[data-testid^="stBaseButton-primary"]:hover,
+    [data-testid="stButton"] button[data-testid^="stBaseButton-primary"]:hover,
+    [data-testid="stFormSubmitButton"] button[data-testid^="stBaseButton-primary"]:hover,
+    [data-testid="stDownloadButton"] button[data-testid^="stBaseButton-primary"]:hover,
+    [data-testid="stButton"] button[kind^="primary"]:hover,
+    [data-testid="stFormSubmitButton"] button[kind^="primary"]:hover,
+    [data-testid="stDownloadButton"] button[kind^="primary"]:hover {{
+      background: var(--color-button-primary-hover) !important;
+      border-color: var(--color-button-primary-hover) !important;
+      color: var(--color-button-primary-text) !important;
+      -webkit-text-fill-color: var(--color-button-primary-text) !important;
+    }}
+    button[data-testid^="stBaseButton-tertiary"],
+    [data-testid="stButton"] button[data-testid^="stBaseButton-tertiary"],
+    [data-testid="stFormSubmitButton"] button[data-testid^="stBaseButton-tertiary"],
+    [data-testid="stDownloadButton"] button[data-testid^="stBaseButton-tertiary"],
+    [data-testid="stButton"] button[kind^="tertiary"],
+    [data-testid="stFormSubmitButton"] button[kind^="tertiary"],
+    [data-testid="stDownloadButton"] button[kind^="tertiary"] {{
+      background: transparent !important;
+      border-color: transparent !important;
+      color: var(--color-button-tertiary-text) !important;
+      -webkit-text-fill-color: var(--color-button-tertiary-text) !important;
+      opacity: 1;
+    }}
+    button[data-testid^="stBaseButton-tertiary"]:hover,
+    [data-testid="stButton"] button[data-testid^="stBaseButton-tertiary"]:hover,
+    [data-testid="stFormSubmitButton"] button[data-testid^="stBaseButton-tertiary"]:hover,
+    [data-testid="stDownloadButton"] button[data-testid^="stBaseButton-tertiary"]:hover,
+    [data-testid="stButton"] button[kind^="tertiary"]:hover,
+    [data-testid="stFormSubmitButton"] button[kind^="tertiary"]:hover,
+    [data-testid="stDownloadButton"] button[kind^="tertiary"]:hover {{
+      background: var(--color-accent-soft) !important;
+      border-color: var(--color-accent) !important;
+      color: var(--color-button-tertiary-text) !important;
+      -webkit-text-fill-color: var(--color-button-tertiary-text) !important;
+    }}
+    [data-testid="stButton"] button *,
+    [data-testid="stFormSubmitButton"] button *,
+    [data-testid="stDownloadButton"] button *,
+    [data-testid^="stBaseButton-"] * {{
+      color: inherit !important;
+      -webkit-text-fill-color: inherit !important;
+    }}
+    [data-testid="stButton"] button svg,
+    [data-testid="stFormSubmitButton"] button svg,
+    [data-testid="stDownloadButton"] button svg,
+    [data-testid^="stBaseButton-"] svg {{
+      fill: currentColor !important;
+      stroke: currentColor !important;
+    }}
+    [data-testid="stButton"] button:disabled,
+    [data-testid="stFormSubmitButton"] button:disabled,
+    [data-testid="stDownloadButton"] button:disabled,
+    [data-testid^="stBaseButton-"]:disabled {{
+      background: var(--color-button-disabled-background) !important;
+      border-color: var(--color-border-strong) !important;
+      color: var(--color-button-disabled-text) !important;
+      -webkit-text-fill-color: var(--color-button-disabled-text) !important;
+      cursor: not-allowed;
+      opacity: 1 !important;
     }}
     a {{
       color: var(--color-accent);
