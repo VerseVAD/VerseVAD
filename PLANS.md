@@ -1,5 +1,14 @@
 # VerseVAD Implementation Plan
 
+## Completed responsive metric-result typography
+
+- [x] Scale metric-result text with the available card width while preserving
+  the existing metric-card dimensions and visual hierarchy.
+- [x] Remove Streamlit's single-line ellipsis behavior and retain wrapping as a
+  fallback for unusually long categorical results.
+- [x] Verify the shared rule across Light, Dark, and System styles so meter,
+  confidence, classification, and other metric-card outputs inherit the fix.
+
 ## Completed compact pronunciation review and contraction handling
 
 - [x] Collapse **Words Needing Attention** by default and keep
