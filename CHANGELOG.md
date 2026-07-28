@@ -6,6 +6,8 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Made expanded-section collapse controls fully visible at rest in both themes
+  with a contrast-tested circular surface and a sanitizer-safe upward glyph.
 - Repaired **Clear text** by moving the text-area state update into a
   pre-rerun widget callback, eliminating the Streamlit session-state error.
 - Promoted the complete sentence-level VADER score table from a nested
