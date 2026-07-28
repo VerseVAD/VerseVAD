@@ -14,3 +14,6 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+
+# Preserve curated reference-poem bytes exactly on Windows and macOS.
+resources/VerseMap_Reference_Corpus/** -text

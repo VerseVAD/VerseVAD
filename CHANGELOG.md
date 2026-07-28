@@ -6,6 +6,16 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Added the first VerseMap reference-corpus source pipeline: tracked
+  `resources/VerseMap_Reference_Corpus/<Poet Name>/*.txt` folders, exact and
+  canonical SHA-256 evidence, stable poet/poem IDs, a deterministic CSV
+  manifest and release record, review warnings, blocking validation, and
+  no-write freshness checks.
+- Added one-click Windows and macOS VerseMap reference updaters plus a
+  maintainer guide for adding a poet, validating the corpus, and committing
+  the same portable release to local and cloud repositories. The updater
+  inventories source only; it never rewrites poems or substitutes its rough
+  word estimate for VerseVAD's analytical tokenizer.
 - Made expanded-section collapse controls fully visible at rest in both themes
   with a contrast-tested circular surface and a sanitizer-safe upward glyph.
 - Repaired **Clear text** by moving the text-area state update into a
