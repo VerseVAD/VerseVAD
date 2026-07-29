@@ -16,6 +16,7 @@ REPORT_SECTIONS = [
     "Lexical Character",
     "Sound & Form",
     "Structure",
+    "VerseMap",
     "Evidence & Diagnostics",
     "Export & Help",
 ]
@@ -23,6 +24,7 @@ CORPUS_SECTIONS = [
     "Works & Metadata",
     "Language Profile",
     "Analyze & Compare",
+    "VerseMap",
     "Review & Scenarios",
     "Export",
     "Project Settings",
