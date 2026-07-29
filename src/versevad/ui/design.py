@@ -22,6 +22,7 @@ from versevad.ui.preferences import (
 
 WORKSPACES = (
     "Single Poem",
+    "Compare Poems",
     "Project / Corpus",
     "Other Text",
     "Lexicon Explorer",
@@ -292,13 +293,15 @@ class ModulePreset:
 MODULE_PRESETS = {
     "Essential": ModulePreset(
         label="Essential",
-        description="VAD, emotion association, and emotion intensity.",
+        description=(
+            "VAD, emotion association and intensity, plus sensorimotor imagery."
+        ),
         lexicon_ids=(
             "nrc_vad_v2_1",
             "nrc_emotion_v0_92",
             "nrc_emotion_intensity_v1",
         ),
-        modules=(),
+        modules=("include_sensorimotor",),
     ),
     "Literary": ModulePreset(
         label="Literary",
@@ -311,6 +314,7 @@ MODULE_PRESETS = {
         ),
         modules=(
             "include_concreteness",
+            "include_sensorimotor",
             "include_frequency",
             "include_aoa",
             "include_lexical_style",
@@ -319,9 +323,13 @@ MODULE_PRESETS = {
     ),
     "Sound and Form": ModulePreset(
         label="Sound and Form",
-        description="Pronunciation, meter, rhyme/sound, and structural measures.",
+        description=(
+            "Sensorimotor imagery, pronunciation, meter, rhyme/sound, and "
+            "structural measures."
+        ),
         lexicon_ids=(),
         modules=(
+            "include_sensorimotor",
             "include_pronunciation",
             "include_meter",
             "include_phonology",
@@ -341,6 +349,7 @@ MODULE_PRESETS = {
         ),
         modules=(
             "include_concreteness",
+            "include_sensorimotor",
             "include_frequency",
             "include_aoa",
             "include_lexical_style",
@@ -349,6 +358,7 @@ MODULE_PRESETS = {
             "include_meter",
             "include_phonology",
             "include_inherited_form",
+            "include_versemap",
         ),
     ),
     "Custom": ModulePreset(
