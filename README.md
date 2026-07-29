@@ -142,7 +142,13 @@ side by side when their modules are enabled. Every numeric difference is
 reported as Poem B minus Poem A with its source scale, denominator, and
 coverage. The CSV and narrative Word exports preserve missing values and do
 not present differences as significance tests, rankings, or substitutes for
-close reading.
+close reading. Its report navigation now mirrors Single Poem, with familiar
+default-collapsed subsections, automatically fitted side-by-side dot plots,
+and optional zero-centered B-minus-A difference bars.
+
+Across every workspace, interface tables, chart tooltips, and numeric result
+displays use at most three decimal places. This is a presentation rule only:
+CSV and Word exports retain the underlying analytical precision.
 
 Stage 15 adds **Inherited Form Analysis** to Sound & Form. Registry version
 2.0 contains 169 source-documented profiles spanning fixed forms, stanza

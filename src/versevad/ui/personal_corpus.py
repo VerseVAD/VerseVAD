@@ -27,7 +27,10 @@ from versevad.ui.corpus import (
     _render_texts_tab,
     _render_versemap_tab,
 )
-from versevad.ui.dataframes import heterogeneous_display_value
+from versevad.ui.dataframes import (
+    heterogeneous_display_value,
+    rounded_display_data,
+)
 from versevad.ui.design import (
     collapse_control_html,
     render_dataframe,
@@ -453,7 +456,7 @@ def _render_poem_detail(
                 ].copy()
                 if not means.empty:
                     st.bar_chart(
-                        means,
+                        rounded_display_data(means),
                         x="Dimension",
                         y="Value",
                         color="Lexicon",
