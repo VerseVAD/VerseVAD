@@ -850,6 +850,10 @@ def _render_resource_setup_notice(readiness: ResourceReadiness) -> None:
 workspace_page, _appearance_mode = render_app_shell()
 resource_readiness = installed_resource_readiness()
 _render_resource_setup_notice(resource_readiness)
+if workspace_page == "Personal Corpus":
+    from versevad.ui.personal_corpus import render_personal_corpus_workspace
+
+    render_personal_corpus_workspace(_preprocessor(), resource_readiness)
 if workspace_page == "Project / Corpus":
     from versevad.ui.corpus import render_corpus_workspace
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from html import escape
 from typing import Any, Literal, Mapping, Sequence
@@ -677,6 +678,8 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
       border: 1px solid var(--color-border);
       border-radius: var(--radius-large);
       box-shadow: 0 .35rem 1rem var(--color-shadow);
+      container-name: versevad-header;
+      container-type: inline-size;
       margin-bottom: var(--space-4);
       padding: .55rem .8rem;
       position: -webkit-sticky;
@@ -808,6 +811,24 @@ def stylesheet_for(mode: AppearanceMode | str) -> str:
     #MainMenu, footer {{
       visibility: hidden;
     }}
+    @container versevad-header (max-width: 650px) {{
+      .st-key-versevad_global_header [data-testid="stHorizontalBlock"] {{
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }}
+      .st-key-versevad_global_header [data-testid="stColumn"]:first-child {{
+        flex: 1 1 100% !important;
+        width: 100% !important;
+      }}
+      .st-key-versevad_global_header [data-testid="stColumn"]:not(:first-child) {{
+        flex: 0 0 2.5rem !important;
+        min-width: 2.5rem !important;
+        width: 2.5rem !important;
+      }}
+      .st-key-versevad_global_header [data-testid="stColumn"]:nth-child(2) {{
+        margin-left: auto;
+      }}
+    }}
     @media (max-width: 800px) {{
       .main .block-container {{
         max-width: 100%;
@@ -937,6 +958,49 @@ def _persist_appearance() -> None:
     save_appearance(st.session_state["appearance_mode"])
 
 
+def _navigate_home() -> None:
+    st.session_state["personal_corpus_active"] = False
+    st.session_state["workspace_page"] = WORKSPACES[0]
+
+
+def _navigate_personal_corpus() -> None:
+    st.session_state["personal_corpus_active"] = True
+
+
+def _render_sidebar_navigation(
+    *,
+    personal_corpus_active: bool,
+    personal_corpus_available: bool,
+) -> None:
+    """Render low-profile local navigation outside the main workspace selector."""
+
+    with st.sidebar:
+        st.markdown("### Navigation")
+        st.button(
+            "Home",
+            icon=":material/home:",
+            type="primary" if not personal_corpus_active else "secondary",
+            width="stretch",
+            key="versevad_sidebar_home",
+            on_click=_navigate_home,
+            help="Return to the main Single Poem workspace.",
+        )
+        if personal_corpus_available:
+            st.button(
+                "Personal Corpus",
+                icon=":material/library_books:",
+                type="primary" if personal_corpus_active else "secondary",
+                width="stretch",
+                key="versevad_sidebar_personal_corpus",
+                on_click=_navigate_personal_corpus,
+                help=(
+                    "Open the private personal library stored only on this "
+                    "computer."
+                ),
+            )
+        st.divider()
+
+
 def render_app_shell() -> tuple[str, AppearanceMode]:
     """Render the shared application header and return active workspace/theme."""
 
@@ -945,6 +1009,12 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
     st.session_state.setdefault("analysis_cache_enabled", True)
     st.session_state.setdefault("performance_diagnostics_enabled", True)
     st.session_state.setdefault("workspace_page", WORKSPACES[0])
+    st.session_state.setdefault("personal_corpus_active", False)
+    personal_corpus_available = (
+        os.environ.get("VERSEVAD_CLOUD_DEPLOYMENT") != "1"
+    )
+    if not personal_corpus_available:
+        st.session_state["personal_corpus_active"] = False
     legacy_workspace = {
         "One Poem": "Single Poem",
         "Projects & Corpus": "Project / Corpus",
@@ -959,12 +1029,31 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
         )
     appearance = AppearanceMode(st.session_state["appearance_mode"])
     apply_design_system(appearance)
+    personal_corpus_active = bool(
+        st.session_state.get("personal_corpus_active", False)
+    )
+    _render_sidebar_navigation(
+        personal_corpus_active=personal_corpus_active,
+        personal_corpus_available=personal_corpus_available,
+    )
 
     with st.container(key="versevad_global_header"):
-        brand, appearance_column, settings_column, help_column = st.columns(
-            [6, 0.42, 0.42, 0.42],
-            vertical_alignment="center",
-        )
+        if personal_corpus_active:
+            (
+                brand,
+                home_column,
+                appearance_column,
+                settings_column,
+                help_column,
+            ) = st.columns(
+                [6, 0.42, 0.42, 0.42, 0.42],
+                vertical_alignment="center",
+            )
+        else:
+            brand, appearance_column, settings_column, help_column = st.columns(
+                [6, 0.42, 0.42, 0.42],
+                vertical_alignment="center",
+            )
         with brand:
             st.markdown(
                 '<div class="versevad-wordmark">VerseVAD</div>'
@@ -973,6 +1062,16 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
                 "</div>",
                 unsafe_allow_html=True,
             )
+        if personal_corpus_active:
+            with home_column:
+                st.button(
+                    "Home",
+                    icon=":material/home:",
+                    type="tertiary",
+                    key="versevad_header_icon__home",
+                    on_click=_navigate_home,
+                    help="Return to VerseVAD Home.",
+                )
         with appearance_column:
             appearance_icon = {
                 AppearanceMode.LIGHT: ":material/light_mode:",
@@ -1101,12 +1200,15 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
                     "warranty. See LICENSE. Research datasets retain their own "
                     "terms and are not included in that license."
                 )
-        workspace = st.segmented_control(
-            "Workspace",
-            options=WORKSPACES,
-            selection_mode="single",
-            key="workspace_page",
-        )
+        if personal_corpus_active:
+            workspace = "Personal Corpus"
+        else:
+            workspace = st.segmented_control(
+                "Workspace",
+                options=WORKSPACES,
+                selection_mode="single",
+                key="workspace_page",
+            )
     return workspace or WORKSPACES[0], appearance
 
 

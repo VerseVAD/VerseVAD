@@ -152,6 +152,18 @@ weighted PCA composites, while neighbor ranking uses the complete,
 coverage-aware feature space. Results include CSV data and a narrative Word
 report and never make authorship, influence, quality, or meaning claims.
 
+The downloadable local application also includes **Personal Corpus**, a
+deliberately low-profile destination opened from the collapsible sidebar. It
+uses VerseVAD's existing corpus engines but stores its private library
+separately in `projects/personal_corpus.sqlite3`, which remains ignored by Git.
+Users can add one poem, several files, a folder, or pasted text; edit poem text
+and metadata with preserved versions; delete exactly one confirmed poem; switch
+among poem-specific reports; inspect whole-corpus summaries; run VerseMap; and
+export the usual CSV and Word reports. Ordinary affective reports retain
+token/type and all-token/stopword-excluded choices. VerseMap always uses its
+pinned Standard Profile 1.0. Personal Corpus is intentionally omitted in
+hosted-cloud deployment mode.
+
 State-backed report and project-section navigation preserves the selected
 section across Streamlit refreshes. Changing a view, weighting, lexicon, or
 token scope therefore keeps the current report family active, and preparing

@@ -6,6 +6,19 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Added a local-only **Personal Corpus** destination reached from the
+  collapsible sidebar rather than the prominent workspace selector. It reuses
+  the existing corpus repository, analysis, chart, VerseMap, review, and export
+  services against an isolated `projects/personal_corpus.sqlite3` database.
+- Added one-file, multi-file, folder, and pasted-poem intake; locally versioned
+  poem-text and metadata editing; and exact-title-confirmed deletion scoped to
+  one personal poem. The Personal Corpus report dropdown provides poem-detail
+  and whole-corpus views, ordinary token/type and stopword controls, and a
+  methodologically fixed VerseMap Standard Profile 1.0 view.
+- Added matching high-contrast **Home** and **Personal Corpus** sidebar actions
+  plus a compact circular Home icon in the Personal Corpus header. The
+  destination is intentionally unavailable when VerseVAD is running in its
+  hosted-cloud deployment mode.
 - Added the first VerseMap reference-corpus source pipeline: tracked
   `resources/VerseMap_Reference_Corpus/<Poet Name>/*.txt` folders, exact and
   canonical SHA-256 evidence, stable poet/poem IDs, a deterministic CSV

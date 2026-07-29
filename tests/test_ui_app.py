@@ -29,6 +29,16 @@ CORPUS_SECTIONS = [
     "Export",
     "Project Settings",
 ]
+PERSONAL_CORPUS_SECTIONS = [
+    "Poems & Metadata",
+    "Poem Detail",
+    "Corpus Analysis",
+    "Language Profile",
+    "VerseMap",
+    "Review & Scenarios",
+    "Export",
+    "Corpus Settings",
+]
 
 
 def _button(app: AppTest, label: str):
@@ -36,7 +46,11 @@ def _button(app: AppTest, label: str):
 
 
 def _section_navigation(app: AppTest, label: str):
-    control_type = "selectbox" if label == "Report section" else "button_group"
+    control_type = (
+        "selectbox"
+        if label.casefold() == "report section"
+        else "button_group"
+    )
     return next(
         control
         for control in app.get(control_type)
@@ -223,6 +237,106 @@ def test_interface_opens_persistent_corpus_workspace(tmp_path, monkeypatch) -> N
     assert [title.value for title in app.title] == ["Project / Corpus"]
     assert "Project title" in [field.label for field in app.text_input]
     assert "Create project" in [button.label for button in app.button]
+
+
+def test_sidebar_opens_isolated_personal_corpus_and_home_returns(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "personal_corpus.sqlite3"
+    monkeypatch.setenv(
+        "VERSEVAD_PERSONAL_CORPUS_DATABASE_PATH",
+        str(database_path),
+    )
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+
+    assert "Personal Corpus" in [button.label for button in app.button]
+    _button(app, "Personal Corpus").click()
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert [title.value for title in app.title] == ["Personal Corpus"]
+    assert database_path.is_file()
+    report = _section_navigation(app, "Report Section")
+    assert report.options == PERSONAL_CORPUS_SECTIONS
+    assert report.value == "Poems & Metadata"
+    assert "Add One or More Poems" in [
+        panel.label for panel in app.expander
+    ]
+    assert "Edit a Poem" in [panel.label for panel in app.expander]
+    assert "Delete a Poem" in [panel.label for panel in app.expander]
+    assert "Workspace" not in [
+        control.label for control in app.get("button_group")
+    ]
+
+    _button(app, "Home").click()
+    app.run(timeout=30)
+    assert not app.exception
+    assert [title.value for title in app.title] == ["Single Poem"]
+    navigation = next(
+        control
+        for control in app.get("button_group")
+        if control.label == "Workspace"
+    )
+    assert navigation.value == "Single Poem"
+
+
+def test_personal_corpus_edits_versions_and_deletes_exactly_one_poem(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    database_path = tmp_path / "personal_corpus.sqlite3"
+    monkeypatch.setenv(
+        "VERSEVAD_PERSONAL_CORPUS_DATABASE_PATH",
+        str(database_path),
+    )
+    repository = ProjectRepository(database_path)
+    project = repository.create_project("My Personal Corpus")
+    original = repository.import_texts(
+        project.project_id,
+        (
+            CorpusTextImport(
+                "Editable Poem",
+                "editable.txt",
+                "editable.txt",
+                "Bright.",
+            ),
+        ),
+    )[0]
+
+    app = AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+    _button(app, "Personal Corpus").click()
+    app.run(timeout=30)
+
+    poem_text = next(
+        area for area in app.text_area if area.value == "Bright."
+    )
+    poem_text.input("Bright, then dark.")
+    _button(app, "Save Poem Changes").click()
+    app.run(timeout=30)
+
+    updated = repository.get_text(original.text_id)
+    assert updated.original_text == "Bright, then dark."
+    assert updated.text_version_id != original.text_version_id
+
+    confirmation = next(
+        field
+        for field in app.text_input
+        if field.label.startswith("Type the exact poem title to confirm")
+    )
+    confirmation.input("Editable Poem")
+    app.run(timeout=30)
+    delete = _button(app, "Delete This Poem")
+    assert not delete.disabled
+    delete.click()
+    app.run(timeout=30)
+
+    assert not app.exception
+    assert repository.list_texts(project.project_id) == ()
+    assert any(
+        'Deleted "Editable Poem"' in message.value
+        for message in app.success
+    )
 
 
 def test_corpus_workspace_exposes_phase5_review_scenarios(

@@ -492,6 +492,45 @@ project**. This permanently removes only that project and its locally stored
 works, versions, analyses, and notes. Other projects and source lexicons are
 not touched.
 
+## Maintain a Personal Corpus
+
+The downloadable local application provides a separate **Personal Corpus**
+destination without adding it to the prominent workspace selector.
+
+1. Expand the left sidebar and click **Personal Corpus**.
+2. Add one or several UTF-8 `.txt` files, import a folder, or paste one poem.
+3. Open **Poems & Metadata** to browse the library. **Edit a Poem** can change
+   text and metadata; changed text creates a preserved version and requires a
+   new analysis batch before updated results are published.
+4. To remove one poem, open **Delete a Poem**, select it, and type its exact
+   title. Only that poem and its locally stored versions/results are removed.
+5. Open **Corpus Analysis** to choose poems, lexicons, modules, phrase policy,
+   review scenario, stopword configuration, and other normal corpus settings.
+6. Open **Poem Detail** to select one stored poem. Affective metrics retain
+   all-matched/stopword-excluded and token/type selectors; enabled optional
+   modules, coverage, warnings, and VerseMap evidence remain separate.
+7. Use the other Report Section choices for whole-corpus Language Profile,
+   corpus comparisons, VerseMap, review scenarios, and CSV/Word exports.
+8. Click either **Home** in the sidebar or the circular house icon in the
+   Personal Corpus header to return to the main Single Poem workspace.
+
+Personal Corpus reuses the tested Project / Corpus repository and analysis
+engines; it does not duplicate metrics. Its isolated database is:
+
+```text
+projects/personal_corpus.sqlite3
+```
+
+This file, imported poems, backups, and exports remain local and ignored by
+Git. The personal library does not appear in the main Project / Corpus project
+selector. Personal Corpus is disabled in hosted-cloud deployment mode because
+that environment cannot promise durable per-user local storage.
+
+VerseMap is the one exception to the ordinary display/configuration choices.
+It always compares personal poems and the reference corpus under the pinned
+VerseMap Standard Profile 1.0. Personal Corpus controls cannot change its
+token weighting, stopword policy, preprocessing, or feature registry.
+
 ### Long and short works in one collection
 
 VerseVAD reports two collection VAD views:

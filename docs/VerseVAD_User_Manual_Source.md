@@ -1240,6 +1240,27 @@ order, terminology, and scholarly limits.
 
 Open **Project / Corpus**, expand **Create a research project**, and enter a title. Description and researcher fields are optional. Projects persist locally in `projects/versevad.sqlite3` unless an alternate database path is configured.
 
+### Personal Corpus
+
+The downloadable local application also provides **Personal Corpus** from the
+collapsible sidebar. It is intentionally absent from the prominent workspace
+selector and from hosted-cloud deployment mode. **Home** in the sidebar or the
+circular house icon in the Personal Corpus header returns to Single Poem.
+
+Personal Corpus reuses the same versioned repository, analysis engines, charts,
+review scenarios, VerseMap model, and CSV/Word exports as Project / Corpus, but
+stores its library separately in `projects/personal_corpus.sqlite3`. The
+database, poems, and outputs are ignored by Git and never appear in the main
+project selector.
+
+Under **Poems & Metadata**, add one file, several files, a folder, or pasted
+text. Text and metadata edits preserve a new version. Deleting a poem requires
+typing its exact title and removes only that poem's local versions and results.
+The stateful Report Section dropdown includes poem-specific results and
+whole-corpus summaries. Affective poem detail retains token/type and
+all-token/stopword-excluded selectors. VerseMap is always locked to Standard
+Profile 1.0 for both personal and reference poems.
+
 After selecting a project, the status header shows active-work count,
 repository schema, researcher, last-modified date, and local-save context.
 

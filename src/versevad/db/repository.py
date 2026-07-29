@@ -87,6 +87,15 @@ def default_database_path() -> Path:
     return PROJECT_ROOT / "projects" / "versevad.sqlite3"
 
 
+def default_personal_corpus_database_path() -> Path:
+    """Return the isolated local database used by the Personal Corpus view."""
+
+    configured = os.environ.get("VERSEVAD_PERSONAL_CORPUS_DATABASE_PATH")
+    if configured:
+        return Path(configured).expanduser()
+    return PROJECT_ROOT / "projects" / "personal_corpus.sqlite3"
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="microseconds")
 
@@ -1773,6 +1782,42 @@ class ProjectRepository:
                 "UPDATE projects SET updated_at = ? WHERE project_id = ?", (now, project_id)
             )
         return self.get_text(text_id)
+
+    def delete_text(
+        self,
+        project_id: str,
+        text_id: str,
+        *,
+        confirmation_title: str,
+    ) -> None:
+        """Delete exactly one corpus work after an exact title confirmation."""
+
+        self.initialize()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT title
+                FROM texts
+                WHERE text_id = ? AND project_id = ?
+                """,
+                (text_id, project_id),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Unknown text in this corpus: {text_id}")
+            if confirmation_title != row["title"]:
+                raise ValueError(
+                    "The confirmation text does not exactly match the poem title."
+                )
+            cursor = connection.execute(
+                "DELETE FROM texts WHERE text_id = ? AND project_id = ?",
+                (text_id, project_id),
+            )
+            if cursor.rowcount != 1:
+                raise RuntimeError("VerseVAD could not delete the selected poem.")
+            connection.execute(
+                "UPDATE projects SET updated_at = ? WHERE project_id = ?",
+                (_now(), project_id),
+            )
 
     @staticmethod
     def _workspace_modules(workspace: WorkspaceAnalysis) -> tuple[tuple, ...]:

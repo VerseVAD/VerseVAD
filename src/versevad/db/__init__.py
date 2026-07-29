@@ -20,6 +20,7 @@ from versevad.db.repository import (
     ReviewScenarioVersionRecord,
     UnmatchedQcRecord,
     default_database_path,
+    default_personal_corpus_database_path,
 )
 
 __all__ = [
@@ -42,4 +43,5 @@ __all__ = [
     "ReviewScenarioVersionRecord",
     "UnmatchedQcRecord",
     "default_database_path",
+    "default_personal_corpus_database_path",
 ]

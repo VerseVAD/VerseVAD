@@ -1,5 +1,23 @@
 # VerseVAD Implementation Plan
 
+## Completed local Personal Corpus interface
+
+- [x] Add a non-prominent Personal Corpus destination reached only from the
+  collapsible sidebar, with matching sidebar Home navigation and a circular
+  header Home action.
+- [x] Reuse the existing versioned corpus database, analysis engines,
+  summaries, charts, review scenarios, VerseMap model, and CSV/Word exports
+  without duplicating calculations.
+- [x] Keep personal poems isolated in
+  `projects/personal_corpus.sqlite3`, excluded from source control, and
+  unavailable in hosted-cloud deployment mode.
+- [x] Support one-file, multi-file, folder, and pasted-poem intake plus
+  preserved-version text edits, metadata edits, and exact-confirmation poem
+  deletion.
+- [x] Add a stateful Report Section dropdown with poem-specific results,
+  whole-corpus summaries, token/type and stopword choices, and a VerseMap view
+  that remains pinned to Standard Profile 1.0.
+
 ## Completed VerseMap comparative module and reference pipeline
 
 - [x] Establish a narrowly tracked
