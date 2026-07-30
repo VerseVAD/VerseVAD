@@ -210,15 +210,30 @@ clone check, and the one-time safe migration from a ZIP folder to a real clone.
    recent versions of each.
 4. If the browser does not open automatically, type that address into a browser on the same computer.
 
-The shared application header contains:
+The shared application header groups workspaces under:
 
-- **Single Poem**
-- **Project / Corpus**
-- **Other Text**
-- **Lexicon Explorer**
+- **Analyze**: Single Poem, Compare Poems, Other Text, and Lexicon Explorer;
+- **Collections**: Personal Corpus, Saved Projects, Reference Corpora, and
+  Analysis Library;
+- **Explore**: VerseMap, Lexicon Explorer, Form Library, and Corpus Browser;
+- **Learn**: Documentation and Methodology;
 - the current VerseVAD version;
 - a circular appearance menu for **Classic**, **Dark**, **Lavender**, **Ocean**, **Crimson**, and **Forest**;
 - circular gear and question-mark controls for settings and help.
+
+Personal Corpus appears only in the downloadable local edition. Routes whose
+later implementation is not yet complete are visibly marked as planned rather
+than displaying substitute results. The contextual sidebar keeps the current
+object, analysis profile, settings, comparison resources, research-notes
+location, analysis-management location, and export guidance together.
+
+Built-in analysis profiles are **Full Poetic Analysis**, **Computational Close
+Reading**, **Affect and Emotion**, **Sound and Prosody**, **Formal Analysis**,
+and **Teaching/Introductory**. Select **Apply / Restore** to establish a
+profile's defaults, then continue customizing if needed. Local custom profiles
+store configuration only in ignored private application data; they never
+retain poem text, metadata, pronunciation overrides, results, or exports.
+Hosted custom profiles last for the browser session.
 
 The selected theme persists across closing and reopening VerseVAD. Legacy
 Light and System choices migrate safely to Classic. The selection is stored
@@ -1233,21 +1248,22 @@ Single-text results are temporary, so download anything you need before closing 
 Use this section as an in-application reminder of the recommended reading
 order, terminology, and scholarly limits.
 
-# 9. Project / Corpus Workspace
+# 9. Saved Projects Workspace
 
 ## Create a project
 
-Open **Project / Corpus**, expand **Create a research project**, and enter a title. Description and researcher fields are optional. Projects persist locally in `projects/versevad.sqlite3` unless an alternate database path is configured.
+Open **Collections → Saved Projects**, expand **Create a research project**,
+and enter a title. Description and researcher fields are optional. This is the
+workspace formerly labeled Project / Corpus. Projects persist locally in
+`projects/versevad.sqlite3` unless an alternate database path is configured.
 
 ### Personal Corpus
 
-The downloadable local application also provides **Personal Corpus** from the
-collapsible sidebar. It is intentionally absent from the prominent workspace
-selector and from hosted-cloud deployment mode. **Home** in the sidebar or the
-circular house icon in the Personal Corpus header returns to Single Poem.
+The downloadable local application also provides **Collections → Personal
+Corpus**. It is intentionally absent from hosted-cloud deployment mode.
 
 Personal Corpus reuses the same versioned repository, analysis engines, charts,
-review scenarios, VerseMap model, and CSV/Word exports as Project / Corpus, but
+review scenarios, VerseMap model, and CSV/Word exports as Saved Projects, but
 stores its library separately in `projects/personal_corpus.sqlite3`. The
 database, poems, and outputs are ignored by Git and never appear in the main
 project selector.

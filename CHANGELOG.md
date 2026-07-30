@@ -6,6 +6,31 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Replaced the flat workspace control with four grouped top-level sections:
+  **Analyze**, **Collections**, **Explore**, and **Learn**. The public/local
+  edition now reaches Personal Corpus through Collections, and the existing
+  Project / Corpus workspace is labeled **Saved Projects**.
+- Added a conditional research sidebar skeleton for the active poem, text,
+  comparison, collection, or lexicon lookup. Analysis profiles, settings,
+  comparison resources, later research notes/management, and exports now have
+  stable contextual locations.
+- Expanded **Compare Poems** from two poems to a dynamic set of two through ten.
+  It applies one shared configuration, shows poem results side by side, and
+  reports equal-poem means plus poem-level population standard deviations
+  without treating an arbitrarily selected poem as a baseline. CSV and Word
+  exports use the same long-form set model and contain no B-minus-A field.
+- Replaced Essential, Literary, Sound and Form, and Complete with **Full Poetic
+  Analysis**, **Computational Close Reading**, **Affect and Emotion**, **Sound
+  and Prosody**, **Formal Analysis**, and **Teaching/Introductory**. Legacy
+  saved names migrate to their closest new profiles.
+- Added named custom analysis profiles. Local installations persist only
+  configuration under ignored `data/private/`; hosted sessions keep custom
+  profiles in session memory. Text, metadata, pronunciation overrides,
+  results, and exports are excluded.
+- Made PoetryID's threshold-based **Category Fit Archetype** the primary
+  descriptive result and the **Nearest Centroid Archetype** a secondary
+  candidate. Multi-poem and corpus summaries now remain limited to those two
+  interpretable fields.
 - Reorganized **Compare Poems** to follow the Single Poem report map, with
   familiar default-collapsed subsections, compact source/scale-specific
   tables, automatically fitted side-by-side dot plots, and optional

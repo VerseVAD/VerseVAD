@@ -1,5 +1,27 @@
 # VerseVAD Implementation Plan
 
+## Completed research-workspace architecture Stage 1
+
+- [x] Replace the flat workspace switcher with grouped top navigation:
+  **Analyze**, **Collections**, **Explore**, and **Learn**, using stable URL
+  routes and a shared conditional sidebar shell.
+- [x] Move Personal Corpus into Collections for local installations, rename
+  Project / Corpus to Saved Projects, and reserve clearly labeled routes for
+  the later library, notebook, corpus-management, and learning stages.
+- [x] Expand Compare Poems from exactly two to a dynamic two-through-ten poem
+  set with one shared design, poem-level columns, equal-poem means,
+  poem-level dispersion, fitted charts, and CSV/Word exports without arbitrary
+  B-minus-A framing.
+- [x] Replace the five legacy presets with six research-oriented analysis
+  profiles, retain legacy-name migration, and add locally persistent or
+  hosted-session custom profiles that never save poem text or results.
+- [x] Present PoetryID category fit as the primary descriptive archetype and
+  nearest-centroid candidate as secondary; keep comparison/corpus summaries
+  limited to those two claims.
+- [x] Cover route grouping, profile privacy/persistence, two-to-ten comparison
+  aggregation, exports, interface navigation, and responsive layouts with
+  regression and live-browser checks.
+
 ## Completed comparison-presentation and display-precision refinement
 
 - [x] Align Compare Poems with the eight-section Single Poem report map and

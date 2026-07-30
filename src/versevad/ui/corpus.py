@@ -64,6 +64,7 @@ from versevad.ui.design import (
     render_stateful_section_navigation,
     render_workspace_header,
 )
+from versevad.ui.profiles import load_custom_profiles
 from versevad.ui.stopwords import render_stopword_settings
 from versevad.versemap import VerseMapConfiguration, load_reference_index
 
@@ -372,17 +373,10 @@ def _poetry_id_work_comparison_rows(
 
     scope_id, weighting = selected_group
     document_metric_ids = {
-        "poetry_id.valence",
-        "poetry_id.arousal",
-        "poetry_id.dominance",
         "poetry_id.categorical_archetype_id",
         "poetry_id.categorical_archetype_name",
         "poetry_id.nearest_centroid_archetype_id",
-        "poetry_id.categorical_centroid_match",
-        "poetry_id.centroid_distance",
-        "poetry_id.confidence_label",
     }
-    nearest_scope_id = f"{scope_id}:{weighting}:1"
     by_work: dict[str, dict[str, object]] = {}
     for row in metrics:
         is_selected_document_metric = (
@@ -391,13 +385,7 @@ def _poetry_id_work_comparison_rows(
             and row.weighting == weighting
             and row.metric_id in document_metric_ids
         )
-        is_nearest_distance = (
-            row.scope == "neighbor"
-            and row.scope_id == nearest_scope_id
-            and row.weighting == weighting
-            and row.metric_id == "poetry_id.neighbor_distance"
-        )
-        if not (is_selected_document_metric or is_nearest_distance):
+        if not is_selected_document_metric:
             continue
         values = by_work.setdefault(
             row.text_id,
@@ -433,38 +421,11 @@ def _poetry_id_work_comparison_rows(
             archetype = ARCHETYPE_BY_ID.get(nearest_id)
             nearest_name = archetype.name if archetype else nearest_id
 
-        match = work_metrics.get("poetry_id.categorical_centroid_match")
-        if isinstance(match, bool):
-            match_label = "Yes" if match else "No"
-        elif str(match).strip().casefold() in {"true", "1", "yes"}:
-            match_label = "Yes"
-        elif str(match).strip().casefold() in {"false", "0", "no"}:
-            match_label = "No"
-        else:
-            match_label = None
-
-        confidence = work_metrics.get("poetry_id.confidence_label")
-        confidence_label = (
-            str(confidence).replace("_", " ").title()
-            if confidence is not None
-            else None
-        )
         rows.append(
             {
                 "Work": values["title"],
-                "Categorical profile": categorical_name,
-                "Nearest centroid": nearest_name,
-                "Same profile": match_label,
-                "Nearest distance": work_metrics.get(
-                    "poetry_id.neighbor_distance"
-                ),
-                "Categorical distance": work_metrics.get(
-                    "poetry_id.centroid_distance"
-                ),
-                "Confidence": confidence_label,
-                "Valence": work_metrics.get("poetry_id.valence"),
-                "Arousal": work_metrics.get("poetry_id.arousal"),
-                "Dominance": work_metrics.get("poetry_id.dominance"),
+                "Category Fit Archetype": categorical_name,
+                "Nearest Centroid Archetype": nearest_name,
             }
         )
     return tuple(rows)
@@ -1127,29 +1088,19 @@ def _render_corpus_modules(
             )
             if comparison_rows:
                 st.markdown(
-                    "**Per-poem categorical and nearest-centroid comparison**"
+                    "**Per-poem PoetryID archetypes**"
                 )
                 render_dataframe(
-                    pd.DataFrame(comparison_rows).style.format(
-                        {
-                            "Nearest distance": "{:.3f}",
-                            "Categorical distance": "{:.3f}",
-                            "Valence": "{:.3f}",
-                            "Arousal": "{:.3f}",
-                            "Dominance": "{:.3f}",
-                        },
-                        na_rep="-",
-                    ),
+                    pd.DataFrame(comparison_rows),
                     hide_index=True,
                     width="stretch",
                     height=360,
                 )
                 st.caption(
-                    "The categorical profile comes from the configured low, "
-                    "moderate, and high VAD thresholds. The nearest centroid is "
-                    "the closest of all 27 continuous VAD centroids under "
-                    "Euclidean distance. They may differ near a boundary. "
-                    "Confidence is rule-based evidence, not a probability."
+                    "Category Fit is the primary threshold-based archetype. "
+                    "Nearest Centroid is the secondary continuous-distance "
+                    "candidate. Either is descriptive lexical evidence, not a "
+                    "declaration of the poem's emotion or identity."
                 )
 
             by_work_scope: dict[
@@ -1437,30 +1388,59 @@ def _render_analysis_tab(
                 "See docs/resource-installation.md for official download pages, "
                 "exact filenames, and supported checksums."
             )
+    custom_profile_settings = {
+        name: dict(profile.settings)
+        for name, profile in load_custom_profiles().items()
+    }
+    custom_profile_settings.update(
+        {
+            name: dict(settings)
+            for name, settings in st.session_state.get(
+                "_session_custom_profiles",
+                {},
+            ).items()
+            if isinstance(name, str) and isinstance(settings, dict)
+        }
+    )
+    profile_options = [
+        name for name in MODULE_PRESETS if name != "Custom"
+    ] + [
+        f"Custom Â· {name}" for name in sorted(custom_profile_settings)
+    ] + ["Custom"]
     preset_choice, preset_action = st.columns([3, 1], vertical_alignment="bottom")
     with preset_choice:
         selected_preset = st.selectbox(
-            "Corpus module preset",
-            options=list(MODULE_PRESETS),
-            index=list(MODULE_PRESETS).index("Custom"),
+            "Corpus analysis profile",
+            options=profile_options,
+            index=profile_options.index("Custom"),
             key=f"corpus_preset_{project_id}",
             help=(
-                "Presets update module selections only after Apply. Advanced "
-                "methodology settings remain unchanged."
+                "Built-in and saved custom profiles update shared evidence "
+                "selections after Apply / Restore."
             ),
         )
     with preset_action:
         apply_preset = st.button(
-            "Apply corpus preset",
+            "Apply / Restore",
             width="stretch",
             key=f"apply_corpus_preset_{project_id}",
         )
-    st.caption(MODULE_PRESETS[selected_preset].description)
-    if apply_preset:
-        preset_state = preset_widget_state(
-            selected_preset,
-            available_lexicon_ids=tuple(lexicon_lookup),
+    if selected_preset in MODULE_PRESETS:
+        st.caption(MODULE_PRESETS[selected_preset].description)
+    elif selected_preset.startswith("Custom Â· "):
+        st.caption(
+            "A saved custom configuration. Unsupported or unavailable corpus "
+            "modules remain disabled."
         )
+    if apply_preset:
+        if selected_preset.startswith("Custom Â· "):
+            custom_name = selected_preset.removeprefix("Custom Â· ")
+            preset_state = custom_profile_settings.get(custom_name, {})
+        else:
+            preset_state = preset_widget_state(
+                selected_preset,
+                available_lexicon_ids=tuple(lexicon_lookup),
+            )
         if not preset_state:
             st.info("Custom keeps the current manual selections unchanged.")
             preset_state = None
@@ -3054,7 +3034,7 @@ def render_corpus_workspace(
     repository = ProjectRepository(default_database_path())
     repository.initialize()
     with st.sidebar:
-        st.markdown("### Persistent Local Projects")
+        st.markdown("### Saved Projects")
         st.success("Projects, texts, notes, and results stay on this computer.")
         st.caption(f"Database: {repository.database_path}")
         st.markdown("---")
@@ -3063,7 +3043,7 @@ def render_corpus_workspace(
         )
 
     render_workspace_header(
-        "Project / Corpus",
+        "Saved Projects",
         "Import a folder as separate works, add metadata, compare complete analysis "
         "batches across affective and optional lexical/prosodic modules, build "
         "versioned review scenarios, and export CSV data with a readable Word report.",
