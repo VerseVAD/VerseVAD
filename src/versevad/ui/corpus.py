@@ -81,6 +81,15 @@ def _records_frame(records) -> pd.DataFrame:
     return pd.DataFrame([asdict(record) for record in records])
 
 
+@st.cache_resource(show_spinner=False)
+def _project_repository_for_path(path: str) -> ProjectRepository:
+    """Initialize each database schema once while keeping connections short-lived."""
+
+    repository = ProjectRepository(path)
+    repository.initialize()
+    return repository
+
+
 def _render_versemap_tab(
     repository: ProjectRepository,
     project_id: str,
@@ -343,10 +352,10 @@ def _render_versemap_tab(
             column_config={
                 "Distance": st.column_config.NumberColumn(format="%.3f"),
                 "Shared Evidence Weight": st.column_config.ProgressColumn(
-                    min_value=0.0, max_value=1.0, format="%.1%%"
+                    min_value=0.0, max_value=1.0, format="percent"
                 ),
                 "Profile Weight Available": st.column_config.ProgressColumn(
-                    min_value=0.0, max_value=1.0, format="%.1%%"
+                    min_value=0.0, max_value=1.0, format="percent"
                 ),
             },
         )
@@ -3031,8 +3040,7 @@ def render_corpus_workspace(
 ) -> None:
     """Render the persistent local-project branch of the Streamlit application."""
 
-    repository = ProjectRepository(default_database_path())
-    repository.initialize()
+    repository = _project_repository_for_path(str(default_database_path()))
     with st.sidebar:
         st.markdown("### Saved Projects")
         st.success("Projects, texts, notes, and results stay on this computer.")

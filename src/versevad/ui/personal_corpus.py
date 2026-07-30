@@ -20,6 +20,7 @@ from versevad.db import (
 from versevad.preprocessing import TextPreprocessor
 from versevad.ui.corpus import (
     _corpus_part_of_speech_rows,
+    _project_repository_for_path,
     _render_analysis_tab,
     _render_export_tab,
     _render_part_of_speech_tab,
@@ -636,8 +637,9 @@ def render_personal_corpus_workspace(
 ) -> None:
     """Render a locally persistent personal library using shared corpus services."""
 
-    repository = ProjectRepository(default_personal_corpus_database_path())
-    repository.initialize()
+    repository = _project_repository_for_path(
+        str(default_personal_corpus_database_path())
+    )
     project = _personal_project(repository)
     project_id = project.project_id
     texts = repository.list_texts(project_id)
