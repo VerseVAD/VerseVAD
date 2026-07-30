@@ -264,12 +264,14 @@ sound-free VerseMap Standard Profile 1.0. The map, nearest poems, poet
 centroids, shared evidence, coverage, release, and model identity use the same
 auditable services as embedded VerseMap. Interactive Single Poem weighting or
 module settings cannot silently change this comparison profile. Standalone
-VerseMap results support recoverable drafts, research notes, historical saves,
+VerseMap results support research notes, explicit historical saves,
 Word reports, and full audit bundles.
 
-**Explore → Corpus Browser** reads corpus inventory, metadata, coverage,
-feature distributions, and individual poem profiles without editing source
-files. **Explore → Form Library** provides the definitions, requirements,
+**Explore → Corpus Browser** reads corpus inventory, metadata, a poem-and-poet
+VerseMap, Standard Profile means and dispersion, sortable poem metrics,
+corpus-relative characteristicity and distinctiveness, feature distributions,
+and individual poem profiles without editing source files. **Explore → Form
+Library** provides the definitions, requirements,
 weights, sources, and limitations for all inherited-form profiles without
 requiring a poem analysis.
 
@@ -278,16 +280,14 @@ complete Word manual. **Learn → Methodology** provides a searchable reader for
 calculation rules, interpretation guidance, provenance, known limitations, and
 validation documentation.
 
-## Analysis Library, drafts, and research notes
+## Analysis Library and research notes
 
-Entering text in Single Poem, Other Text, or Compare Poems, or running
-standalone VerseMap, creates a
-recoverable private draft after the value is applied. Open **Collections →
-Analysis Library → Draft Analyses** to recover it. Unchanged interface reruns
-do not create duplicate draft revisions.
+VerseVAD does not autosave drafts. Unsaved text and results remain only in the
+current application session.
 
 After completing an analysis, open **Analysis Management** in the sidebar.
-Choose **Full analysis and source text** to retain an exactly restorable
+Enter a required saved-analysis title. Choose **Full analysis and source
+text** to retain an exactly restorable
 historical result. Choose **Results only — do not retain source text** to keep
 only a summary CSV and narrative Word report; this privacy mode cannot reopen
 the original text. **Save analysis** appends an immutable revision, while
@@ -298,7 +298,7 @@ Opening a full save does not silently recalculate it. VerseVAD displays the
 version that created the result and offers continued historical viewing or
 preparation for an explicit current-version reanalysis.
 
-**Research Notes** attach to the active analysis, draft, comparison,
+**Research Notes** attach to the active saved analysis, comparison,
 collection, or Lexicon Explorer lookup. They can also be anchored to a report
 section, metric, chart, passage or line, word or phrase, rhyme, or form
 candidate. Notes retain titles, bodies, tags, and dates. The Analysis Library
@@ -314,8 +314,8 @@ Local Analysis Library data stay in ignored private SQLite storage and are not
 uploaded to GitHub. The hosted edition uses temporary session-only storage;
 download important reports before that hosted session ends.
 
-The Clear Text menu asks whether to keep a recoverable draft, save the completed
-analysis first, or discard only the unsaved draft.
+Clear Text discards the current unsaved context. Save the completed analysis
+explicitly before clearing if it should remain in the Analysis Library.
 
 ## Stop VerseVAD
 

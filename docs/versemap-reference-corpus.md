@@ -156,8 +156,26 @@ the deterministic Standard Profile 1.0 manifest/profile/model files, and
 remove a corpus after exact-name confirmation.
 
 Once indexed, a private corpus appears in standalone **Explore → VerseMap** and
-the read-only **Explore → Corpus Browser**. It does not alter the bundled
-reference corpus, the Single Poem results, or project databases.
+the read-only **Explore → Corpus Browser**. Corpus Browser provides:
+
+- a poem-and-poet-centroid VerseMap;
+- a sortable and downloadable Standard Profile table;
+- corpus means, population standard deviations, medians, ranges, and coverage;
+- per-dimension distributions and poem-level standardized deviations; and
+- corpus-relative centroid distance, characteristicity percentile, and
+  distinctiveness percentile.
+
+Characteristicity is the reverse rank of a poem's coverage-renormalized,
+profile-weighted RMS z-distance from the selected corpus centroid.
+Distinctiveness is the corresponding forward rank. These are descriptive
+within-corpus positions, not probabilities, quality judgments, or authorship
+tests.
+
+A reference corpus is not automatically copied into **Collections → Saved
+Projects**. That separation keeps the maintained reference source and its
+fixed VerseMap index read-only. To edit works or run an independently
+configured project batch, import the source `.txt` files into a Saved Project;
+to inspect the fixed comparative profile, use Corpus Browser or VerseMap.
 
 The hosted Community Cloud edition lists only the corpora packaged with that
 deployment and keeps all corpus-maintenance controls disabled because hosted

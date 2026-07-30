@@ -82,21 +82,21 @@ running a poem analysis. **Learn → Documentation** and **Methodology** read th
 packaged guides inside VerseVAD; the complete Word manual remains
 downloadable.
 
-## Analysis Library, recoverable drafts, and research notes
+## Analysis Library and research notes
 
-Entering text in Single Poem, Other Text, or Compare Poems creates a private
-recoverable draft after the widget value is applied. Changed drafts create
-deduplicated local revisions; unchanged reruns do not add copies. Use
-**Collections → Analysis Library → Draft Analyses** to recover one.
+VerseVAD does not autosave drafts. Unsaved text and results remain only in the
+current application session. Complete an analysis, enter a saved-analysis
+title, and use **Analysis Management** when you want to retain it.
 
 After analysis, open **Analysis Management** in the sidebar:
 
-1. Choose **Full analysis and source text** when you want to reopen the exact
+1. Enter the required **Saved analysis title**.
+2. Choose **Full analysis and source text** when you want to reopen the exact
    historical result and its original text.
-2. Choose **Results only — do not retain source text** when privacy requires a
+3. Choose **Results only — do not retain source text** when privacy requires a
    non-restorable summary CSV and narrative Word report. Token-level audit data
    are not retained in this mode.
-3. Select **Save analysis** to append a revision to the current library item,
+4. Select **Save analysis** to append a revision to the current library item,
    or **Save as new** to preserve a separate item. An optional project
    identifier records an association without duplicating project data.
 
@@ -119,14 +119,13 @@ with optional IDs, dates, tags, and anchor metadata. Selected notes appear in a
 Word appendix; full audit bundles also receive `research_notes.csv` and
 `research_notes.md`.
 
-When clearing entered text, choose whether to keep its recoverable draft, save
-the completed analysis first, or discard only the unsaved draft. A saved
-analysis is never deleted by the discard-draft action.
+Clearing entered text discards the current unsaved context. Save the completed
+analysis explicitly before clearing if you want it in the Analysis Library.
 
 Local research is stored in ignored private SQLite data and is not committed to
 GitHub. In Streamlit Community Cloud, Analysis Library data last only for the
 current isolated hosted session and should be downloaded before that session
-ends. See [Analysis Library, drafts, and research notes](research-library.md)
+ends. See [Analysis Library and research notes](research-library.md)
 for the storage model and limitations.
 
 Research data are not included in a public VerseVAD checkout. Before first

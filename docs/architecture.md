@@ -482,9 +482,10 @@ interface and exports contain no pairwise delta fields.
 for `library_items`, immutable `library_revisions`, and `research_notes`.
 Completed runs remain immutable. Saving the same item appends a numbered
 revision inside one immediate transaction and advances only the item's current
-revision pointer. Draft autosaves can deduplicate an unchanged compressed
-payload. Foreign keys cascade revision deletion only within an explicitly
-deleted library item.
+revision pointer. The current interface creates no automatic draft records;
+older draft-capable schema fields remain readable for backward compatibility.
+Foreign keys cascade revision deletion only within an explicitly deleted
+library item.
 
 The payload codec is restricted compressed JSON. It accepts primitives,
 collections, paths, dates, VerseVAD enums, and VerseVAD dataclasses; refuses
@@ -502,12 +503,12 @@ source content and therefore omits the full audit bundle from results-only
 storage.
 
 `versevad.ui.research` maps current single-text, comparison, lookup, project,
-and personal-corpus contexts onto library objects and notes. A stable item ID
-is assigned when a draft first persists. Saving promotes its notes to the
-completed object; Save As New copies notes to the new object without deleting
-the original notebook. Reopening restores the stored result and navigates to
-its originating workspace, while a version notice prevents silent
-recalculation.
+and personal-corpus contexts onto library objects and notes. No library item
+is created until the user completes an analysis, enters a title, and chooses
+Save Analysis or Save As New. Saving reparents its notes to the completed
+object; Save As New copies notes to the new object without deleting the
+original notebook. Reopening restores the stored result and navigates to its
+originating workspace, while a version notice prevents silent recalculation.
 
 Local installations default to ignored
 `projects/analysis_library.sqlite3` and may override it with

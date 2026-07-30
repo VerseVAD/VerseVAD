@@ -600,8 +600,8 @@ unavailable because LibreOffice is not installed on the Windows host.
 - deterministic round-tripping of a real immutable `WorkspaceAnalysis`;
 - refusal to serialize dataclasses outside the `versevad` package;
 - immutable numbered revisions and exact historical restoration;
-- deduplication of an unchanged recoverable draft;
-- note creation, editing, tag deduplication, and promotion with a draft;
+- backward-compatible repository handling of an unchanged legacy draft;
+- note creation, editing, tag deduplication, and transactional reparenting;
 - results-only saves with no restorable payload; and
 - schema-version and transactional repository behavior in an isolated
   temporary database.
@@ -611,9 +611,10 @@ existing narrative Word report without replacing its content, optional private
 metadata stays out of the notes CSV, and a full audit ZIP receives
 `research_notes.csv`, `research_notes.md`, and a note-inclusive report.
 Navigation/interface coverage verifies the fixed opaque menu, responsive
-label spacing, Analysis Library route, draft recovery, and current-workspace
-return. Both local and cloud test runs use temporary library paths and never
-write poem text into source-controlled fixtures.
+label spacing, Analysis Library route, explicit save behavior, suppression of
+legacy drafts, and current-workspace return. Both local and cloud test runs use
+temporary library paths and never write poem text into source-controlled
+fixtures.
 
 ## Project / Corpus deletion rerun repair
 
@@ -678,13 +679,13 @@ Library, Corpus Browser, Documentation, and Methodology. It verifies that each
 route renders real content, exposes its title, and receives the generic or
 context-specific sidebar skeleton with Quick Navigation rather than a blank or
 planned-state panel. Research-library coverage also exercises the standalone
-VerseMap draft/save/restore identity and note-enabled export boundary.
+VerseMap save/restore identity and note-enabled export boundary.
 
 Local and cloud suites share the analytical assertions. Hosted assertions
 additionally confirm that reference-corpus mutation is unavailable while
 browsing and fixed-profile VerseMap remain usable.
 
-The final 2026-07-30 run passed all `402` public/local tests and all `404`
+The final 2026-07-30 run passed all `410` public/local tests and all `412`
 private-cloud tests. Live browser checks opened all six new routes, confirmed
 their nonblank sidebars, exercised an 820-pixel responsive layout, and reported
 no console warnings or errors. Both rebuilt Word manuals passed package,

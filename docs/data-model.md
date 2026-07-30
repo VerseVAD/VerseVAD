@@ -589,12 +589,13 @@ The Analysis Library uses its own schema-version-1 SQLite database rather than
 adding UI-session objects to the schema-4 project repository.
 
 `library_items` is the mutable retrieval index: stable item ID, parent/context
-type, originating workspace, title, author, saved/draft status, current
-revision pointer, optional project link, and created/updated/last-opened
-timestamps.
+type, originating workspace, user-supplied saved title, author, saved status,
+current revision pointer, optional project link, and
+created/updated/last-opened timestamps. Legacy draft status remains readable
+at the repository layer but is not created or exposed by the interface.
 
 `library_revisions` is immutable. Each row stores its item and monotonically
-increasing revision number, full/results-only/draft privacy mode, text and
+increasing revision number, full/results-only privacy mode, text and
 payload hashes, profile, VerseVAD version, encoded settings, data/result
 versions, warnings, summary, optional restricted-JSON result payload, optional
 results-only report bundle, and creation time.
@@ -602,9 +603,9 @@ results-only report bundle, and creation time.
 `research_notes` stores a stable note ID; parent type/ID; optional
 analysis/project association; module, metric, anchor type and label; title and
 body; encoded tags; export-eligibility flag; and created/updated timestamps.
-Notes can be reparented from a temporary draft to its completed analysis inside
-the save transaction. Save As New copies notes so the original notebook
-remains intact.
+Notes can be reparented from a temporary in-session context to its completed
+analysis inside the save transaction. Save As New copies notes so the original
+notebook remains intact.
 
 The payload codec is deterministic compressed JSON and refuses classes outside
 the `versevad` package. It is not an encryption layer. Results-only revisions
