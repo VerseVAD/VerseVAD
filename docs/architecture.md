@@ -443,8 +443,9 @@ construction and result objects. **Saved Projects** continues to use schema 4
 and the same corpus orchestrator; only its presentation label changed.
 Personal Corpus is a local-only Collections route. Explorer continues to call
 the same `explore_lexicons` service; its lookup and matching behavior did not
-change. Reserved Stage 2/3 routes render explicit planned-state content rather
-than silently impersonating implemented workspaces.
+change. The Stage 2 Analysis Library route is now implemented; remaining Stage
+3 routes render explicit planned-state content rather than silently
+impersonating implemented workspaces.
 
 Fifteen single-text result tabs are reorganized into seven report families.
 Within a family, each analytical module has a large native expander with a
@@ -466,6 +467,51 @@ analyses. Set rows reuse the established pairwise metric extractors, collect
 one value/denominator/coverage record per poem, and calculate equal-poem
 numeric mean and poem-level population standard deviation. The user-facing set
 interface and exports contain no pairwise delta fields.
+
+## Research-workspace architecture Stage 2
+
+`versevad.research_library` owns a separate schema-versioned SQLite repository
+for `library_items`, immutable `library_revisions`, and `research_notes`.
+Completed runs remain immutable. Saving the same item appends a numbered
+revision inside one immediate transaction and advances only the item's current
+revision pointer. Draft autosaves can deduplicate an unchanged compressed
+payload. Foreign keys cascade revision deletion only within an explicitly
+deleted library item.
+
+The payload codec is restricted compressed JSON. It accepts primitives,
+collections, paths, dates, VerseVAD enums, and VerseVAD dataclasses; refuses
+classes outside the `versevad` package; and never executes pickle data.
+Historical dataclasses are reconstructed without calling contemporary
+`__post_init__` calculations, so opening a result cannot reinterpret it.
+Saved metadata separately records the VerseVAD version, profile, settings,
+resource/result identities, warnings, summary, text hash, and privacy mode.
+
+Full saves retain an immutable result object, original text, and a bounded
+allowlist of user-visible UI state. Results-only saves retain no restorable
+payload: they store only a summary CSV and narrative Word report bundle.
+The interface states that vocabulary-level exports can themselves reveal
+source content and therefore omits the full audit bundle from results-only
+storage.
+
+`versevad.ui.research` maps current single-text, comparison, lookup, project,
+and personal-corpus contexts onto library objects and notes. A stable item ID
+is assigned when a draft first persists. Saving promotes its notes to the
+completed object; Save As New copies notes to the new object without deleting
+the original notebook. Reopening restores the stored result and navigates to
+its originating workspace, while a version notice prevents silent
+recalculation.
+
+Local installations default to ignored
+`projects/analysis_library.sqlite3` and may override it with
+`VERSEVAD_RESEARCH_LIBRARY_PATH`. Hosted deployments derive a separate
+`analysis_library.sqlite3` beside the existing session database in that
+session's private temporary directory. The schema and interface are identical,
+but hosted persistence ends with the session.
+
+`versevad.exports.research_notes` appends only explicitly selected notes to an
+existing report's established Word design. Full bundles additionally receive
+CSV and Markdown note artifacts. The default selection is always exclusion,
+and note metadata requires a separate opt-in.
 
 ## Expansion Stage 14 meter and performance architecture
 

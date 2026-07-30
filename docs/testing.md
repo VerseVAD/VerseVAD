@@ -593,6 +593,28 @@ changes. The rebuilt Word manual passed package/content checks and its
 accessibility audit reported zero findings. PNG visual rendering was
 unavailable because LibreOffice is not installed on the Windows host.
 
+## Research-workspace Stage 2 validation
+
+`tests/test_research_library.py` verifies:
+
+- deterministic round-tripping of a real immutable `WorkspaceAnalysis`;
+- refusal to serialize dataclasses outside the `versevad` package;
+- immutable numbered revisions and exact historical restoration;
+- deduplication of an unchanged recoverable draft;
+- note creation, editing, tag deduplication, and promotion with a draft;
+- results-only saves with no restorable payload; and
+- schema-version and transactional repository behavior in an isolated
+  temporary database.
+
+`tests/test_research_note_exports.py` verifies that selected notes append to an
+existing narrative Word report without replacing its content, optional private
+metadata stays out of the notes CSV, and a full audit ZIP receives
+`research_notes.csv`, `research_notes.md`, and a note-inclusive report.
+Navigation/interface coverage verifies the fixed opaque menu, responsive
+label spacing, Analysis Library route, draft recovery, and current-workspace
+return. Both local and cloud test runs use temporary library paths and never
+write poem text into source-controlled fixtures.
+
 ## Project / Corpus deletion rerun repair
 
 The deletion regression set verifies exact case-sensitive title confirmation,

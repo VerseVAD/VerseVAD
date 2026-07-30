@@ -42,6 +42,17 @@ may save configuration-only custom profiles without retaining poem text or
 results. PoetryID presents category fit as its primary descriptive archetype
 and nearest centroid as a secondary candidate.
 
+**Analysis Library** now preserves single-text analyses, comparison sets,
+Lexicon Explorer lookups, recoverable drafts, and contextual research notes.
+Completed saves are immutable revisions and reopen as their original
+historical results; VerseVAD never silently recalculates an older save under a
+newer version. Local installs retain the ignored private SQLite library across
+restarts. The hosted edition exposes the same controls but retains them only
+for its isolated current browser session. Users can save the full analysis and
+source text or retain results-only CSV/Word reports without a restorable source
+text. Notes are private in exports by default and enter Word/CSV/Markdown
+artifacts only after explicit selection.
+
 The one-text report uses a persistent dropdown, all large report panels start
 collapsed while remaining independently expandable, and the native sidebar
 arrow hides or restores the sidebar while the wide workspace resizes. In
@@ -276,6 +287,7 @@ See:
 - [Data model](docs/data-model.md)
 - [Testing strategy](docs/testing.md)
 - [Beginner user guide](docs/user-guide.md)
+- [Analysis Library, drafts, and research notes](docs/research-library.md)
 - [Comprehensive Word user manual](docs/VerseVAD_User_Manual.docx)
 - [Values and terminology Word guide](docs/VerseVAD_Values_and_Terminology_Guide.docx)
 - [Phase 5 validation and test steps](docs/phase5-validation.md)

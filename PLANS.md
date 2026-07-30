@@ -1,5 +1,37 @@
 # VerseVAD Implementation Plan
 
+## Completed research-workspace architecture Stage 2
+
+- [x] Turn **Analysis Library** into a working retrieval workspace for saved
+  analyses, recoverable drafts, historical revisions, and contextual
+  notebooks.
+- [x] Store local research in an ignored, transactional SQLite library while
+  using the same interface with isolated temporary storage in hosted sessions.
+- [x] Serialize immutable VerseVAD result objects as restricted, compressed
+  JSON rather than executable pickle data; retain software, profile, settings,
+  resource/result identities, warnings, coverage summaries, and text hashes.
+- [x] Autosave changed single-text and comparison drafts under stable local
+  identifiers, preserve their notes, and offer keep-draft, save-analysis, or
+  discard-draft behavior before clearing text.
+- [x] Add analysis-, comparison-, project-, corpus-, lookup-, section-,
+  metric-, chart-, passage-, word-, rhyme-, and form-context note records with
+  tags, anchors, dates, export eligibility, editing, and deletion.
+- [x] Reopen full saved analyses as their original historical results without
+  silent recalculation; offer an explicit current-version reanalysis path.
+- [x] Add full-text and results-only privacy choices, Save / Save As New,
+  optional project association, immutable revision history, and exact-title
+  deletion.
+- [x] Exclude notes from exports by default; when deliberately selected, add
+  them to Word appendices and provide CSV/Markdown note artifacts with optional
+  metadata.
+- [x] Make top navigation an opaque, high-contrast fixed bar; enlarge and
+  responsively space its four section labels; and close hover menus after the
+  pointer leaves both trigger and menu.
+- [x] Cover serializer restrictions, immutable revisions, draft
+  deduplication/recovery, note lifecycle, privacy-preserving results-only
+  storage, note-inclusive exports, navigation, and interface behavior with
+  automated and live-browser validation.
+
 ## Completed research-workspace architecture Stage 1
 
 - [x] Replace the flat workspace switcher with grouped top navigation:

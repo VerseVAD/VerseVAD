@@ -6,6 +6,25 @@ All notable VerseVAD changes will be recorded here.
 
 ### Changed
 
+- Implemented the **Analysis Library** with immutable saved-analysis
+  revisions, recoverable drafts, historical viewing without silent
+  recalculation, full-text versus results-only privacy choices, Save As New,
+  optional project associations, and exact-title deletion. Local libraries
+  persist in ignored private SQLite storage; hosted libraries are isolated to
+  the current hosted session.
+- Added contextual research notebooks with analysis, comparison, collection,
+  lexicon-lookup, report-section, metric, chart, passage, word, rhyme, and form
+  anchors plus tags, dates, editing, deletion, and explicit export eligibility.
+  Notes remain attached to their original object when workspaces change.
+- Added automatic recoverable drafts and a clear-text decision flow that can
+  retain the draft, save a completed analysis, or discard only unsaved work.
+- Added explicit note-export choices. Notes are excluded by default; selected
+  notes appear in narrative Word appendices and as CSV/Markdown files in full
+  audit bundles. Comparison and Lexicon Explorer reports expose the same
+  default-private policy.
+- Made the top navigation an opaque fixed bar, increased the four section
+  labels and responsive horizontal spacing, and made hover-open menus close
+  after the pointer leaves both the label and dropdown.
 - Replaced the flat workspace control with four grouped top-level sections:
   **Analyze**, **Collections**, **Explore**, and **Learn**. The public/local
   edition now reaches Personal Corpus through Collections, and the existing
