@@ -53,6 +53,17 @@ source text or retain results-only CSV/Word reports without a restorable source
 text. Notes are private in exports by default and enter Word/CSV/Markdown
 artifacts only after explicit selection.
 
+The final workspace architecture is complete. **Reference Corpora** inventories
+the built-in comparison collection and manages private user corpora in local
+installations. **VerseMap** can analyze a poem directly against any indexed
+available corpus. **Corpus Browser** provides read-only collection contents,
+coverage, distributions, and poem profiles. **Form Library** exposes the
+complete inherited-form registry as an educational reference, while
+**Documentation** and **Methodology** make the packaged operating guidance,
+calculations, provenance, and limitations searchable inside the application.
+Hosted deployments retain the built-in reference corpus read-only; private
+corpus creation and persistence remain local.
+
 The one-text report uses a persistent dropdown, all large report panels start
 collapsed while remaining independently expandable, and the native sidebar
 arrow hides or restores the sidebar while the wide workspace resizes. In

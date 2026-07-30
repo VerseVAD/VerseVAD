@@ -665,3 +665,27 @@ The command constructs invented villanelle, sestina, pantoum, and
 under-supported haiku fixtures. It does not traverse installed research
 lexicons. Full completion evidence is recorded in
 [`inherited-form-stage15-validation.md`](inherited-form-stage15-validation.md).
+
+## Final research-workspace validation
+
+`tests/test_reference_corpora.py` exercises a private corpus from creation
+through validation, indexed-profile build, safe addition, exact-confirmation
+deletion, and cleanup in an isolated temporary directory. It also rejects path
+traversal and invalid UTF-8 before any source is installed.
+
+The application route sweep opens Reference Corpora, standalone VerseMap, Form
+Library, Corpus Browser, Documentation, and Methodology. It verifies that each
+route renders real content, exposes its title, and receives the generic or
+context-specific sidebar skeleton with Quick Navigation rather than a blank or
+planned-state panel. Research-library coverage also exercises the standalone
+VerseMap draft/save/restore identity and note-enabled export boundary.
+
+Local and cloud suites share the analytical assertions. Hosted assertions
+additionally confirm that reference-corpus mutation is unavailable while
+browsing and fixed-profile VerseMap remain usable.
+
+The final 2026-07-30 run passed all `402` public/local tests and all `404`
+private-cloud tests. Live browser checks opened all six new routes, confirmed
+their nonblank sidebars, exercised an 820-pixel responsive layout, and reported
+no console warnings or errors. Both rebuilt Word manuals passed package,
+content, and accessibility checks with zero accessibility findings.

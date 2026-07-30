@@ -133,3 +133,32 @@ The derived analytical files are tied to the release ID and pinned profile.
 They do not contain the installed research lexicons themselves. User poems,
 personal corpora, projects, and project databases remain local and are never
 added to the reference release.
+
+## Private local reference corpora
+
+The downloadable edition also supports private reference corpora through
+**Collections → Reference Corpora**. These are separate from the tracked
+built-in release and are stored under:
+
+```text
+projects/reference_corpora/<corpus-name>/
+```
+
+That directory is ignored by Git. A private corpus therefore remains on the
+user's computer unless the user deliberately copies it elsewhere.
+
+Create a corpus by uploading nonempty UTF-8 `.txt` files. A single common
+top-level folder is accepted and removed from uploaded relative paths, so a
+folder-of-poets upload remains organized. VerseVAD rejects absolute paths,
+parent traversal, duplicate destinations, invalid UTF-8, and an empty corpus.
+The workspace can validate source files, add or replace poems, build or refresh
+the deterministic Standard Profile 1.0 manifest/profile/model files, and
+remove a corpus after exact-name confirmation.
+
+Once indexed, a private corpus appears in standalone **Explore → VerseMap** and
+the read-only **Explore → Corpus Browser**. It does not alter the bundled
+reference corpus, the Single Poem results, or project databases.
+
+The hosted Community Cloud edition lists only the corpora packaged with that
+deployment and keeps all corpus-maintenance controls disabled because hosted
+filesystem changes are not durable user storage.

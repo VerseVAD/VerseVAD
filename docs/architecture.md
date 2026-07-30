@@ -192,7 +192,7 @@ For the temporary one-poem path, application services create one
 Structural, sentence, token, dependency, entity, and coverage records therefore
 cannot drift between source-specific analyses in the same request.
 
-## Planned package boundaries
+## Package boundaries
 
 ```text
 src/versevad/
@@ -201,10 +201,16 @@ src/versevad/
   analysis/       matching, coverage, summaries, comparisons
   db/             schema, repositories, transactions, migrations
   exports/        CSV, Excel, HTML, and chart-data outputs
+  reference_corpora.py  discovery, validation, indexing, and safe maintenance
   ui/             Streamlit pages and plain-language presentation
 scripts/          diagnostics, setup helpers, and developer utilities
 tests/            unit, integration, migration, and synthetic validation tests
 ```
+
+The final research-workspace layer is kept in `versevad.ui.stage3`. It
+orchestrates existing VerseMap, corpus, form-registry, documentation, and
+methodology services; it does not duplicate analytical calculations in
+Streamlit page code.
 
 ## Traceability design
 
@@ -443,9 +449,11 @@ construction and result objects. **Saved Projects** continues to use schema 4
 and the same corpus orchestrator; only its presentation label changed.
 Personal Corpus is a local-only Collections route. Explorer continues to call
 the same `explore_lexicons` service; its lookup and matching behavior did not
-change. The Stage 2 Analysis Library route is now implemented; remaining Stage
-3 routes render explicit planned-state content rather than silently
-impersonating implemented workspaces.
+change. Stage 3 implements Reference Corpora, standalone VerseMap, Corpus
+Browser, Form Library, Documentation, and Methodology as first-class routes.
+Reference-corpus discovery and mutation live outside the UI in
+`versevad.reference_corpora`; the built-in corpus is immutable, private local
+corpora are Git-ignored, and hosted corpus management is read-only.
 
 Fifteen single-text result tabs are reorganized into seven report families.
 Within a family, each analytical module has a large native expander with a

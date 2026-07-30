@@ -635,3 +635,24 @@ common `ModuleResult`. The common metrics persist per-work best candidate,
 classification, consistency, coverage, confidence, runner-up, margin, and all
 candidate ranks/scores. Schema 4 stores these generically; the seven generated
 artifacts are checksummed through `module_artifacts`.
+
+## Reference-corpus records
+
+`ReferenceCorpusDescriptor` is a lightweight discovery record rather than a
+project-database entity. It stores corpus ID, display name, root path, built-in
+or private ownership, mutability, source-file count, index state, release/model
+identities, and validation messages. Generated manifests and Standard Profile
+tables retain their established deterministic CSV/release formats.
+
+Private local corpora live in the Git-ignored
+`projects/reference_corpora/<corpus-id>/` tree. A small
+`.versevad-corpus.ini` file stores display metadata; poem text and generated
+indexes remain ordinary inspectable files. Safe mutation validates relative
+paths and UTF-8 before writing, writes generated index files through the
+existing VerseMap builder, and requires exact-name confirmation for deletion.
+No schema migration or duplicate metric store is introduced.
+
+A standalone VerseMap analysis uses the existing immutable
+`WorkspaceAnalysis` plus its fixed Standard Profile result. Its temporary or
+saved research identity is `versemap_session`, so notes and historical saves
+remain attached when the user changes workspaces.

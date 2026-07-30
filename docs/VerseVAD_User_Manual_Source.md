@@ -221,12 +221,12 @@ The shared application header groups workspaces under:
 - a circular appearance menu for **Classic**, **Dark**, **Lavender**, **Ocean**, **Crimson**, and **Forest**;
 - circular gear and question-mark controls for settings and help.
 
-Personal Corpus appears only in the downloadable local edition. Routes whose
-later implementation is not yet complete are visibly marked as planned rather
-than displaying substitute results. The contextual sidebar keeps the current
-object, analysis profile, settings, comparison resources, working
-research-notes notebook, analysis-management controls, and export guidance
-together.
+Personal Corpus appears only in the downloadable local edition. Every listed
+route is implemented. The contextual sidebar keeps the current object,
+analysis profile, settings, comparison resources, working research-notes
+notebook, analysis-management controls, and export guidance together.
+Workspaces where analytical controls do not apply show an About panel, relevant
+Quick Navigation links, and data/privacy guidance instead of a blank sidebar.
 
 Built-in analysis profiles are **Full Poetic Analysis**, **Computational Close
 Reading**, **Affect and Emotion**, **Sound and Prosody**, **Formal Analysis**,
@@ -248,9 +248,40 @@ as an application-level local preference, not in a project or analysis
 configuration. Appearance does not change calculations, result IDs, project
 data, or exports. Publication-oriented charts remain light.
 
+## Reference corpora and research workspaces
+
+**Collections → Reference Corpora** inventories all corpora visible to the
+installation. The bundled VerseMap corpus is read-only. The downloadable local
+edition can create private corpora from nonempty UTF-8 `.txt` files, validate
+them, add or replace poems, build or refresh their fixed Standard Profile 1.0
+indexes, and remove them after exact-name confirmation. Their source and
+generated files live under Git-ignored `projects/reference_corpora/`; VerseVAD
+does not upload them.
+
+**Explore → VerseMap** is a standalone one-poem comparison workspace. Supply a
+title, author, and text, choose any indexed corpus, and run the fixed,
+sound-free VerseMap Standard Profile 1.0. The map, nearest poems, poet
+centroids, shared evidence, coverage, release, and model identity use the same
+auditable services as embedded VerseMap. Interactive Single Poem weighting or
+module settings cannot silently change this comparison profile. Standalone
+VerseMap results support recoverable drafts, research notes, historical saves,
+Word reports, and full audit bundles.
+
+**Explore → Corpus Browser** reads corpus inventory, metadata, coverage,
+feature distributions, and individual poem profiles without editing source
+files. **Explore → Form Library** provides the definitions, requirements,
+weights, sources, and limitations for all inherited-form profiles without
+requiring a poem analysis.
+
+**Learn → Documentation** presents selected packaged guides and offers the
+complete Word manual. **Learn → Methodology** provides a searchable reader for
+calculation rules, interpretation guidance, provenance, known limitations, and
+validation documentation.
+
 ## Analysis Library, drafts, and research notes
 
-Entering text in Single Poem, Other Text, or Compare Poems creates a
+Entering text in Single Poem, Other Text, or Compare Poems, or running
+standalone VerseMap, creates a
 recoverable private draft after the value is applied. Open **Collections →
 Analysis Library → Draft Analyses** to recover it. Unchanged interface reruns
 do not create duplicate draft revisions.
