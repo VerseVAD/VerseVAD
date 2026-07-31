@@ -115,7 +115,7 @@ Ordinary use runs locally on this computer at `http://127.0.0.1:8501`. VerseVAD 
 
 The supplied lexicons remain under `source_lexicons/` and must not be renamed, edited, merged, or redistributed. VerseVAD reads them in place, records SHA-256 checksums, and stores derived project data separately.
 
-Optional research resources under `resources/` are also local and excluded from source control. The Stage 2 concreteness workbook and paper, Stage 3 SUBTLEX-US workbook, Stage 4 Kuperman Age of Acquisition workbook and paper, and Stage 5 pinned CMUdict files must retain their exact paths and checksums. VerseVAD reads analysis sources in place and does not copy any complete research source into an export.
+Optional research resources under `resources/` are also local and excluded from source control. The concreteness workbook and paper, SUBTLEX-US workbook, Kuperman Age of Acquisition workbook and paper, and pinned CMUdict files must retain their exact paths and checksums. VerseVAD reads analysis sources in place and does not copy any complete research source into an export.
 
 ## Software and research-source licensing
 
@@ -187,7 +187,8 @@ guidance, and browser troubleshooting.
 
 ## Updating an existing installation
 
-A VerseVAD folder cloned with Git can be updated in place. Close VerseVAD,
+A VerseVAD folder cloned from
+`https://github.com/VerseVAD/VerseVAD` can be updated in place. Close VerseVAD,
 inspect tracked local changes, and use GitHub Desktop **Fetch origin** followed
 by **Pull origin**, or run `git fetch origin` and `git pull --ff-only origin
 main` from the repository. Then rerun `setup_windows.bat` or `bash
@@ -428,7 +429,7 @@ remains available and off by default.
 
 ## Optional CMU Pronouncing Dictionary resource
 
-The Stage 5 one-poem module reads official CMUdict files pinned at repository
+The pronunciation module reads official CMUdict files pinned at repository
 commit `74790861f652b15e4ac49015a90074ad62a27690`:
 
 - `resources/pronunciation/cmudict.dict`;
@@ -770,7 +771,7 @@ them definitive performed pronunciation, meter, rhyme, or scansion.
 
 ## Candidate meter and rhythmic regularity
 
-When enabled, **Meter & Rhythm** automatically uses the retained Stage 5
+When enabled, **Meter & Rhythm** automatically uses the retained pronunciation
 pronunciation evidence. No affective lexicon is required. It compares five
 recurring base patterns:
 
@@ -787,7 +788,7 @@ pentameter, hexameter, heptameter, and octameter: 40 fixed line templates.
 Spondees `11` and pyrrhics `00` are reported as local substitutions rather
 than ordinary whole-line base candidates.
 
-**Candidate meter only** is the validated default and preserves the Stage 6
+**Candidate meter only** is the validated default and preserves the fixed-candidate
 result exactly. Two non-default choices add an independent performance-aware
 realization or display candidate and performance-aware readings together.
 The second layer does not rewrite the dictionary lexical stress or replace the
@@ -844,7 +845,7 @@ the line this way.”
 
 ## Rhyme and phonological patterns
 
-When enabled, **Rhyme & Sound** automatically uses the retained Stage 5
+When enabled, **Rhyme & Sound** automatically uses the retained pronunciation
 pronunciation evidence. No affective lexicon is required. CMUdict supplies
 phones and lexical stress; VerseVAD derives the rhyme and recurring-sound
 classifications.
@@ -868,7 +869,7 @@ The default slant score weights stressed vowel `0.35`, final consonants `0.25`,
 rhyme-part edit similarity `0.25`, stress alignment `0.10`, and syllable
 similarity `0.05`, with a default threshold of `0.68`. It is a configurable
 heuristic, not a probability. Materially different dictionary alternatives
-remain unresolved unless a documented Stage 5 scholar override applies.
+remain unresolved unless a documented scholar pronunciation override applies.
 
 Safe wording is: “The dictionary-based ending evidence produced an ABAB exact-
 rhyme scheme among four analyzable endings.” Do not claim that VerseVAD proved
@@ -1188,7 +1189,7 @@ with bundled eSpeak NG. The robotic preview is an orientation aid, not a human
 recording, dialect authority, or context-sensitive performance.
 
 The North American dictionary warning remains visible. `0`, `1`, and `2` are
-lexical-stress digits, not metrical beats. The Stage 5 tab does not report
+lexical-stress digits, not metrical beats. The pronunciation tab does not report
 candidate meter or rhyme.
 
 ## Sound & Form: Meter & Rhythm section
@@ -1198,7 +1199,7 @@ the nearest fixed template, fit, matching lines, coverage, alternative,
 candidate margin, rule-based confidence, rhythmic variation, physical-line
 evidence, all 40 fixed candidates, warnings, and configuration provenance.
 
-Do not mistake a metrically preferred stress path for a change to the Stage 5
+Do not mistake a metrically preferred stress path for a change to the dictionary
 pronunciation result.
 
 In performance-aware or comparison mode, the same section adds the declared
@@ -1223,7 +1224,7 @@ the rhyme types, five slant components, conservative and maximum scores,
 eye-rhyme evidence, and caution label.
 
 An unresolved line ending appears as `?` and reduces coverage. It receives no
-neutral value or fabricated rhyme label. Add a Stage 5 override only when you
+neutral value or fabricated rhyme label. Add a pronunciation override only when you
 can document the intended pronunciation.
 
 ## Sound & Form: Inherited Form Analysis section
@@ -1503,7 +1504,7 @@ This profile is calculated from the current preserved version of every work and 
 
 ## Review decisions and named scenarios
 
-Phase 5 lets you test explicit scholarly decisions without rewriting an earlier result. Start with an unreviewed baseline, then open **Review & Scenarios** and create a named scenario.
+Review scenarios let you test explicit scholarly decisions without rewriting an earlier result. Start with an unreviewed baseline, then open **Review & Scenarios** and create a named scenario.
 
 The available actions are:
 
@@ -2245,19 +2246,19 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   can make a line incomplete until a scholar documents an override.
 - Pronunciation overrides apply to an exact observed type within the current
   one-poem analysis, not to one individual occurrence.
-- Stage 5 may show a local, review-only G2P candidate for an unmatched form,
+- Pronunciation review may show a local, review-only G2P candidate for an unmatched form,
   but never applies it through hidden pronunciation selection. The word stays
   unmatched until explicit approval; its own tab does not classify meter or
   rhyme.
 - Corpus pronunciation results persist by work. The current corpus controls use
   the recorded default pronunciation configuration rather than offering
   project-wide scholar overrides.
-- Stage 6 meter starts from dictionary lexical stress; contextual promotion,
+- Candidate meter starts from dictionary lexical stress; contextual promotion,
   demotion, dialect, historical pronunciation, elision, and performance may
   support a different scansion.
 - Meter costs, thresholds, fit, and confidence are transparent heuristics, not
   a probability model or validation against every poetic tradition.
-- Stage 14 performance-aware scores, style compatibility, promotion/demotion,
+- Performance-aware scores, style compatibility, promotion/demotion,
   caesura, organization, recurrence, and confidence are transparent heuristics.
   They do not establish the performed rhythm, correct scansion, literary
   period, authorial intention, or universal metrical tradition.
@@ -2266,7 +2267,7 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
   poem historically belongs to.
 - Corpus meter results persist as work-level candidates; categorical
   prevalence does not declare one corpus-wide meter.
-- Stage 7 starts from North American dictionary phones and spelling; dialect,
+- Rhyme and recurring-sound evidence starts from North American dictionary phones and spelling; dialect,
   historical pronunciation, performance, and poetic elision can change rhyme
   and recurring-sound evidence.
 - Slant, eye, internal-rhyme, alliteration, assonance, and consonance methods
@@ -2291,9 +2292,9 @@ Inspect separately labeled lemma, mapping, component, and suggestion sections. S
 
 # 15. Reproducibility and updating this manual
 
-Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes. Performance-aware meter additionally retains analysis mode, declared profile/version, interpretation depth, bounded candidate/alternative limits, visible-elision policy, component weights/scores, syllable-level adjustments, alternates, stanza/poem recurrence, trajectory, organization, and separately preserved scholar revisions. A Stage 7 result retains the linked pronunciation configuration, exact resource hashes, rhyme/sound thresholds and weights, line-ending coverage, stanza/line/pair evidence, sound families, warnings, and immutable result/configuration identities.
+Every analysis should retain the active lexicon or optional research resource, source checksum, adapter version, software version, preprocessing recipe and configuration ID, phrase policy, stopword policy, scenario, and inclusion decisions. Completed corpus runs remain linked to preserved text versions. A concreteness result additionally retains its orientation thresholds, proper-name and phrase policies, low-coverage threshold, source-row matches, and exact workbook checksum. A frequency result retains its Zipf-band thresholds, proper-name policy, exact-before-lemma rule, optional content-word scope, low-coverage threshold, source-row matches, and exact SUBTLEX-US workbook checksum. An AoA result retains early/later thresholds, proper-name policy, exact-before-lemma rule, optional contextual content-word scope, coverage and source-response cautions, source-row matches, optional relationship methods, and the exact official erratum-supplement checksum. A pronunciation result retains every dictionary candidate, three exact source checksums, package and adapter versions, exact observed-form policy, thresholds, scholar overrides and notes, configuration identity, missingness, and physical-line completeness. A meter result retains the linked pronunciation configuration, every penalty and threshold, all fixed candidates, candidate-specific stress paths, line coverage, alignment operations, deviations, fit, confidence explanation, and dependency resource hashes. Performance-aware meter additionally retains analysis mode, declared profile/version, interpretation depth, bounded candidate/alternative limits, visible-elision policy, component weights/scores, syllable-level adjustments, alternates, stanza/poem recurrence, trajectory, organization, and separately preserved scholar revisions. A rhyme and recurring-sound result retains the linked pronunciation configuration, exact resource hashes, rhyme/sound thresholds and weights, line-ending coverage, stanza/line/pair evidence, sound families, warnings, and immutable result/configuration identities.
 
-A Stage 15 result retains the exact profile registry and version, rule weights
+An inherited-form result retains the exact profile registry and version, rule weights
 and roles, active thresholds, dependent pronunciation/meter/rhyme provenance,
 candidate ranking, feature-level evidence and coverage, contradictions,
 alternatives, confidence explanation, sources, limitations, configuration

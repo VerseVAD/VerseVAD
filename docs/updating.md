@@ -87,7 +87,7 @@ folder is not a Git repository usually means VerseVAD was obtained with
 
 A ZIP download has no Git history or remote, so it cannot receive a normal
 pull. For one-time migration, clone
-`https://github.com/nickybennett/VerseVAD.git` with GitHub Desktop into a new
+`https://github.com/VerseVAD/VerseVAD.git` with GitHub Desktop into a new
 folder, then copy only the private ignored data you need from the ZIP folder
 into the matching locations in the clone:
 

@@ -93,7 +93,7 @@ Cross-scale comparison may use a separate normalized score when the adapter's
 source scale supports a documented linear transformation. Original scores and
 source limits always remain available.
 
-Phase 3 implements these derived transformations:
+VerseVAD implements these derived transformations:
 
 - Warriner VAD 1-9: `(x - 1) / 8`;
 - NRC VAD v1 0-1: identity (`x`);
@@ -155,7 +155,7 @@ retains line text and the VAD/concreteness observation counts.
 
 ## Normative lexical concreteness
 
-The optional Stage 2 module reads the user-supplied Brysbaert, Warriner, and
+The optional concreteness module reads the user-supplied Brysbaert, Warriner, and
 Kuperman (2014) workbook in place and retains its original 1-5 ratings. It uses
 the same shared token and poetic-structure record as the affective analysis but
 remains a separate construct and result.
@@ -180,12 +180,11 @@ The default lower band at 2.0 and upper band at 4.0 are configurable VerseVAD
 orientation aids. They are not source-published diagnostic categories. Results
 must be described as normative lexical concreteness evidence, not imagery
 quality, readability, cognition, or a declaration that a poem is concrete or
-abstract. See
-[`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md).
+abstract. See [lexicons.md](lexicons.md) for resource provenance.
 
 ## Corpus-relative lexical frequency and rarity
 
-The optional Stage 3 module reads the pinned official SUBTLEX-US workbook in
+The optional frequency module reads the pinned official SUBTLEX-US workbook in
 place and retains its published word-form counts, contextual-diversity fields,
 and Zipf values. It remains separate from affective ratings and concreteness.
 No `wordfreq` or alternate corpus value is substituted.
@@ -221,12 +220,12 @@ difference. The default rare-to-very-common bands are configurable VerseVAD
 orientation aids, not source-published literary categories. Results must be
 described as corpus-relative lexical frequency evidence from an American
 subtitle corpus, not difficulty, sophistication, accessibility, intelligence,
-literary quality, or reader response. See
-[`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md).
+literary quality, or reader response. See [lexicons.md](lexicons.md) for
+resource provenance.
 
 ## Retrospective normative lexical Age of Acquisition
 
-The optional Stage 4 module reads the pinned official Kuperman,
+The optional Age of Acquisition module reads the pinned official Kuperman,
 Stadthagen-Gonzalez, and Brysbaert supplement in place. Its numeric values are
 adult retrospective estimates of the age, in years, at which a source
 respondent believed they had learned a word well enough to understand it.
@@ -263,8 +262,7 @@ does not establish causation or a reader effect.
 
 Results must be described as retrospective normative lexical AoA evidence
 among matched tokens. They are not diagnostic of cognitive impairment or
-decline. See
-[`poetic-fingerprint-stage4.md`](poetic-fingerprint-stage4.md).
+decline. See [lexicons.md](lexicons.md) for resource provenance.
 
 ## Part-of-speech profile
 
@@ -364,7 +362,7 @@ positive and negative sentiment labels. Both constructs use the same documented
 association-counting calculations, but the interface and readable summary keep
 their headings distinct.
 
-Phase 2 reports, for every association, occurrence count, unique matched entry
+VerseVAD reports, for every association, occurrence count, unique matched entry
 count, rate per all lexical tokens, rate among tokens bearing at least one
 positive association, rate per unique lexical surface type, line and stanza
 distributions, and frequent contributing terms. A source term present in the
@@ -382,7 +380,7 @@ Prevalence and intensity answer different questions and remain separate:
 A token without a score for an emotion is not an intensity-zero observation in
 the primary mean.
 
-Phase 2 defines a matched word-emotion pair as one distinct matched lexicon
+VerseVAD defines a matched word-emotion pair as one distinct matched lexicon
 entry and category. Matched token occurrences repeat when the same entry occurs
 more than once. The token-weighted intensity mean repeats those occurrences;
 the type-weighted mean uses each matched entry-category pair once. Prevalence is
@@ -391,7 +389,7 @@ matched anywhere in the intensity lexicon, as labeled.
 
 ## Phrase policies
 
-NRC VAD v2.1 explicitly supplies unigrams and multiword expressions. Phase 2
+NRC VAD v2.1 explicitly supplies unigrams and multiword expressions. VerseVAD
 normalizes exact surface tokens, constructs candidates within a single poetic
 line without crossing punctuation, orders candidates by descending token length
 and then textual position, and greedily selects non-overlapping spans.
@@ -400,8 +398,8 @@ The three policies are:
 
 - `phrase_preferred`: selected phrases contribute one summary observation;
   component candidates remain visible but suppressed;
-- `unigram_only`: phrase entries are ignored and unigram matching proceeds as in
-  Phase 1;
+- `unigram_only`: phrase entries are ignored and the same deterministic
+  unigram matching proceeds;
 - `phrase_and_component_exploratory`: selected phrases and independently matched
   components both contribute, with a warning that this intentionally
   double-counts the span.
@@ -518,7 +516,7 @@ Each lexicon is analyzed independently. Numeric VAD means may be displayed on a
 separate normalized 0-1 scale alongside source-scale results. NRC VAD v1 and
 v2.1 remain labeled as versions of the same family, not independent
 replications. Categorical association rates and intensity prevalence/means keep
-their different value kinds and denominators. Phase 2 creates no consensus
+their different value kinds and denominators. VerseVAD creates no consensus
 score or pooled rating.
 
 ## Context and close reading
@@ -536,14 +534,14 @@ data remains missing rather than becoming zero. Coverage, lemma reliance,
 mapping reliance, exclusions, and semantic-risk dependence are part of the
 result, not merely diagnostics hidden elsewhere.
 
-The Phase 3 interface labels coverage below 60% as limited orientation, 60-80%
+The interface labels coverage below 60% as limited orientation, 60-80%
 as moderate orientation, and at least 80% as broad orientation. These bands are
 reading aids only, not validated universal thresholds or exclusion rules. The
 exact numerator, denominator, and rate remain primary.
 
-## Phase 1 statistical definitions
+## Descriptive statistical definitions
 
-Phase 1 reports descriptive statistics on the included matched observations.
+VerseVAD reports descriptive statistics on the included matched observations.
 Its standard deviation is the population standard deviation (`ddof = 0`),
 because it describes the complete selected match set rather than estimating a
 larger sampled population. Quartiles use the inclusive method. A single
@@ -562,16 +560,16 @@ adapter retains every source entry. Exact source capitalization may resolve the
 pair; otherwise the occurrence is left unmatched for review. VerseVAD does not
 average the candidates or select the first row.
 
-## Stage 5 pronunciation, syllable, and lexical stress
+## Pronunciation, syllable, and lexical stress
 
-Stage 5 uses exact observed-form entries from official CMUdict files pinned at
+The pronunciation module uses exact observed-form entries from official CMUdict files pinned at
 one upstream commit. Case and apostrophe style are normalized for lookup, but
 the observed surface, normalized form, lemma, and every dictionary candidate
 remain separate. No lemma, possessive-base, spelling repair, or pronunciation
 prediction is substituted automatically.
 
 The shared linguistic model may internally split a contraction into components
-such as `you` + `'re`, `ca` + `n't`, or `wo` + `n't`. Stage 5 instead consumes
+such as `you` + `'re`, `ca` + `n't`, or `wo` + `n't`. The module instead consumes
 the complete contraction span preserved during preprocessing and performs one
 exact lookup for the observed spelling, such as `you're`, `can't`, or `won't`.
 The component tokens remain visible in the token audit but are marked
@@ -626,13 +624,13 @@ syllables by all resolved syllables. It is not a measure of metrical fit or
 performed emphasis.
 
 CMUdict primarily represents North American English. Dialect, historical
-pronunciation, performance, context, and poetic elision can differ. Stage 5
+pronunciation, performance, context, and poetic elision can differ. VerseVAD
 therefore reports dictionary-based pronunciation, syllable, and lexical-stress
 evidence, not the poem's definitive sound or meter.
 
-## Stage 6 candidate meter and rhythmic regularity
+## Candidate meter and rhythmic regularity
 
-Stage 6 consumes retained Stage 5 stress evidence without changing its
+The meter module consumes retained pronunciation and stress evidence without changing its
 pronunciation decisions. For every analyzable physical line it compares five
 recurring base patterns—iambic `01`, trochaic `10`, anapestic `001`,
 dactylic `100`, and amphibrachic `010`—at one through eight feet. Spondees
@@ -656,10 +654,10 @@ variation, deviations, and rule-based confidence. The output language is
 “nearest configured candidate” or “candidate meter,” never definitive meter,
 correct scansion, performed rhythm, or authorial intention.
 
-### Optional Stage 14 performance-aware realization
+### Optional performance-aware realization
 
 Candidate meter remains the default. When the scholar selects a
-performance-aware mode, VerseVAD reranks a bounded set of retained Stage 6
+performance-aware mode, VerseVAD reranks a bounded set of retained meter
 candidates using separately visible fixed-fit, contextual-prominence,
 syllable-count, phrasing, ending, pronunciation, poem/stanza recurrence, and
 declared-profile components. The overall score is a configured heuristic, not
@@ -685,9 +683,9 @@ resource/engine, and upstream-result fingerprints relevant to one module.
 Invalid entries are discarded and recomputed. Cache state and timing are
 diagnostic evidence, not analytical metrics.
 
-## Stage 7 rhyme and phonological patterns
+## Rhyme and phonological patterns
 
-Stage 7 consumes retained Stage 5 phones and stress without changing any
+The rhyme and phonology module consumes retained phones and stress without changing any
 pronunciation decision. A line-ending rhyme part begins at the last
 primary-stressed vowel, or the last secondary-stressed/marked vowel when
 necessary, and continues to the word end. Exact scheme groups require one
@@ -715,7 +713,7 @@ Results describe local dictionary-, spelling-, and text-based evidence, not a
 definitive rhyme, performed reading, dialect, perceptual sound effect, or
 authorial intention.
 
-## Narrowed Stage 10 lexical diversity, word length, and word counts
+## Lexical diversity, word length, and word counts
 
 The scholar skipped the broader planned visible-structure and syntax/lineation
 stages. This narrower module therefore reports no typography, punctuation,
@@ -760,7 +758,7 @@ The module reports textual observations, not literary quality, vocabulary
 knowledge, intelligence, education, comprehension, reader effect, or
 authorial intention.
 
-## Stage 11 project/corpus aggregation and all-resource lookup
+## Project/corpus aggregation and all-resource lookup
 
 The corpus path invokes the existing workspace orchestration once per preserved
 work. Every enabled optional module therefore consumes the same shared
@@ -779,7 +777,7 @@ For lexical style, separately labeled pooled TTR, MATTR, HD-D, MTLD, and mean
 alphabetic word length are recalculated from the ordered sequence of included
 normalized-surface token evidence stored for each work. Work count, omitted
 work count, token count, configuration, and aggregation method remain visible.
-Meter and rhyme remain work-level candidates/evidence; Stage 11 does not
+Meter and rhyme remain work-level candidates/evidence; VerseVAD does not
 declare a collection's definitive meter or rhyme scheme.
 
 Lexicon Explorer performs read-only local lookup in affective lexicons,
@@ -790,7 +788,7 @@ available-but-unmatched, and source-entry-without-numeric-rating states remain
 distinct. Explorer evidence is decontextualized and does not resolve poetic
 sense, performance, dialect, metaphor, irony, or reader response.
 
-## Stage 12 PoetryID dependent classification
+## PoetryID dependent classification
 
 PoetryID consumes only completed normalized VAD summaries. It does not
 re-tokenize, reload a VAD source, rematch text, or calculate a second VAD
@@ -841,9 +839,9 @@ work-level evidence and do not create a corpus-wide identity.
 PoetryID exports six UTF-8 CSV files and one narrative DOCX report
 and no JSON file.
 
-## Stage 13 interface-only invariants
+## Interface-only invariants
 
-The Stage 13 redesign does not define a new analytical method. Classic, Dark,
+The interface design does not define a new analytical method. Classic, Dark,
 Lavender, Ocean, Crimson, and Forest appearance; active workspace; preset-menu
 choice; expanded/collapsed sections; search text; and project-list filters are
 presentation state. They do
@@ -860,7 +858,7 @@ the application appearance. Interface charts use the same underlying data in
 all appearance modes. The lexical-evidence language, missing-value rules,
 coverage cautions, and per-module methodology remain unchanged.
 
-## Stage 15 inherited-form candidate ranking
+## Inherited-form candidate ranking
 
 Inherited Form Analysis is a rule-based candidate-ranking system over 169
 versioned, source-documented profiles in registry version 2.0. It is not a
@@ -904,7 +902,5 @@ the evidence table and exports. If nothing qualifies, the concise ranking is
 limited to ten nearest profiles. The **All Inherited Forms** selector and full
 CSV exports retain all 169 entries, including obviously distant and
 manual-confirmation forms. See
-[`inherited-form-stage15.md`](inherited-form-stage15.md) for the original
-ten-profile foundation and
 [`inherited-form-registry-v2.md`](inherited-form-registry-v2.md) for the
 expanded registry policy.

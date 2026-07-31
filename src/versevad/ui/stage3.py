@@ -1391,6 +1391,11 @@ def render_form_library_workspace() -> None:
 
 
 _DOCUMENTATION_SOURCES = (
+    (
+        "Documentation Index",
+        "docs/index.md",
+        "Maintained entry point for user, methods, resources, and development guidance.",
+    ),
     ("User Guide", "docs/user-guide.md", "Workspace-by-workspace operating guide."),
     (
         "Resource Installation",

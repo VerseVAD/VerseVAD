@@ -7,10 +7,10 @@ from pathlib import Path
 
 def _benchmark_module():
     path = Path(__file__).resolve().parents[1] / "scripts" / (
-        "benchmark_stage14.py"
+        "benchmark_performance.py"
     )
     specification = importlib.util.spec_from_file_location(
-        "stage14_benchmark",
+        "performance_benchmark",
         path,
     )
     assert specification is not None
@@ -21,7 +21,7 @@ def _benchmark_module():
     return module
 
 
-def test_stage14_benchmark_uses_synthetic_fixture_and_renders_report() -> None:
+def test_performance_benchmark_uses_synthetic_fixture_and_renders_report() -> None:
     module = _benchmark_module()
     result = module.BenchmarkResult(
         scenario="smoke",

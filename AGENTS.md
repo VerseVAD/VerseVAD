@@ -37,7 +37,8 @@ Keep these concepts distinct in code, storage, interface copy, and exports:
 
 ## Development workflow
 
-- Work in the phases recorded in `PLANS.md`; update the checklist continuously.
+- Work from a concrete issue or release objective and keep changes narrowly
+  scoped.
 - Add tests before marking a calculation or migration complete.
 - Use small synthetic fixtures with hand-calculated expected results.
 - Keep the analysis engine independent of Streamlit so it can be tested without
@@ -52,11 +53,11 @@ Keep these concepts distinct in code, storage, interface copy, and exports:
 
 ## Completion checks
 
-Before completing a phase:
+Before completing a change:
 
 1. run the full automated test suite;
 2. run the synthetic validation examples;
 3. verify documentation against current behavior;
-4. update `PLANS.md` and `CHANGELOG.md`;
+4. update current documentation and `CHANGELOG.md`;
 5. report limitations and exact beginner-friendly test steps;
 6. create a source-control checkpoint when Git is available.

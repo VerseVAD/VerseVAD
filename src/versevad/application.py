@@ -269,7 +269,7 @@ RESOURCE_DOWNLOAD_PAGES = {
     "cmudict-phone-inventory": "https://github.com/cmusphinx/cmudict",
     "cmudict-symbol-inventory": "https://github.com/cmusphinx/cmudict",
     "versemap": (
-        "https://github.com/nickybennett/VerseVAD/blob/main/"
+        "https://github.com/VerseVAD/VerseVAD/blob/main/"
         "docs/versemap-reference-corpus.md"
     ),
 }

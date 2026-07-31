@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.15"
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
-authors = [{ name = "VerseVAD Development" }]
+authors = [{ name = "Nicky Bennett" }]
 dependencies = [
   "click==8.4.2",
   "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
@@ -23,6 +23,12 @@ dependencies = [
   "streamlit==1.60.0",
   "vadersentiment==3.3.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/VerseVAD/VerseVAD"
+Documentation = "https://github.com/VerseVAD/VerseVAD/blob/main/docs/index.md"
+Repository = "https://github.com/VerseVAD/VerseVAD.git"
+Issues = "https://github.com/VerseVAD/VerseVAD/issues"
 
 [project.scripts]
 versevad-phase1-demo = "versevad.demo:main"
@@ -65,7 +71,6 @@ exclude = [
   "/phase1_demo_output",
   "/phase2_demo_output",
   "/projects",
-  "/resources",
   "/source_lexicons",
   "/source_texts",
   "/tmp",

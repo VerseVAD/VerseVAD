@@ -314,7 +314,7 @@ default-collapsed attention list for estimated words. Contractions such as
 
 ## Dictionary Pronunciation, Syllables, and Lexical Stress
 
-The optional one-poem Stage 5 module uses exact observed-form pronunciations
+The optional pronunciation module uses exact observed-form pronunciations
 from pinned official CMUdict files. It is not a rating scale and is not
 combined with VAD, emotion, concreteness, frequency, or AoA.
 
@@ -347,12 +347,12 @@ dictionary syllable and lexical-stress evidence for 92% of eligible token
 occurrences; 8 of 10 physical lines were complete.”
 
 Avoid: “The poem is iambic,” “this is the poet's pronunciation,” or “the
-performance stresses these syllables.” Stage 5 supplies North American
+performance stresses these syllables.” The module supplies North American
 dictionary evidence, not meter, rhyme, or definitive performed scansion.
 
 ## Candidate Meter and Fit
 
-The optional one-poem Stage 6 module consumes retained Stage 5 stress evidence
+The optional candidate-meter module consumes retained pronunciation and stress evidence
 without rewriting the pronunciation result. It compares five base patterns:
 iambic `01`, trochaic `10`, anapestic `001`, dactylic `100`, and
 amphibrachic `010`. Each is checked at one through eight feet (monometer
@@ -392,7 +392,7 @@ Avoid: “VerseVAD proved the poem is in iambic pentameter,” “fit 0.91 means
 
 ## Performance-Aware Meter Realization
 
-The non-default Stage 14 layer keeps the complete fixed candidate result and
+The non-default performance-aware layer keeps the complete fixed candidate result and
 adds an inspectable contextual reading. It can label syllable-level metrical
 positions, promotion and demotion, substitutions, stress clashes and lapses,
 punctuation-supported caesurae, selected pronunciation paths, alternate
@@ -432,7 +432,7 @@ these syllables."
 
 ## Rhyme and Recurring Phonological Patterns
 
-The optional one-poem Stage 7 module consumes retained Stage 5 phones and
+The optional rhyme and recurring-sound module consumes retained phones and
 stress without rewriting the pronunciation result. CMUdict supplies the
 dictionary evidence; VerseVAD derives the classifications.
 
@@ -451,7 +451,7 @@ The default slant threshold is `0.68`. The conservative minimum across retained
 pronunciation combinations controls the label; the maximum is also reported.
 This is a configurable heuristic, not a probability.
 
-Stage 7 also reports perfect, identical, masculine, feminine, multisyllabic,
+The module also reports perfect, identical, masculine, feminine, multisyllabic,
 eye, and internal-rhyme evidence; exact repeated-line refrains; phonemic
 alliteration from repeated initial consonants; assonance from repeated stressed
 vowels; and consonance from repeated consonants.
@@ -1026,7 +1026,7 @@ means a source row exists but its numeric rating is missing.
 
 # 16. Review Decisions and Scenarios
 
-Phase 5 review tools let a scholar document and test explicit alternatives without overwriting the baseline.
+Review scenarios let a scholar document and test explicit alternatives without overwriting the baseline.
 
 ## Flag
 

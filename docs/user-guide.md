@@ -961,7 +961,7 @@ shorter than it is.
 
 Always retain the visible warning: CMUdict primarily represents North American
 dictionary pronunciation. Dialect, historical pronunciation, context,
-performance, and poetic elision may differ. Stage 5 does not classify meter,
+performance, and poetic elision may differ. The pronunciation module does not classify meter,
 rhyme, or definitive performed scansion.
 
 ## Meter & Rhythm
@@ -1027,8 +1027,8 @@ meter.
 
 ## Rhyme & Sound
 
-In **Single Poem**, select **Rhyme & phonological patterns** and analyze. Stage 5
-runs automatically, so no affective lexicon is required.
+In **Single Poem**, select **Rhyme & phonological patterns** and analyze. The
+pronunciation foundation runs automatically, so no affective lexicon is required.
 
 Open **Rhyme & Sound** to read the exact whole-poem and stanza schemes beside
 ending coverage. Letters identify robust perfect/identical groups, `x` an
@@ -1040,7 +1040,7 @@ consonance evidence.
 The slant score is a configured phone-and-stress similarity heuristic, not a
 probability. Slant and eye rhyme never silently create exact scheme groups.
 Materially different or absent dictionary endings remain unresolved unless a
-documented Stage 5 scholar override applies.
+documented scholar pronunciation override applies.
 
 Use language such as “the dictionary-based ending evidence produced an ABAB
 exact-rhyme scheme among four analyzable endings.” Do not write that VerseVAD
@@ -1121,15 +1121,6 @@ metaphor, voice, authorial intention, historical sense, or reader response.
 Those remain matters for contextual inspection and scholarly interpretation.
 The part-of-speech profile is model-generated grammatical evidence and can
 also require correction through close inspection.
-
-## Older validation demonstrations
-
-`test_phase1.bat` and `test_phase2.bat` remain available on Windows as invented,
-hand-calculated engine demonstrations. On macOS, the same demonstrations can be
-run from Terminal with `./.tools/uv/uv run --frozen --offline
-versevad-phase1-demo` or `versevad-phase2-demo`. Their generated
-`phase1_demo_output` and `phase2_demo_output` folders can be deleted safely and
-recreated by rerunning the corresponding demonstration.
 
 ## PoetryID
 

@@ -61,7 +61,7 @@ counts.
   flagged rather than assigned an arbitrary rating.
 - **Adapter status:** implemented and contract-tested. All source
   values remain on the 1–9 scale; separate 0–1 values use
-  `(original - 1) / 8`. Phase 4 activates the 102 whitespace entries as exact,
+  `(original - 1) / 8`. VerseVAD activates the 102 whitespace entries as exact,
   longest-first phrase candidates under the selected phrase policy. Overall
   standard deviations and rater counts are retained for Lexicon Explorer.
 
@@ -123,7 +123,7 @@ counts.
 - **Important family note:** v1 and v2.1 are versions of the same NRC VAD
   family, not independent replications. v2 includes entries collected using a
   different rating procedure as documented by the supplied paper and README.
-- **Adapter status:** implemented and contract-tested in Phase 2. Original
+- **Adapter status:** implemented and contract-tested. Original
   −1–1 values are retained; separate normalized values use
   `(original + 1) / 2`. Its multiword expressions participate in deterministic
   phrase matching.
@@ -163,7 +163,7 @@ counts.
   `02c661544f4f12ae0c14f9576a10959e8d39a151bb091e455a71a08dcaa2535a`
 - **Human review:** none blocking. The word-level union should be described
   clearly in methods reports because it does not disambiguate senses in context.
-- **Adapter status:** implemented and contract-tested in Phase 2. Binary values
+- **Adapter status:** implemented and contract-tested. Binary values
   remain categorical associations rather than intensities. Every denominator is
   labeled and a token may contribute to multiple categories.
 
@@ -195,13 +195,13 @@ counts.
   four-emotion release, while the README and current file cover eight emotions.
   Methods reports must cite the paper and record that the analyzed source is
   the later version 1 package.
-- **Adapter status:** implemented and contract-tested in Phase 2. Only supplied
+- **Adapter status:** implemented and contract-tested. Only supplied
   word-emotion pairs enter category-specific means; an absent pair is never
   converted into intensity zero.
 
 ## Integrity result
 
-All five primary files passed the Phase 0 structural checks:
+All five primary files pass the current structural checks:
 
 - expected primary file present;
 - expected columns present where headers exist;
@@ -213,10 +213,10 @@ All five primary files passed the Phase 0 structural checks:
 - ten Warriner case-insensitive lookup collisions preserved for explicit
   resolution or review.
 
-Phase 2 adapters repeat these checks during loading, preserve the recorded
-source hashes, and stop with a plain-language error before analysis when a
-contract fails. The double-clickable Phase 2 test also compares all five hashes
-with this inventory before producing exports.
+The adapters repeat these checks during loading, preserve the recorded source
+hashes, and stop with a plain-language error before analysis when a contract
+fails. Automated adapter tests cover supported hashes and representative
+source contracts.
 
 This validates file structure, not the scholarly correctness of individual
 ratings or the suitability of a particular match in context.
@@ -226,20 +226,19 @@ project runtime is installed.
 
 ## Optional local concreteness resource
 
-The Poetic Fingerprint Stage 2 concreteness workbook is a separate optional
+The concreteness workbook is a separate optional
 research resource under `resources/`, not one of the five supplied affective
 lexicons above. The inspected Brysbaert, Warriner, and Kuperman (2014)
 workbook contains 39,954 ratings on a 1-5 scale, including 2,896 two-word
 expressions, and has SHA-256
 `1673ead761e28833a40e82c0d20f10782955ced9366d600eafeefee0f2254545`.
 Its adapter is read-only and the full workbook is never copied into VerseVAD
-exports. See
-[`poetic-fingerprint-stage2.md`](poetic-fingerprint-stage2.md) for the exact
-source contract, matching policy, citation, calculations, and limitations.
+exports. See [methodology.md](methodology.md) for the source contract,
+matching policy, calculations, and limitations.
 
 ## Optional local SUBTLEX-US frequency resource
 
-Poetic Fingerprint Stage 3 uses a separate optional official SUBTLEX-US
+The frequency module uses a separate optional official SUBTLEX-US
 workbook under `resources/`; it is not one of the five affective lexicons and
 is not pooled with their values. The inspected `out1g` worksheet contains
 74,286 unique word-form rows with Zipf values ranging from approximately 1.593
@@ -251,14 +250,13 @@ Its SHA-256 is
 `3a8cb93a4e28988c2ce722a63f6b8d394acdc42ebe2ab6e1f0e484ee0d4167a7`.
 The adapter is read-only, unmatched values remain missing, and the full
 workbook is never copied into exports. VerseVAD does not use `wordfreq` as an
-alternate or fallback. See
-[`poetic-fingerprint-stage3.md`](poetic-fingerprint-stage3.md) for the exact
+alternate or fallback. See [methodology.md](methodology.md) for the exact
 source contract, word-form-first matching, optional content-word scope,
-calculations, citation, and limitations.
+calculations, and limitations.
 
 ## Optional local Kuperman Age of Acquisition resource
 
-Poetic Fingerprint Stage 4 uses the official Springer erratum supplement for
+The Age of Acquisition module uses the official Springer erratum supplement for
 Kuperman, Stadthagen-Gonzalez, and Brysbaert's retrospective English Age of
 Acquisition ratings. The analysis workbook is:
 
@@ -286,15 +284,13 @@ the grammatical role of a particular poem occurrence remain separate.
 
 The locally supplied `AoA_51715_words.xlsx`,
 `AoA_ratings_Kuperman_et_al_BRM_with_PoS.xlsx`, and Biemiller master workbook
-remain unchanged as reference/comparison sources. The Stage 4 runtime does not
-merge or substitute them. See
-[`poetic-fingerprint-stage4.md`](poetic-fingerprint-stage4.md) for the exact
-contract, calculations, source-response fields, matching policy, and
-limitations.
+remain unchanged as reference/comparison sources. The runtime does not merge
+or substitute them. See [methodology.md](methodology.md) for the exact contract,
+calculations, source-response fields, matching policy, and limitations.
 
 ## Optional local CMU Pronouncing Dictionary resource
 
-Poetic Fingerprint Stage 5 uses official `cmusphinx/cmudict` files pinned at
+The pronunciation module uses official `cmusphinx/cmudict` files pinned at
 repository commit `74790861f652b15e4ac49015a90074ad62a27690`. This resource
 is a pronunciation dictionary, not an affective or lexical-semantic rating
 lexicon, and it is never pooled with VAD, emotion, concreteness, frequency, or
@@ -316,6 +312,5 @@ primarily represents North American English and acknowledges possible errors,
 omissions, and inconsistencies. Its license permits unrestricted research and
 commercial use with requested acknowledgment of Carnegie Mellon University.
 
-See [`poetic-fingerprint-stage5.md`](poetic-fingerprint-stage5.md) for the
-exact contract, resolution policy, overrides, calculations, exports, and
-limitations.
+See [methodology.md](methodology.md) for the exact contract, resolution policy,
+overrides, calculations, exports, and limitations.

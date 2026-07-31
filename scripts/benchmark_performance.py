@@ -1,7 +1,7 @@
-r"""Repeatable Stage 14 performance benchmark using synthetic verse fixtures.
+r"""Repeatable VerseVAD performance benchmark using synthetic verse fixtures.
 
 Run from the repository root:
-    .venv\Scripts\python.exe scripts\benchmark_stage14.py
+    .venv\Scripts\python.exe scripts\benchmark_performance.py
 
 The script never reads project texts. It uses fixed synthetic lines and writes
 only aggregate timing/cache data.
@@ -63,7 +63,7 @@ def _timed(callable_):
 def _request(name: str, line_count: int, *, complete: bool) -> AnalysisRequest:
     text = "\n".join(FIXED_LINE for _ in range(line_count))
     return AnalysisRequest(
-        project_name="Stage 14 synthetic benchmark",
+        project_name="VerseVAD synthetic benchmark",
         title=name,
         original_text=text,
         lexicon_ids=(("nrc_vad_v1",) if complete else ()),
@@ -137,7 +137,7 @@ def _markdown(
     results: tuple[BenchmarkResult, ...],
 ) -> str:
     rows = [
-        "# Stage 14 performance benchmark",
+        "# VerseVAD performance benchmark",
         "",
         "Synthetic fixtures only; wall-clock values are descriptive, not unit-test gates.",
         "",
@@ -185,7 +185,7 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=PROJECT_ROOT / "docs" / "stage14-benchmark-latest.json",
+        default=PROJECT_ROOT / "tmp" / "performance-benchmark-latest.json",
     )
     arguments = parser.parse_args()
     if arguments.repetitions < 1:

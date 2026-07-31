@@ -1,4 +1,4 @@
-# Local Poetic Fingerprint Resources
+# Local VerseVAD Research Resources
 
 This directory contains locally installed research resources used by optional
 VerseVAD modules. Those licensed datasets remain ignored by source control.
@@ -44,13 +44,13 @@ corpora in this tracked folder.
 
 The two concreteness filenames are exact. Keep both directly inside
 `resources/`; do not rename or edit them. VerseVAD currently requires the
-workbook for the optional Stage 2 one-poem module and retains the paper beside
+workbook for the optional concreteness module and retains the paper beside
 it as the local methodological reference. The workbook is expected at SHA-256
 `1673ead761e28833a40e82c0d20f10782955ced9366d600eafeefee0f2254545`;
 the paper is expected at
 `7bafeef31b771965dbbbe2dea0227e210c8f4d054461343505f829ecfa036b63`.
 
-The Stage 3 frequency module requires the exact workbook path shown above.
+The frequency module requires the exact workbook path shown above.
 Keep it under `resources/subtlex-us/`; do not rename or edit it. Its expected
 SHA-256 is
 `3a8cb93a4e28988c2ce722a63f6b8d394acdc42ebe2ab6e1f0e484ee0d4167a7`.
@@ -83,7 +83,7 @@ The implemented frequency module uses only the pinned official SUBTLEX-US
 Zipf workbook. VerseVAD does not use `wordfreq` as a fallback or alternate
 frequency source. Absent word forms remain unmatched with missing values.
 
-The optional Stage 4 Age of Acquisition module uses only the official
+The optional Age of Acquisition module uses only the official
 Springer erratum supplement
 `resources/kuperman_2013_erratum_ESM1_official.xlsx`, expected at SHA-256
 `3f69a1332359de1cd4a7ccd3c4c3c2e39b388eeb171d6e90544709c3dc1a8a6e`.
@@ -97,7 +97,7 @@ The locally supplied `AoA_51715_words.xlsx`,
 `AoA_ratings_Kuperman_et_al_BRM_with_PoS.xlsx`, and
 `Master file with all values for test based AoA measures Biemiller.xlsx` are
 retained unchanged as comparison/reference resources. They are not combined
-with, substituted for, or read by the Stage 4 adapter. The 51,715-word file is
+with, substituted for, or read by the Age of Acquisition adapter. The 51,715-word file is
 a derived multi-source compilation; the `with_PoS` file adds a column to the
 official Kuperman rows; and the Biemiller file represents a distinct
 test-based construct.
@@ -109,7 +109,7 @@ contains rated polyfunctional spellings such as `the`, `and`, `he`, `of`, and
 `NOUN`/`VERB`/`ADJ`/`ADV` scope available and off by default; source selection
 and a particular poem occurrence's model POS are not treated as equivalent.
 
-The optional Stage 5 pronunciation/prosody-foundation module uses the exact
+The optional pronunciation/prosody-foundation module uses the exact
 files under `resources/pronunciation/`, pinned from the official
 `cmusphinx/cmudict` repository at commit
 `74790861f652b15e4ac49015a90074ad62a27690`. Keep every filename unchanged.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import tomllib
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).parents[1]
@@ -35,13 +36,28 @@ def test_citation_metadata_names_release_and_author_without_placeholders() -> No
         'given-names: "Nicky"',
         'family-names: "Bennett"',
         'license: "GPL-3.0-only"',
-        'repository-code: "https://github.com/nickybennett/VerseVAD"',
+        'repository-code: "https://github.com/VerseVAD/VerseVAD"',
         'date-released: "2026-07-24"',
     ):
         assert required in citation
     assert "doi:" not in citation
     assert "TODO" not in citation
     assert "PLACEHOLDER" not in citation
+
+
+def test_public_package_metadata_names_creator_and_canonical_urls() -> None:
+    metadata = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    project = metadata["project"]
+
+    assert project["authors"] == [{"name": "Nicky Bennett"}]
+    assert project["urls"] == {
+        "Homepage": "https://github.com/VerseVAD/VerseVAD",
+        "Documentation": (
+            "https://github.com/VerseVAD/VerseVAD/blob/main/docs/index.md"
+        ),
+        "Repository": "https://github.com/VerseVAD/VerseVAD.git",
+        "Issues": "https://github.com/VerseVAD/VerseVAD/issues",
+    }
 
 
 def test_public_release_declares_canonical_gpl3_only() -> None:
@@ -91,10 +107,10 @@ def test_source_distribution_excludes_local_and_research_state() -> None:
         "/dist",
         "/exports",
         "/projects",
-        "/resources",
         "/source_lexicons",
         "/source_texts",
     }.issubset(excluded)
+    assert "/resources" not in excluded
 
 
 def test_resource_guide_contains_every_runtime_destination_and_license_boundary() -> None:
@@ -124,8 +140,8 @@ def test_user_facing_sources_use_versevad_folder_name() -> None:
     paths = (
         ROOT / "README.md",
         ROOT / "docs" / "user-guide.md",
-        ROOT / "docs" / "phase1-validation.md",
-        ROOT / "docs" / "phase2-validation.md",
+        ROOT / "docs" / "index.md",
+        ROOT / "docs" / "resource-installation.md",
         ROOT / "docs" / "VerseVAD_User_Manual_Source.md",
         ROOT / "setup_windows.bat",
         ROOT / "start_versevad.bat",
@@ -138,4 +154,82 @@ def test_user_facing_sources_use_versevad_folder_name() -> None:
     assert all(
         "ANEW VAD Study" not in path.read_text(encoding="utf-8")
         for path in paths
+    )
+
+
+def test_public_release_uses_organization_repository_urls() -> None:
+    expected = "https://github.com/VerseVAD/VerseVAD"
+    paths = (
+        ROOT / "README.md",
+        ROOT / "CITATION.cff",
+        ROOT / "pyproject.toml",
+        ROOT / "docs" / "index.md",
+        ROOT / "docs" / "updating.md",
+        ROOT / "src" / "versevad" / "application.py",
+    )
+
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        assert expected in text
+        assert "github.com/nickybennett/VerseVAD" not in text
+
+
+def test_public_documentation_has_no_broken_local_links() -> None:
+    markdown_paths = (
+        ROOT / "README.md",
+        ROOT / "CONTRIBUTING.md",
+        ROOT / "resources" / "README.md",
+        *sorted((ROOT / "docs").glob("*.md")),
+    )
+    broken: list[str] = []
+    pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+
+    for markdown_path in markdown_paths:
+        text = markdown_path.read_text(encoding="utf-8")
+        for match in pattern.finditer(text):
+            raw_target = match.group(1).strip()
+            target = raw_target.split(maxsplit=1)[0].strip("<>")
+            parsed = urlsplit(target)
+            if parsed.scheme or target.startswith("#"):
+                continue
+            relative_path = unquote(parsed.path)
+            if not relative_path:
+                continue
+            resolved = (markdown_path.parent / relative_path).resolve()
+            if not resolved.exists():
+                broken.append(
+                    f"{markdown_path.relative_to(ROOT)} -> {raw_target}"
+                )
+
+    assert broken == []
+
+
+def test_public_documentation_excludes_historical_stage_artifacts() -> None:
+    assert not (ROOT / "PLANS.md").exists()
+    assert not (ROOT / "test_phase1.bat").exists()
+    assert not (ROOT / "test_phase2.bat").exists()
+
+    historical_patterns = (
+        "phase*-validation.md",
+        "poetic-fingerprint-stage*.md",
+        "design-stage*.md",
+        "inherited-form-stage*.md",
+        "stage14-*.md",
+        "stage14-*.json",
+    )
+    for pattern in historical_patterns:
+        assert list((ROOT / "docs").glob(pattern)) == []
+
+    maintained = {
+        "index.md",
+        "user-guide.md",
+        "methodology.md",
+        "resource-installation.md",
+        "lexicons.md",
+        "architecture.md",
+        "data-model.md",
+        "testing.md",
+    }
+    assert maintained.issubset(
+        {path.name for path in (ROOT / "docs").glob("*.md")}
     )
