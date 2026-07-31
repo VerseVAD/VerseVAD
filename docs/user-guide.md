@@ -76,7 +76,10 @@ release, model, coverage, and eligible-token evidence and may be saved with its
 research notes in the Analysis Library.
 
 **Explore → Corpus Browser** is a read-only view of corpus inventory, coverage,
-feature distributions, and poem-level profiles. **Form Library** exposes all
+feature distributions, and poem-level profiles. Choose **Whole Corpus** or a
+specific poem first, then choose the relevant report section. Whole-corpus
+comparison tables display one metric family at a time while their CSV download
+retains the complete Standard Profile matrix. **Form Library** exposes all
 inherited-form definitions, rules, weights, sources, and limitations without
 running a poem analysis. **Learn → Documentation** and **Methodology** read the
 packaged guides inside VerseVAD; the complete Word manual remains
@@ -660,7 +663,11 @@ of these constructs is normalized into, pooled with, or averaged into VAD.
    scenario version, then click **Analyze Corpus**.
    VerseVAD processes one work at a time and publishes the dashboard only when
    the entire selected batch completes.
-7. Filter a completed comparison by collection, author, or genre.
+7. In **Completed Analysis Results**, choose **Whole Corpus** or one poem, then
+   choose an **Analysis Report**: Affective Evidence, Lexical Character, Sound & Form, Structure,
+   PoetryID, VerseMap, or Evidence & Diagnostics as available. The interface
+   presents concise poem-level or compatible collection summaries rather than
+   the underlying audit table.
 8. Under **Review & Scenarios**, create a named scenario and record reversible,
    versioned flags, exclusions, or mappings with a rationale and explicit
    occurrence/work/project/global scope.
@@ -672,13 +679,15 @@ Additional modules are off by default. Frequency and AoA each retain a
 non-default **content words only** setting under **Advanced batch methodology**.
 Meter or rhyme automatically includes their pronunciation dependency.
 
-The **Additional Module Results** section keeps work, line, stanza, token, type,
-and distribution evidence at its original scope. Equal-work collection means
-are always labeled. Observation-weighted means appear only where a defensible
-observation count exists for every included work. Lexical-style pooled results
-are recalculated from the ordered pooled token sequence and are not averages of
-work-level MATTR, HD-D, or MTLD. Meter and rhyme remain work-level candidates;
-VerseVAD does not invent one corpus-wide meter or rhyme scheme.
+The front-end results explorer shows one report family at a time. Selecting a
+poem limits module tables and charts to document-level summaries; selecting
+**Whole Corpus** shows compatible equal-work and explicitly labeled
+observation-weighted summaries. Work, line, stanza, token, type, denominator,
+configuration, and distribution evidence remains preserved at its original
+scope in exports. Lexical-style pooled results are recalculated from the
+ordered pooled token sequence and are not averages of work-level MATTR, HD-D,
+or MTLD. Meter and rhyme remain work-level candidates; VerseVAD does not invent
+one corpus-wide meter or rhyme scheme.
 
 Use **Download module audit ZIP** to obtain one persisted work/module bundle.
 The corpus export ZIP adds separate CSV tables for collection summaries, work
@@ -705,9 +714,12 @@ destination without adding it to the prominent workspace selector.
    title. Only that poem and its locally stored versions/results are removed.
 5. Open **Corpus Analysis** to choose poems, lexicons, modules, phrase policy,
    review scenario, stopword configuration, and other normal corpus settings.
-6. Open **Poem Detail** to select one stored poem. Affective metrics retain
-   all-matched/stopword-excluded and token/type selectors; enabled optional
-   modules, coverage, warnings, and VerseMap evidence remain separate.
+6. After a batch finishes, remain in **Corpus Analysis** and use **Result
+   Scope** to choose **Whole Corpus** or a poem, then choose the desired
+   **Analysis Report**. Affective metrics retain all-matched/stopword-excluded
+   and token/type selectors; enabled optional modules, coverage, warnings, and
+   VerseMap evidence remain separate. **Poem Detail** remains a quick
+   poem-specific inspection view.
 7. Use the other Report Section choices for whole-corpus Language Profile,
    corpus comparisons, VerseMap, review scenarios, and CSV/Word exports.
 8. Click either **Home** in the sidebar or the circular house icon in the

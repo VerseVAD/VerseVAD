@@ -685,8 +685,19 @@ Local and cloud suites share the analytical assertions. Hosted assertions
 additionally confirm that reference-corpus mutation is unavailable while
 browsing and fixed-profile VerseMap remain usable.
 
-The final 2026-07-30 run passed all `410` public/local tests and all `412`
+The final 2026-07-30 run passed all `412` public/local tests and all `414`
 private-cloud tests. Live browser checks opened all six new routes, confirmed
 their nonblank sidebars, exercised an 820-pixel responsive layout, and reported
 no console warnings or errors. Both rebuilt Word manuals passed package,
 content, and accessibility checks with zero accessibility findings.
+
+## Corpus-report and comparison-set regression
+
+The final corpus-presentation pass exercises completed two-poem and three-poem
+comparison sets through the Streamlit interface. It also creates analyzed
+two-poem Saved Projects and Personal Corpus databases, verifies the Whole
+Corpus/individual-poem Result Scope selector and Analysis Report selector, and
+confirms that the former work/line/stanza audit matrix is absent from the
+front end. Corpus Browser was checked against the 2,315-poem built-in index at
+whole-corpus, poem-overview, and metric-detail scopes. Complete low-level rows
+remain covered by the existing CSV, Word, and module-audit export tests.
