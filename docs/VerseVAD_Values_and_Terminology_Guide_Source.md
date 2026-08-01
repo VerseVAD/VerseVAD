@@ -422,8 +422,9 @@ Avoid: “VerseVAD proved the poem is in iambic pentameter,” “fit 0.91 means
 
 ## Performance-Aware Meter Realization
 
-The non-default performance-aware layer keeps the complete fixed candidate result and
-adds an inspectable contextual reading. It can label syllable-level metrical
+The performance-aware layer keeps the complete fixed candidate result and adds
+an inspectable contextual reading. Built-in profiles display both layers by
+default; candidate-only and performance-aware-only modes remain available. It can label syllable-level metrical
 positions, promotion and demotion, substitutions, stress clashes and lapses,
 punctuation-supported caesurae, selected pronunciation paths, alternate
 realizations, stanza recurrence, poem trajectory, and rhythmic organization.

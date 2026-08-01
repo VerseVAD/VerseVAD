@@ -28,6 +28,8 @@ All notable changes to VerseVAD are recorded here.
 
 ### Changed
 
+- Exposed the already-calculated total nonblank physical-line count in the
+  Structure report's Structural Count Summary.
 - Reworked Compare Poems around actual metric selection, side-by-side poem
   values, max-minus-min range, and separate metric-family tables; within-poem
   dispersion remains visible without an easily confused cross-poem SD column.
@@ -58,6 +60,14 @@ All notable changes to VerseVAD are recorded here.
   retaining an inspectable complete registry.
 - Reorganized public documentation around maintained user, methodology,
   resource, architecture, data-model, testing, and contributor references.
+- Made proper-noun inclusion the default for Concreteness, Sensorimotor,
+  Frequency, and AoA across first launch and every built-in profile while
+  retaining explicit exclusion controls and custom-profile choices.
+- Made side-by-side fixed/performance-aware meter analysis the built-in-profile
+  default and aligned its full configuration across Single Poem, Compare
+  Poems, and Project/Corpus; VerseMap remains pinned to Standard Profile 1.0.
+- Cached immutable VerseMap reference indexes by file signature so corpus-map
+  reruns avoid reparsing unchanged model CSVs without masking updates.
 
 ### Fixed
 
@@ -71,7 +81,11 @@ All notable changes to VerseVAD are recorded here.
 - Contraction handling in pronunciation review.
 - Theme contrast, chart tooltip, button-label, metric-card overflow, and
   responsive navigation issues.
+- Training-site primary-link contrast in every persistent theme, including
+  nested label and icon colors.
 - Corpus and multi-poem result presentation and comparison edge cases.
+- Missing bottom-center collapse controls on major Compare Poems and corpus
+  report panels.
 
 ### Data and licensing
 

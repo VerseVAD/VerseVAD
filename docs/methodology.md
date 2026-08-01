@@ -201,7 +201,8 @@ Eligible lexical tokens are matched longest exact two-word expression first,
 then exact normalized surface form, lemma, and a documented conservative
 apostrophe/possessive fallback. Exact surface evidence always precedes lemma
 evidence. Punctuation remains auditable but ineligible. Model-tagged proper
-nouns are excluded by default, with an explicit configurable policy.
+nouns are included by default. The recorded **Exclude model-tagged proper
+nouns** option can remove them for a declared sensitivity analysis.
 
 For a source-supplied two-word expression, VerseVAD assigns the expression's
 rating to each covered token position for the declared token-weighted
@@ -226,14 +227,16 @@ place and retains its published word-form counts, contextual-diversity fields,
 and Zipf values. It remains separate from affective ratings and concreteness.
 No `wordfreq` or alternate corpus value is substituted.
 
-By default, every lexical token is eligible except model-tagged proper nouns.
+By default, model-tagged proper nouns remain eligible alongside other lexical
+tokens. The recorded exclusion option can remove them explicitly.
 Punctuation, numbers, and other non-lexical tokens remain in the audit but
 outside the denominator. The optional, non-default **Content words only**
 scope restricts eligibility to exact model tags `NOUN`, `VERB`, `ADJ`, and
 `ADV`. It excludes determiners (`DET`), adpositions/prepositions (`ADP`),
 coordinating and subordinating conjunctions (`CCONJ`, `SCONJ`), pronouns
 (`PRON`), auxiliaries (`AUX`), punctuation, and every other tag. `PROPN`
-remains excluded under the default proper-name policy.
+is outside this deliberately narrow four-tag scope even though proper nouns
+remain included under the ordinary all-lexical-token default.
 
 This strict scope must not be confused with the broad Language Profile:
 the latter groups `VERB` and `AUX` together under **Verb** for a readable
@@ -269,7 +272,8 @@ respondent believed they had learned a word well enough to understand it.
 They remain separate from affect, concreteness, frequency, difficulty, grade
 level, familiarity, comprehension, intelligence, and reader response.
 
-By default, every lexical token is eligible except model-tagged proper nouns.
+By default, model-tagged proper nouns remain eligible alongside other lexical
+tokens. The recorded exclusion option can remove them explicitly.
 The optional, non-default **AoA content words only** scope restricts
 eligibility to exact contextual model tags `NOUN`, `VERB`, `ADJ`, and `ADV`.
 The paper describes its target selection as base forms used most frequently
@@ -734,8 +738,9 @@ correct scansion, performed rhythm, or authorial intention.
 
 ### Optional performance-aware realization
 
-Candidate meter remains the default. When the scholar selects a
-performance-aware mode, VerseVAD reranks a bounded set of retained meter
+Built-in analysis profiles display the fixed candidate and performance-aware
+layers together by default; the fixed estimator and its result remain
+unchanged. When a performance-aware layer is selected, VerseVAD reranks a bounded set of retained meter
 candidates using separately visible fixed-fit, contextual-prominence,
 syllable-count, phrasing, ending, pronunciation, poem/stanza recurrence, and
 declared-profile components. The overall score is a configured heuristic, not
