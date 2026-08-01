@@ -143,6 +143,9 @@ it. The notice identifies the saved VerseVAD version and offers either
 continued historical viewing or preparation for an explicit current-version
 reanalysis. Preparing reanalysis restores inputs and settings but does not run
 the analysis until the user selects the workspace's Analyze/Search action.
+Continuing dismisses only the notice and leaves the restored result visible.
+Preparing clears only the in-session computed result: the restored text,
+metadata, settings, and immutable saved revision remain intact.
 
 Research Notes attach to the active object rather than a free-floating global
 text box. A note can be analysis-level or anchored to a report section, metric,
@@ -241,6 +244,8 @@ settings gear, and a help icon. Open the appearance control to choose:
 
 VerseVAD saves this application-level choice locally under ignored private
 runtime data, so the selected theme returns after the app closes and reopens.
+On the hosted edition, an appearance-only browser cookie restores the selected
+theme after a refresh; clearing site cookies returns the browser to Classic.
 It is not stored in a project, recorded as an analysis setting, or used to
 calculate or export a result. Legacy Light and System preferences migrate to
 Classic. Exported charts remain publication-light.

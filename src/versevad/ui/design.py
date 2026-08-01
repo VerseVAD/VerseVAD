@@ -24,10 +24,13 @@ from versevad.ui.navigation import WORKSPACES, render_top_navigation
 from versevad.ui.sidebar import render_context_sidebar
 from versevad.ui.preferences import (
     AppearanceMode,
+    appearance_from_browser_cookie,
     load_preferences,
     normalize_appearance,
     save_appearance,
 )
+
+_APPEARANCE_COOKIE_NAME = "versevad_appearance"
 
 CLASSIC_TOKENS = {
     "background": "#f6f3ed",
@@ -1493,14 +1496,46 @@ def bottom_collapsible_expander(
 
 
 def _persist_appearance() -> None:
-    save_appearance(st.session_state["appearance_mode"])
+    # Hosted deployments persist appearance per browser below. A shared server
+    # file would let one visitor's choice become another visitor's default.
+    if os.environ.get("VERSEVAD_CLOUD_DEPLOYMENT") != "1":
+        save_appearance(st.session_state["appearance_mode"])
+
+
+def _cloud_browser_appearance() -> AppearanceMode | None:
+    if os.environ.get("VERSEVAD_CLOUD_DEPLOYMENT") != "1":
+        return None
+    try:
+        return appearance_from_browser_cookie(
+            st.context.cookies.get(_APPEARANCE_COOKIE_NAME)
+        )
+    except (AttributeError, KeyError, RuntimeError):
+        return None
+
+
+def _appearance_cookie_html(appearance: AppearanceMode | str) -> str:
+    """Persist a harmless appearance-only cookie for hosted browser refreshes."""
+
+    value = normalize_appearance(appearance).value
+    return f"""
+    <span aria-hidden="true" style="display:none"></span>
+    <script>
+      document.cookie = "{_APPEARANCE_COOKIE_NAME}={value}; " +
+        "Path=/; Max-Age=31536000; SameSite=Lax";
+    </script>
+    """
 
 
 def render_app_shell() -> tuple[str, AppearanceMode]:
     """Render the shared application header and return active workspace/theme."""
 
+    hosted = os.environ.get("VERSEVAD_CLOUD_DEPLOYMENT") == "1"
     preferences = load_preferences()
-    st.session_state.setdefault("appearance_mode", preferences.appearance.value)
+    initial_appearance = (
+        _cloud_browser_appearance()
+        or (AppearanceMode.CLASSIC if hosted else preferences.appearance)
+    )
+    st.session_state.setdefault("appearance_mode", initial_appearance.value)
     st.session_state["appearance_mode"] = normalize_appearance(
         st.session_state["appearance_mode"]
     ).value
@@ -1509,10 +1544,14 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
     st.session_state.setdefault("workspace_page", WORKSPACES[0])
     appearance = normalize_appearance(st.session_state["appearance_mode"])
     apply_design_system(appearance)
-    route = render_top_navigation(
-        include_local_routes=(
-            os.environ.get("VERSEVAD_CLOUD_DEPLOYMENT") != "1"
+    if hosted:
+        st.html(
+            _appearance_cookie_html(appearance),
+            width="content",
+            unsafe_allow_javascript=True,
         )
+    route = render_top_navigation(
+        include_local_routes=not hosted
     )
     workspace = route.workspace_id
     st.session_state["workspace_page"] = workspace
