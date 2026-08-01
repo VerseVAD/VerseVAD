@@ -29,6 +29,7 @@ the current release rather than its implementation history.
 | Inspect or update comparison corpora | [VerseMap reference corpora](versemap-reference-corpus.md) |
 | Understand VerseMap features and PCA | [VerseMap Standard Profile 1.0](versemap-standard-profile.md) |
 | Review inherited poetic forms | [Inherited Form Registry](inherited-form-registry-v2.md) |
+| Download free VerseVAD courses | **Learn → Training** in the application or [VerseVAD Training](https://www.versevad.org/training) |
 | Export CSV, Word, or audit reports | [User guide](user-guide.md#downloads-and-the-audit-bundle) |
 
 ## Understand the evidence
@@ -57,6 +58,16 @@ of a poem's emotion, meaning, quality, author, speaker, or reader.
 
 The Markdown guides are convenient for GitHub and website linking. The Word
 manual is the printable, single-document reference.
+
+## Free training courses
+
+The application packages four learner manuals and four applied exercises under
+**Learn → Training**. The pathway progresses through Foundations, Analyst
+Level 1, Analyst Level 2, and Authorized Instructor Training. Evaluator answer
+keys, scoring rubrics, candidate records, certificates, and authorization
+materials are administered separately and are not included in the public
+repository. See <https://www.versevad.org/training> for current program
+information.
 
 ## Develop or extend VerseVAD
 

@@ -9,7 +9,8 @@ Collections contains the local **Personal Corpus**, **Saved Projects** (the
 workspace previously labeled Project / Corpus), the working **Analysis
 Library**, and **Reference Corpora**. Explore contains the standalone
 **VerseMap**, **Lexicon Explorer**, **Form Library**, and **Corpus Browser**;
-Learn contains the packaged **Documentation** and **Methodology** readers.
+Learn contains the packaged **Documentation** and **Methodology** readers plus
+the free learner-facing **Training** catalog.
 Single-text and comparison-set analyses remain temporary until saved in the
 Analysis Library or downloaded.
 Corpus projects, preserved text versions, metadata, completed results, and
@@ -85,7 +86,29 @@ retains the complete Standard Profile matrix. **Form Library** exposes all
 inherited-form definitions, rules, weights, sources, and limitations without
 running a poem analysis. **Learn → Documentation** and **Methodology** read the
 packaged guides inside VerseVAD; the complete Word manual remains
-downloadable.
+downloadable. **Learn → Training** describes the four-course pathway and
+downloads the public learner manuals and applied exercises. Evaluator keys,
+rubrics, completion records, certificates, and authorization materials are not
+included in the application package.
+
+## Use the free Training pathway
+
+Choose **Learn → Training** to review the four free course levels:
+
+1. **VerseVAD Foundations** — introductory evidence literacy and a complete
+   single-poem workflow.
+2. **Computational Close Reading with VerseVAD** — Analyst Level 1 methods for
+   advanced single-poem and controlled poem comparison.
+3. **Advanced Corpus and Research Analysis** — Analyst Level 2 corpus design,
+   aggregation, VerseMap, reproducibility, ethics, and reporting.
+4. **VerseVAD Authorized Instructor Training** — accessible facilitation,
+   demonstration, assessment, support, and authorization readiness.
+
+Each course provides a Word learner manual and an applied exercise. The page's
+prominent website link opens <https://www.versevad.org/training> for current
+program information. Downloading or completing the public documents does not
+by itself issue a certificate, completion decision, or instructor
+authorization.
 
 ## Analysis Library and research notes
 

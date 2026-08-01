@@ -2,9 +2,11 @@
 
 This directory contains locally installed research resources used by optional
 VerseVAD modules. Those licensed datasets remain ignored by source control.
-The one explicit exception is the redistributable public-domain VerseMap
-reference corpus under `VerseMap_Reference_Corpus/`, which is tracked together
-with its deterministic manifest and release record.
+The tracked exceptions are the redistributable public-domain VerseMap
+reference corpus under `VerseMap_Reference_Corpus/` and the public learner
+manuals and applied exercises under `training/`. Evaluator answer keys,
+rubrics, credential records, and private course-development files are not
+packaged or tracked.
 
 For public-release download links, exact affective-lexicon locations,
 installation steps, source-term cautions, and troubleshooting, see

@@ -22,6 +22,9 @@ All notable changes to VerseVAD are recorded here.
   analyses, versioned review scenarios, and contextual research notes.
 - Public-domain VerseMap reference corpus and cross-platform reference updater.
 - Six persistent high-contrast application themes.
+- A Learn → Training workspace with four free learner manuals, four applied
+  exercises, and a direct link to the VerseVAD training website; evaluator
+  keys, scoring rubrics, and credential materials remain private.
 
 ### Changed
 

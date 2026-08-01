@@ -89,6 +89,30 @@ def test_public_repository_excludes_research_and_private_data() -> None:
     ):
         assert required in ignored
     assert "!/resources/README.md" in ignored
+    assert "!/resources/training/**" in ignored
+
+
+def test_public_training_package_contains_only_learner_materials() -> None:
+    training_root = ROOT / "resources" / "training"
+    expected = {
+        "VerseVAD_Foundations_Learner_Manual.docx",
+        "VerseVAD_Foundations_Applied_Analysis_Assignment.docx",
+        "VerseVAD_Analyst_Level_1_Learner_Manual.docx",
+        "VerseVAD_Analyst_Level_1_Applied_Assignment.docx",
+        "VerseVAD_Analyst_Level_2_Learner_Manual.docx",
+        "VerseVAD_Analyst_Level_2_Applied_Assignment.docx",
+        "VerseVAD_Authorized_Instructor_Learner_Manual.docx",
+        "VerseVAD_Authorized_Instructor_Applied_Assignment.docx",
+    }
+    packaged = {path.name for path in training_root.glob("*.docx")}
+
+    assert packaged == expected
+    assert not any(
+        marker in path.name.casefold()
+        for path in training_root.rglob("*")
+        for marker in ("answer", "key", "rubric")
+    )
+    assert all(path.stat().st_size > 0 for path in training_root.glob("*.docx"))
 
 
 def test_source_distribution_excludes_local_and_research_state() -> None:

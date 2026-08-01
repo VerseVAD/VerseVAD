@@ -387,6 +387,9 @@ def test_top_level_navigation_groups_stable_workspace_routes() -> None:
     personal = next(route for route in ROUTES if route.title == "Personal Corpus")
     assert personal.section == "Collections"
     assert personal.local_only
+    assert {
+        route.title for route in ROUTES if route.section == "Learn"
+    } == {"Documentation", "Methodology", "Training"}
 
 
 def test_top_level_navigation_keeps_click_and_adds_desktop_hover() -> None:

@@ -37,8 +37,9 @@ Repository: <https://github.com/VerseVAD/VerseVAD>
   model versions, and detailed audit exports.
 
 The interface is organized under **Analyze**, **Collections**, **Explore**, and
-**Learn**. See the [documentation index](docs/index.md) for the complete user,
-methodology, resource, and contributor documentation.
+**Learn**. Learn includes a **Training** page with four free learner manuals
+and applied exercises. See the [documentation index](docs/index.md) for the
+complete user, methodology, resource, training, and contributor documentation.
 
 ## Install and start
 
@@ -111,6 +112,21 @@ documentation by task:
 - resources, provenance, and licensing;
 - architecture, data model, testing, and contribution guidance; and
 - printable Word manuals.
+
+## Free training pathway
+
+Open **Learn → Training** inside VerseVAD to download the four free learner
+manuals and applied exercises:
+
+- VerseVAD Foundations;
+- Computational Close Reading with VerseVAD (Analyst Level 1);
+- Advanced Corpus and Research Analysis (Analyst Level 2); and
+- VerseVAD Authorized Instructor Training.
+
+Current program information is available at
+<https://www.versevad.org/training>. Public application packages do not include
+evaluator answer keys, scoring rubrics, completion records, certificates, or
+authorization materials.
 
 ## Privacy and scholarly use
 
