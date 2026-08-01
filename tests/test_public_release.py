@@ -84,6 +84,7 @@ def test_public_repository_excludes_research_and_private_data() -> None:
         "/projects/",
         "/exports/",
         "/backups/",
+        "/private_training/",
         "*.sqlite3",
     ):
         assert required in ignored
@@ -106,6 +107,7 @@ def test_source_distribution_excludes_local_and_research_state() -> None:
         "/data",
         "/dist",
         "/exports",
+        "/private_training",
         "/projects",
         "/source_lexicons",
         "/source_texts",
