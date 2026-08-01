@@ -28,6 +28,12 @@ All notable changes to VerseVAD are recorded here.
 - Reworked Compare Poems around actual metric selection, side-by-side poem
   values, max-minus-min range, and separate metric-family tables; within-poem
   dispersion remains visible without an easily confused cross-poem SD column.
+- Refined Compare Poems around a consistent means/composites, cumulative-load,
+  then dispersion reading order; reduced PoetryID to one active Category Fit
+  and Nearest Centroid pair while retaining alternate views in exports.
+- Added NRC emotion/polarity association and intensity evidence to both shared
+  token scopes, a shared pronunciation-review/reanalysis flow, selectable
+  indexed VerseMap reference corpora, and a focused multi-poem PCA dashboard.
 - Added shared comparison methodology controls for phrase handling, evidence
   thresholds, lexical modules, PoetryID, pronunciation, meter, and phonology.
 - Made Saved Projects and Personal Corpus result explorers show one poem or
