@@ -26,6 +26,10 @@ All notable changes to VerseVAD are recorded here.
   exercises, and a direct link to the VerseVAD training website; evaluator
   keys, scoring rubrics, and credential materials remain private.
 
+- Offline Open English WordNet 2025+ definitions, examples, synonyms,
+  antonyms, and semantic relations near the top of Lexicon Explorer, with the
+  complete source sense inventory retained in narrative exports.
+
 ### Changed
 
 - Replaced the pronunciation dashboard's median syllables-per-line card with
@@ -82,6 +86,10 @@ All notable changes to VerseVAD are recorded here.
   and Corpus Browser reports. Population SD remains available as the
   complementary extreme-sensitive dispersion measure.
 
+- Kept the Interactive Annotation evidence panel beside the poem while a user
+  scrolls, with an internal panel scrollbar for long evidence and a stacked
+  non-sticky layout on narrow screens.
+
 ### Fixed
 
 - Saved Compare Poems analyses now restore their selected built-in or custom
@@ -114,9 +122,15 @@ All notable changes to VerseVAD are recorded here.
 - Missing bottom-center collapse controls on major Compare Poems and corpus
   report panels.
 
+- Interactive Annotation evidence no longer disappears above the viewport
+  when selecting words late in a long poem.
+
 ### Data and licensing
 
 - VerseVAD code and documentation are GPL-3.0-only.
 - Most licensed lexicons and normative resources are intentionally excluded
   from the public repository and installed separately by each user.
 - The bundled VerseMap reference corpus contains curated public-domain texts.
+- The bundled Open English WordNet 2025+ resource remains under CC BY 4.0 and
+  the Princeton WordNet license; both license texts and full attribution are
+  retained with the packaged data and in `THIRD_PARTY_NOTICES.md`.

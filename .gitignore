@@ -4,6 +4,8 @@
 !/resources/README.md
 !/resources/training/
 !/resources/training/**
+!/resources/open_english_wordnet/
+!/resources/open_english_wordnet/**
 !/resources/VerseMap_Reference_Corpus/
 !/resources/VerseMap_Reference_Corpus/**
 /resources/VerseMap_Reference_Corpus/_versemap_profiles.work.csv

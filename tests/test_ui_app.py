@@ -1166,6 +1166,9 @@ def test_lexicon_explorer_offers_printable_word_report() -> None:
     app.run(timeout=60)
 
     assert not app.exception
+    assert "Dictionary Senses" in [
+        heading.value for heading in app.subheader
+    ]
     assert "Rule-Based Sentiment and Readability Evidence" in [
         heading.value for heading in app.subheader
     ]

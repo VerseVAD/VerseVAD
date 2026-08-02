@@ -3,21 +3,29 @@
 This directory contains locally installed research resources used by optional
 VerseVAD modules. Those licensed datasets remain ignored by source control.
 The tracked exceptions are the redistributable public-domain VerseMap
-reference corpus under `VerseMap_Reference_Corpus/` and the public learner
-manuals and applied exercises under `training/`. Evaluator answer keys,
+reference corpus under `VerseMap_Reference_Corpus/`, the CC BY 4.0 Open English
+WordNet dictionary resource under `open_english_wordnet/`, and the public
+learner manuals and applied exercises under `training/`. Evaluator answer keys,
 rubrics, credential records, and private course-development files are not
 packaged or tracked.
 
 For public-release download links, exact affective-lexicon locations,
 installation steps, source-term cautions, and troubleshooting, see
 [`docs/resource-installation.md`](../docs/resource-installation.md). VerseVAD
-does not download these files automatically, and its GPL license does not
-relicense any research dataset.
+does not download the separately installed research files automatically. The
+Open English WordNet archive is already packaged for offline Lexicon Explorer
+lookups, and VerseVAD's GPL license does not relicense any third-party dataset.
 
 Current and planned local layout:
 
 ```text
 resources/
+  open_english_wordnet/
+    oewn-2025-plus-wn.db.xz
+    OPEN_ENGLISH_WORDNET_LICENSE.md
+    PRINCETON_WORDNET_LICENSE.txt
+    citation.bib
+    README.md
   VerseMap_Reference_Corpus/
     Poet Name/
       Poem title.txt
@@ -77,9 +85,11 @@ Each resource adapter must:
    value; and
 7. avoid copying a licensed dataset into exports, backups, or source control.
 
-The curated VerseMap reference corpus is not an adapter resource and is not an
-exception to any lexicon rule above. Only its specifically unignored folder is
-tracked; all other locally installed `resources/` data remain excluded.
+The curated VerseMap reference corpus is not an adapter resource. The packaged
+Open English WordNet folder is a separately attributed redistributable
+dictionary resource and is used only by Lexicon Explorer; it is never treated
+as affective evidence or a poem-level scoring source. All other locally
+installed `resources/` research data remain excluded.
 
 The implemented frequency module uses only the pinned official SUBTLEX-US
 Zipf workbook. VerseVAD does not use `wordfreq` as a fallback or alternate

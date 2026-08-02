@@ -90,4 +90,9 @@ VerseVAD code and documentation are
 models, and literary texts retain their own licenses. See
 [CITATION.cff](../CITATION.cff) for citation metadata.
 
+The redistributable Open English WordNet 2025+ dictionary is packaged under
+CC BY 4.0 with Princeton WordNet attribution. See the complete
+[third-party notices](../THIRD_PARTY_NOTICES.md) and packaged
+[license files](../resources/open_english_wordnet/).
+
 Canonical repository: <https://github.com/VerseVAD/VerseVAD>

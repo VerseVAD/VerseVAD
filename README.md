@@ -28,6 +28,8 @@ Repository: <https://github.com/VerseVAD/VerseVAD>
   sensorimotor norms, readability, lexical diversity, and structural measures.
 - Part-of-speech profiles and token-weighted/type-weighted, all-token/
   stopword-excluded views where methodologically applicable.
+- Offline Open English WordNet definitions, examples, synonyms, antonyms, and
+  semantic relations in Lexicon Explorer.
 - CMUdict-based pronunciation review, session overrides, syllable and stress
   evidence, candidate meter, rhyme and recurring-sound evidence.
 - A source-documented inherited-form registry and cautious candidate ranking.
@@ -178,3 +180,8 @@ terms.
 The GPL does not grant permission to redistribute or commercially use
 third-party lexicons, datasets, papers, language models, or literary texts.
 Those materials remain governed by their own licenses and terms.
+
+VerseVAD packages Open English WordNet 2025+ under CC BY 4.0, including
+underlying Princeton WordNet attribution. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the complete packaged
+[license files](resources/open_english_wordnet/).
