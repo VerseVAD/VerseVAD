@@ -33,6 +33,7 @@ from versevad.performance import (  # noqa: E402
     cache_statistics,
     clear_all_caches,
 )
+from versevad.phonology import PhonologicalConfiguration  # noqa: E402
 from versevad.preprocessing import SpacyEnglishPreprocessor  # noqa: E402
 from versevad.prosody import MeterAnalysisMode, MeterConfiguration  # noqa: E402
 
@@ -76,6 +77,13 @@ def _request(name: str, line_count: int, *, complete: bool) -> AnalysisRequest:
             analysis_mode=MeterAnalysisMode.PERFORMANCE_AWARE,
         ),
         include_phonology=True,
+        # The long synthetic fixture is intentionally a single stanza, so its
+        # all-pairs rhyme audit exceeds the conservative interactive default.
+        # Raise the ceiling only inside the benchmark; the application safety
+        # guard and user-facing default remain unchanged.
+        phonological_configuration=PhonologicalConfiguration(
+            maximum_pair_evaluations=50_000,
+        ),
         include_lexical_style=True,
         performance_diagnostics=True,
     )

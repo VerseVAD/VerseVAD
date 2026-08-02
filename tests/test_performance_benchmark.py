@@ -23,6 +23,7 @@ def _benchmark_module():
 
 def test_performance_benchmark_uses_synthetic_fixture_and_renders_report() -> None:
     module = _benchmark_module()
+    request = module._request("long", 300, complete=False)
     result = module.BenchmarkResult(
         scenario="smoke",
         line_count=2,
@@ -39,5 +40,6 @@ def test_performance_benchmark_uses_synthetic_fixture_and_renders_report() -> No
     report = module._markdown({"python": "test"}, (result,))
 
     assert module.FIXED_LINE == "the stone the stone the stone the stone"
+    assert request.phonological_configuration.maximum_pair_evaluations == 50_000
     assert "| smoke | 2 | 10.0 | 1.0 |" in report
     assert "Synthetic fixtures only" in report
