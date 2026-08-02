@@ -73,9 +73,21 @@ All notable changes to VerseVAD are recorded here.
   Poems, and Project/Corpus; VerseMap remains pinned to Standard Profile 1.0.
 - Cached immutable VerseMap reference indexes by file signature so corpus-map
   reruns avoid reparsing unchanged model CSVs without masking updates.
+- Unified custom analysis profiles across every analytical profile selector;
+  profiles can now be added, updated or renamed, and deleted from Single Poem,
+  Other Text, Compare Poems, Saved Projects, and Personal Corpus analysis.
+- Added length-normalized VAD midpoint-deviation rates and one nonredundant
+  mean-centered volatility measure—mean absolute deviation—for valence,
+  arousal, and dominance across poem, comparison, project, personal-corpus,
+  and Corpus Browser reports. Population SD remains available as the
+  complementary extreme-sensitive dispersion measure.
 
 ### Fixed
 
+- Saved Compare Poems analyses now restore their selected built-in or custom
+  profile together with the exact advanced shared configuration used at save
+  time; missing custom-profile definitions fall back explicitly to Custom
+  without discarding the saved settings.
 - Historical-result actions now preserve data deliberately: continuing keeps
   the restored immutable result visible, while preparing reanalysis clears
   only computed output and retains text, metadata, settings, and the saved
@@ -84,6 +96,8 @@ All notable changes to VerseVAD are recorded here.
   one shared server-side preference for every visitor.
 - Restored analytical settings no longer duplicate widget defaults or emit
   Streamlit warnings such as the `minimum_matches` warning.
+- Eliminated the equivalent default-plus-session-state warning from stopword
+  policy selectors restored from saved analyses or shared profiles.
 - Replaced historical-save widget-key heuristics with an allowlist of durable
   analytical state. Legacy action, upload, download, audio, and future
   unregistered widget values are ignored instead of being assigned through
