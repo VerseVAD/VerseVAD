@@ -690,21 +690,25 @@ def render_personal_corpus_workspace(
         "Corpus Settings",
     )
     state_key = f"personal_corpus_report_section_{project_id}"
-    active_section, containers = render_stateful_section_navigation(
-        "Report Section",
-        sections,
-        state_key=state_key,
-        container_key_prefix=state_key.replace("-", "_"),
-        default="Poems & Metadata",
-        control="dropdown",
-        help_text=(
-            "The selected report remains active when imports, filters, analyses, "
-            "or downloads refresh the page."
-        ),
+    active_section, report_controls_container, containers = (
+        render_stateful_section_navigation(
+            "Report Section",
+            sections,
+            state_key=state_key,
+            container_key_prefix=state_key.replace("-", "_"),
+            default="Poems & Metadata",
+            control="dropdown",
+            help_text=(
+                "The selected report remains active when imports, filters, "
+                "analyses, or downloads refresh the page."
+            ),
+            include_header_container=True,
+        )
     )
-    profile_state = render_report_profile_controls(
-        f"personal_corpus_{project_id}",
-    )
+    with report_controls_container:
+        profile_state = render_report_profile_controls(
+            f"personal_corpus_{project_id}",
+        )
 
     if active_section == "Poems & Metadata":
         container = containers["Poems & Metadata"]
