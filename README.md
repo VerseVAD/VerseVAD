@@ -26,8 +26,10 @@ Repository: <https://github.com/VerseVAD/VerseVAD>
 - Valence, arousal, dominance, emotion association and intensity, VADER
   sentiment, concreteness, SUBTLEX-US rarity, Age of Acquisition,
   sensorimotor norms, readability, lexical diversity, and structural measures.
-- Part-of-speech profiles and token-weighted/type-weighted, all-token/
-  stopword-excluded views where methodologically applicable.
+- One global post-analysis profile system for compatible lexical metrics:
+  All lexical tokens, Stopword-excluded, or Content words only, crossed with
+  Token-weighted or Type-weighted aggregation. All six perspectives are
+  reconstructed from retained evidence without rerunning linguistic analysis.
 - Offline Open English WordNet definitions, examples, synonyms, antonyms, and
   semantic relations in Lexicon Explorer.
 - CMUdict-based pronunciation review, session overrides, syllable and stress
@@ -36,7 +38,8 @@ Repository: <https://github.com/VerseVAD/VerseVAD>
 - VerseMap comparison against the bundled public-domain reference corpus or
   locally maintained user corpora.
 - Exact source hashes, match decisions, denominators, warnings, software and
-  model versions, and detailed audit exports.
+  model versions, plus Current View and Complete Audit research bundles with
+  human-readable reproducibility and file-inventory records.
 
 The interface is organized under **Analyze**, **Collections**, **Explore**, and
 **Learn**. Learn includes a **Training** page with four free learner manuals

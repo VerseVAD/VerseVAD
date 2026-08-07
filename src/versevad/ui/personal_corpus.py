@@ -18,6 +18,7 @@ from versevad.db import (
     default_personal_corpus_database_path,
 )
 from versevad.preprocessing import TextPreprocessor
+from versevad.module_capabilities import fixed_profile_notice
 from versevad.ui.corpus import (
     _corpus_part_of_speech_rows,
     _project_repository_for_path,
@@ -38,6 +39,8 @@ from versevad.ui.design import (
     render_stateful_section_navigation,
     render_workspace_header,
 )
+from versevad.analysis_profiles import LexicalScope, ProfileSelection
+from versevad.ui.profile_controls import render_report_profile_controls
 
 
 PERSONAL_CORPUS_TITLE = "My Personal Corpus"
@@ -338,6 +341,7 @@ def _humanize(value: str) -> str:
 def _render_poem_detail(
     repository: ProjectRepository,
     project_id: str,
+    profile_selection: ProfileSelection,
 ) -> None:
     texts = repository.list_texts(project_id)
     if not texts:
@@ -390,46 +394,33 @@ def _render_poem_detail(
         if not affective:
             st.info("The latest batch contains no affective lexicon results.")
         else:
-            views = tuple(
-                view
-                for view in ("all_matched", "stopwords_excluded")
-                if any(row.analysis_view == view for row in affective)
-            )
-            weightings = tuple(
-                weighting
-                for weighting in ("token", "type")
-                if any(row.weighting == weighting for row in affective)
-            )
-            choices = st.columns(2)
-            view = choices[0].selectbox(
-                "Stopword view",
-                options=views,
-                format_func=lambda item: (
-                    "All matched tokens"
-                    if item == "all_matched"
-                    else "Stopwords excluded"
-                ),
-                key=f"personal_detail_view_{project_id}",
-            )
-            weighting = choices[1].selectbox(
-                "Weighting",
-                options=weightings,
-                format_func=lambda item: (
-                    "Token-weighted — repetitions count"
-                    if item == "token"
-                    else "Type-weighted — each matched entry counts once"
-                ),
-                key=f"personal_detail_weighting_{project_id}",
-            )
+            view_ids = {
+                LexicalScope.ALL_LEXICAL: "all_matched",
+                LexicalScope.STOPWORD_EXCLUDED: "stopwords_excluded",
+                LexicalScope.CONTENT_WORDS: "content_words",
+            }
+            views = {view_ids[scope] for scope in profile_selection.scopes}
+            weightings = {
+                item.value.casefold() for item in profile_selection.weightings
+            }
+            scope_labels = {
+                "all_matched": "All lexical tokens",
+                "stopwords_excluded": "Stopword-excluded",
+                "content_words": "Content words only",
+            }
             chosen = tuple(
                 row
                 for row in affective
-                if row.analysis_view == view and row.weighting == weighting
+                if row.analysis_view in views and row.weighting in weightings
             )
             frame = pd.DataFrame(
                 [
                     {
                         "Lexicon": row.lexicon,
+                        "Profile": (
+                            f"{scope_labels[row.analysis_view]} · "
+                            f"{row.weighting.title()}-weighted"
+                        ),
                         "Measure": _humanize(row.metric),
                         "Dimension": row.dimension.title() or "—",
                         "Category": row.category.title() or "—",
@@ -711,6 +702,9 @@ def render_personal_corpus_workspace(
             "or downloads refresh the page."
         ),
     )
+    profile_state = render_report_profile_controls(
+        f"personal_corpus_{project_id}",
+    )
 
     if active_section == "Poems & Metadata":
         container = containers["Poems & Metadata"]
@@ -733,7 +727,11 @@ def render_personal_corpus_workspace(
         if active_section == "Poems & Metadata":
             _render_library(repository, project_id)
         elif active_section == "Poem Detail":
-            _render_poem_detail(repository, project_id)
+            _render_poem_detail(
+                repository,
+                project_id,
+                profile_state.selection,
+            )
         elif active_section == "Corpus Analysis":
             with st.expander("Corpus Analysis and Comparisons", expanded=False):
                 _render_analysis_tab(
@@ -758,6 +756,7 @@ def render_personal_corpus_workspace(
                     f"personal_language_{project_id}",
                 )
         elif active_section == "VerseMap":
+            st.caption(fixed_profile_notice("versemap"))
             with st.expander("Personal Corpus VerseMap", expanded=False):
                 _render_versemap_tab(repository, project_id)
                 _bottom_collapse(

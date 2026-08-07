@@ -289,15 +289,9 @@ def test_optional_contextual_content_scope_is_not_redundant(
 
     assert default.summary.eligible_token_count == 10
     assert default.summary.matched_token_count == 10
-    assert content.summary.eligible_token_count == 4
-    assert {
-        row.part_of_speech for row in content.token_audit if row.eligible
-    } == {"NOUN", "VERB", "ADJ", "ADV"}
-    assert all(
-        row.match_method is AoAMatchMethod.NOT_ELIGIBLE
-        for row in content.token_audit
-        if row.part_of_speech in {"DET", "ADP", "CCONJ", "SCONJ", "PRON", "AUX"}
-    )
+    assert content.summary.eligible_token_count == 10
+    assert content.summary == default.summary
+    assert all(row.match_method is not AoAMatchMethod.NOT_ELIGIBLE for row in content.token_audit)
     source_notice = next(
         warning.message
         for warning in default.module_result.warnings

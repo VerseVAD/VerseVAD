@@ -64,7 +64,7 @@ All enabled modules consume that shared record. Modules must not silently
 retokenize or overwrite the preserved original.
 
 Line-leading and line-trailing Unicode whitespace is removed only from the
-analysis view used for annotations and raw-string scoring. Tokens and spans are
+processing representation used for annotations and raw-string scoring. Tokens and spans are
 mapped back to the exact preserved source offsets, so indentation remains
 visible and auditable without changing metric values or line/stanza counts.
 

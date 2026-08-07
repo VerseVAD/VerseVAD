@@ -1,4 +1,4 @@
-"""Shared Stage 13 visual system and reusable Streamlit presentation helpers."""
+"""Shared VerseVAD visual system and reusable Streamlit presentation helpers."""
 
 from __future__ import annotations
 
@@ -1567,6 +1567,9 @@ def render_app_shell() -> tuple[str, AppearanceMode]:
         include_local_routes=not hosted
     )
     workspace = route.workspace_id
+    from versevad.ui.workspace_state import activate_workspace_state
+
+    activate_workspace_state(st.session_state, workspace)
     st.session_state["workspace_page"] = workspace
     render_context_sidebar(workspace)
 

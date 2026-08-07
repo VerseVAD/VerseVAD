@@ -32,6 +32,14 @@ All notable changes to VerseVAD are recorded here.
 
 ### Changed
 
+- Unified compatible lexical reporting around three post-analysis scopes
+  (all lexical tokens, stopword-excluded, and content words only) and two
+  aggregation weightings (token and type), with one shared report control,
+  exact retained-evidence denominators, streamlined dashboards, and explicit
+  Current View versus Complete Audit reproducibility bundles.
+- Reorganized the public user guide and methodology into task-based guidance
+  and auditable metric definitions, formulas, eligibility rules, coverage
+  denominators, fixed-profile boundaries, and limitations.
 - Replaced the pronunciation dashboard's median syllables-per-line card with
   mean syllables per complete physical line; detailed exports retain both.
 - Recovered safely from stale saved-analysis identifiers after a hosted

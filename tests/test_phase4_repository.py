@@ -178,7 +178,7 @@ def test_folder_decode_preserves_relative_paths_and_text() -> None:
 
 def test_sqlite_import_versions_and_metadata_are_preserved(tmp_path) -> None:
     repository = ProjectRepository(tmp_path / "versevad.sqlite3")
-    assert repository.schema_version() == 4
+    assert repository.schema_version() == 5
     project = repository.create_project("Jeffers test", researcher="Researcher")
     original = CorpusTextImport("Poem", "poem.txt", "book/poem.txt", "Bright.\n")
     first = repository.import_texts(project.project_id, (original,))[0]
@@ -324,6 +324,7 @@ def test_corpus_service_runs_each_preserved_work_and_completes_batch(
     assert {row.analysis_view for row in metrics if row.metric == "vad_mean"} == {
         "all_matched",
         "stopwords_excluded",
+        "content_words",
     }
 
 
