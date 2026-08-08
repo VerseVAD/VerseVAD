@@ -251,3 +251,23 @@ def test_results_only_revision_has_no_restorable_payload(tmp_path) -> None:
 
     with pytest.raises(ResearchLibraryError, match="results-only"):
         repository.load_payload(revision.revision_id)
+
+
+def test_delete_saved_analysis_is_atomic_and_idempotently_reported(tmp_path) -> None:
+    repository = ResearchLibraryRepository(tmp_path / "analysis_library.sqlite3")
+    item, revision, _ = repository.save_revision(
+        parent_type="analysis",
+        workspace_id="Single Poem",
+        title="Delete me",
+        software_version=__version__,
+        payload={"kind": "test"},
+        storage_mode="full",
+    )
+
+    repository.delete_item(item.item_id)
+
+    assert repository.find_item(item.item_id) is None
+    with pytest.raises(ResearchLibraryError, match="Unknown saved-analysis revision"):
+        repository.get_revision(revision.revision_id)
+    with pytest.raises(ResearchLibraryError, match="Unknown saved analysis"):
+        repository.delete_item(item.item_id)

@@ -205,29 +205,42 @@ def _render_edit_poem(
         )
         with st.form(f"personal_edit_form_{selected.text_id}"):
             left, right = st.columns(2)
-            title = left.text_input("Title", value=selected.title)
-            author = right.text_input("Author", value=selected.author)
+            title = left.text_input(
+                "Title",
+                value=selected.title,
+                key=f"personal_edit_title_{selected.text_id}",
+            )
+            author = right.text_input(
+                "Author",
+                value=selected.author,
+                key=f"personal_edit_author_{selected.text_id}",
+            )
             collection = left.text_input(
                 "Collection or volume",
                 value=selected.collection,
+                key=f"personal_edit_collection_{selected.text_id}",
             )
             date_label = right.text_input(
                 "Date or date range",
                 value=selected.date_label,
+                key=f"personal_edit_date_{selected.text_id}",
             )
             genre = left.text_input(
                 "Genre or work type",
-                value=selected.genre or "poem",
+                value=selected.genre,
+                key=f"personal_edit_genre_{selected.text_id}",
             )
             notes = st.text_area(
                 "Research notes",
                 value=selected.notes,
                 height=90,
+                key=f"personal_edit_notes_{selected.text_id}",
             )
             original_text = st.text_area(
                 "Poem text",
                 value=selected.original_text,
                 height=320,
+                key=f"personal_edit_text_{selected.text_id}",
             )
             save = st.form_submit_button(
                 "Save Poem Changes",

@@ -991,6 +991,13 @@ def render_research_notes_sidebar(workspace: str) -> None:
 
 
 def render_analysis_management_sidebar(workspace: str) -> None:
+    notice = st.session_state.pop(
+        f"_research_management_notice__{workspace}",
+        None,
+    )
+    if isinstance(notice, tuple) and len(notice) == 2:
+        level, message = notice
+        getattr(st, str(level), st.info)(str(message))
     context = active_research_context(workspace)
     if context is None or context.payload is None:
         st.caption("Complete an analysis before saving it.")
@@ -1015,7 +1022,7 @@ def render_analysis_management_sidebar(workspace: str) -> None:
                     "explicit save buttons below."
                 ),
             )
-            storage_label = st.selectbox(
+            st.selectbox(
                 "Save privacy",
                 options=[
                     "Full analysis and source text",
@@ -1027,53 +1034,75 @@ def render_analysis_management_sidebar(workspace: str) -> None:
                     "Word report but cannot reopen the original text."
                 ),
             )
-            storage_mode = (
-                "full"
-                if storage_label == "Full analysis and source text"
-                else "results_only"
-            )
-            project_link = st.text_input(
+            st.text_input(
                 "Optional project identifier",
                 key=f"research_project_link__{workspace}",
                 help="Records a project association without moving or duplicating the project.",
             )
+
+            def _save_from_sidebar(*, save_as_new: bool) -> None:
+                title_value = str(
+                    st.session_state.get(
+                        f"research_save_title__{workspace}",
+                        "",
+                    )
+                )
+                storage_value = str(
+                    st.session_state.get(
+                        f"research_storage_mode__{workspace}",
+                        "Full analysis and source text",
+                    )
+                )
+                project_value = str(
+                    st.session_state.get(
+                        f"research_project_link__{workspace}",
+                        "",
+                    )
+                )
+                try:
+                    _, revision = save_active_context(
+                        workspace,
+                        title=title_value,
+                        storage_mode=(
+                            "full"
+                            if storage_value == "Full analysis and source text"
+                            else "results_only"
+                        ),
+                        save_as_new=save_as_new,
+                        project_id=project_value,
+                    )
+                except ResearchLibraryError as error:
+                    st.session_state[
+                        f"_research_management_notice__{workspace}"
+                    ] = ("error", str(error))
+                else:
+                    message = (
+                        "Saved as a separate analysis."
+                        if save_as_new
+                        else f"Saved revision {revision.revision_number}."
+                    )
+                    st.session_state[
+                        f"_research_management_notice__{workspace}"
+                    ] = ("success", message)
+
             save_columns = st.columns(2)
-            if save_columns[0].button(
+            save_columns[0].button(
                 "Save analysis",
                 key=f"save_analysis__{workspace}",
                 type="primary",
                 width="stretch",
                 disabled=not saved_title.strip(),
-            ):
-                try:
-                    _, revision = save_active_context(
-                        workspace,
-                        title=saved_title,
-                        storage_mode=storage_mode,
-                        project_id=project_link,
-                    )
-                    st.success(f"Saved revision {revision.revision_number}.")
-                    st.rerun()
-                except ResearchLibraryError as error:
-                    st.error(str(error))
-            if save_columns[1].button(
+                on_click=_save_from_sidebar,
+                kwargs={"save_as_new": False},
+            )
+            save_columns[1].button(
                 "Save as new",
                 key=f"save_as_new_analysis__{workspace}",
                 width="stretch",
                 disabled=not saved_title.strip(),
-            ):
-                try:
-                    save_active_context(
-                        workspace,
-                        title=saved_title,
-                        storage_mode=storage_mode,
-                        save_as_new=True,
-                        project_id=project_link,
-                    )
-                    st.success("Saved as a separate analysis.")
-                    st.rerun()
-                except ResearchLibraryError as error:
-                    st.error(str(error))
+                on_click=_save_from_sidebar,
+                kwargs={"save_as_new": True},
+            )
         else:
             st.caption(
                 "Unsaved work remains only in the current session. Complete the "
@@ -1265,6 +1294,13 @@ def render_analysis_library_workspace() -> None:
     except ResearchLibraryError as error:
         st.error(str(error))
         return
+    action_notice = st.session_state.pop(
+        "_analysis_library_action_notice",
+        None,
+    )
+    if isinstance(action_notice, tuple) and len(action_notice) == 2:
+        level, message = action_notice
+        getattr(st, str(level), st.info)(str(message))
     section = st.selectbox(
         "Library Section",
         options=["Saved Analyses", "Notebook"],
@@ -1362,11 +1398,11 @@ def render_analysis_library_workspace() -> None:
         def _open_selected_revision() -> None:
             try:
                 restore_library_revision(selected_item, selected_revision)
-                from versevad.ui.navigation import switch_to_workspace
-
-                switch_to_workspace(selected_item.workspace_id)
             except ResearchLibraryError as error:
-                st.error(str(error))
+                st.session_state["_analysis_library_action_notice"] = (
+                    "error",
+                    str(error),
+                )
 
         if replacing:
             with open_columns[0].popover("Open historical result", width="stretch"):
@@ -1375,20 +1411,21 @@ def render_analysis_library_workspace() -> None:
                     f"unsaved work in {selected_item.workspace_id}. Other "
                     "workspaces will not be affected."
                 )
-                if st.button(
+                st.button(
                     "Continue and open",
                     type="primary",
                     width="stretch",
                     key=f"confirm_open_saved__{selected_revision.revision_id}",
-                ):
-                    _open_selected_revision()
-        elif open_columns[0].button(
-            "Open historical result",
-            type="primary",
-            width="stretch",
-            key=f"open_saved__{selected_revision.revision_id}",
-        ):
-            _open_selected_revision()
+                    on_click=_open_selected_revision,
+                )
+        else:
+            open_columns[0].button(
+                "Open historical result",
+                type="primary",
+                width="stretch",
+                key=f"open_saved__{selected_revision.revision_id}",
+                on_click=_open_selected_revision,
+            )
     elif selected_revision.artifact_bundle:
         open_columns[0].download_button(
             "Download retained reports",
@@ -1401,28 +1438,45 @@ def render_analysis_library_workspace() -> None:
             "This privacy-preserving revision does not retain source text and "
             "cannot be reopened as a live analysis."
         )
+    confirmation_key = f"delete_library_confirmation__{selected_item.item_id}"
+
+    def _delete_selected_item() -> None:
+        if not bool(st.session_state.get(confirmation_key)):
+            st.session_state["_analysis_library_action_notice"] = (
+                "warning",
+                "Select the confirmation checkbox before permanently deleting this saved analysis.",
+            )
+            return
+        try:
+            research_repository().delete_item(selected_item.item_id)
+        except ResearchLibraryError as error:
+            st.session_state["_analysis_library_action_notice"] = (
+                "error",
+                str(error),
+            )
+            return
+        for workspace_id in _RESEARCHABLE_WORKSPACES:
+            _discard_stale_library_reference(
+                workspace_id,
+                selected_item.item_id,
+            )
+        st.session_state.pop(confirmation_key, None)
+        st.session_state["_analysis_library_action_notice"] = (
+            "success",
+            f'Deleted "{selected_item.title}" from the analysis library.',
+        )
+
     with open_columns[1].popover("Delete from library", width="stretch"):
         with st.form(f"delete_library_form__{selected_item.item_id}"):
-            confirmation = st.checkbox(
+            st.checkbox(
                 f"Permanently delete this saved item: {selected_item.title}",
+                key=confirmation_key,
             )
-            delete_submitted = st.form_submit_button(
+            st.form_submit_button(
                 "Delete permanently",
                 type="primary",
+                on_click=_delete_selected_item,
             )
-        if delete_submitted:
-            if not confirmation:
-                st.warning(
-                    "Select the confirmation checkbox before permanently "
-                    "deleting this saved analysis."
-                )
-            else:
-                try:
-                    research_repository().delete_item(selected_item.item_id)
-                except ResearchLibraryError as error:
-                    st.error(str(error))
-                else:
-                    st.rerun()
     _render_item_notebook(selected_item)
 
 

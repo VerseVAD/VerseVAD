@@ -337,6 +337,10 @@ def switch_to_workspace(workspace_id: str) -> None:
     if isinstance(pages, dict):
         page = pages.get(workspace_id)
         if page is not None:
+            # A direct switch already schedules the target-page rerun. Remove a
+            # pending fallback left by a restore action so the next render does
+            # not switch to the same page a second time.
+            st.session_state.pop("_pending_workspace_switch", None)
             st.switch_page(page)
     st.session_state["_pending_workspace_switch"] = workspace_id
     st.rerun()

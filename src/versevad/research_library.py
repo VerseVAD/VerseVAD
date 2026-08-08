@@ -376,12 +376,15 @@ class ResearchLibraryRepository:
         connection = sqlite3.connect(self.database_path, timeout=30)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("PRAGMA journal_mode = WAL")
         connection.execute("PRAGMA busy_timeout = 30000")
         return connection
 
     def _initialize(self) -> None:
         with self._connect() as connection:
+            # Journal mode is persistent database metadata. Reissuing it for
+            # every read, save, and delete can acquire avoidable locks and is
+            # especially noticeable when Streamlit reruns the library view.
+            connection.execute("PRAGMA journal_mode = WAL")
             connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS research_library_meta (
