@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 import versevad.ui.navigation as navigation
+import versevad.ui.research as research
 
 
 class _SwitchedPage(RuntimeError):
@@ -51,3 +52,37 @@ def test_workspace_switch_retains_fallback_without_registered_page(monkeypatch) 
         navigation.switch_to_workspace("Single Poem")
 
     assert state["_pending_workspace_switch"] == "Single Poem"
+
+
+@pytest.mark.parametrize(
+    "workspace",
+    [
+        "Single Poem",
+        "Other Text",
+        "Compare Poems",
+        "Lexicon Explorer",
+        "VerseMap",
+        "Saved Projects",
+        "Personal Corpus",
+    ],
+)
+def test_open_library_revision_navigates_to_restored_workspace(
+    monkeypatch,
+    workspace: str,
+) -> None:
+    restored: list[tuple[object, object]] = []
+    navigated: list[str] = []
+    item = object()
+    revision = object()
+
+    def restore(saved_item: object, saved_revision: object) -> str:
+        restored.append((saved_item, saved_revision))
+        return workspace
+
+    monkeypatch.setattr(research, "restore_library_revision", restore)
+    monkeypatch.setattr(navigation, "switch_to_workspace", navigated.append)
+
+    research.open_library_revision(item, revision)
+
+    assert restored == [(item, revision)]
+    assert navigated == [workspace]
