@@ -35,6 +35,29 @@ def test_direct_workspace_switch_consumes_pending_fallback(monkeypatch) -> None:
     assert "_pending_workspace_switch" not in state
 
 
+def test_direct_workspace_switch_does_not_rerun_after_page_accepts_switch(
+    monkeypatch,
+) -> None:
+    state = {
+        "_pending_workspace_switch": "Single Poem",
+        "_versevad_workspace_pages": {"Single Poem": "single-poem-page"},
+    }
+    switched: list[object] = []
+    fake_streamlit = SimpleNamespace(
+        session_state=state,
+        switch_page=switched.append,
+        rerun=lambda: pytest.fail(
+            "A registered page switch must not call st.rerun()."
+        ),
+    )
+    monkeypatch.setattr(navigation, "st", fake_streamlit)
+
+    navigation.switch_to_workspace("Single Poem")
+
+    assert switched == ["single-poem-page"]
+    assert "_pending_workspace_switch" not in state
+
+
 def test_workspace_switch_retains_fallback_without_registered_page(monkeypatch) -> None:
     state: dict[str, object] = {}
 

@@ -342,6 +342,11 @@ def switch_to_workspace(workspace_id: str) -> None:
             # not switch to the same page a second time.
             st.session_state.pop("_pending_workspace_switch", None)
             st.switch_page(page)
+            # Streamlit normally stops the current run after switch_page().
+            # Returning also keeps a test double or future implementation that
+            # schedules navigation without raising from falling through to an
+            # invalid st.rerun() call inside a widget callback.
+            return
     st.session_state["_pending_workspace_switch"] = workspace_id
     st.rerun()
 

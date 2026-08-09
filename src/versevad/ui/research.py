@@ -1430,21 +1430,20 @@ def render_analysis_library_workspace() -> None:
                     f"unsaved work in {selected_item.workspace_id}. Other "
                     "workspaces will not be affected."
                 )
-                st.button(
+                if st.button(
                     "Continue and open",
                     type="primary",
                     width="stretch",
                     key=f"confirm_open_saved__{selected_revision.revision_id}",
-                    on_click=_open_selected_revision,
-                )
-        else:
-            open_columns[0].button(
-                "Open historical result",
-                type="primary",
-                width="stretch",
-                key=f"open_saved__{selected_revision.revision_id}",
-                on_click=_open_selected_revision,
-            )
+                ):
+                    _open_selected_revision()
+        elif open_columns[0].button(
+            "Open historical result",
+            type="primary",
+            width="stretch",
+            key=f"open_saved__{selected_revision.revision_id}",
+        ):
+            _open_selected_revision()
     elif selected_revision.artifact_bundle:
         open_columns[0].download_button(
             "Download retained reports",
