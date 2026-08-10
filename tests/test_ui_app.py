@@ -1453,8 +1453,8 @@ def test_interface_analyzes_pasted_poem_and_builds_readable_views() -> None:
         "Download current-view bundle",
     }
     assert any(
-        "REPRODUCIBILITY_README.txt" in message.value
-        and "FILE_INVENTORY.txt" in message.value
+        "reproducibility guide" in message.value
+        and "CSV file inventory" in message.value
         for message in app.info
     )
     profile_controls = {field.label: field for field in app.multiselect}
