@@ -20,9 +20,9 @@ from versevad.db import (
 from versevad.preprocessing import TextPreprocessor
 from versevad.module_capabilities import fixed_profile_notice
 from versevad.ui.corpus import (
-    _corpus_part_of_speech_rows,
     _project_repository_for_path,
     _render_analysis_tab,
+    _render_canonical_corpus_module_profiles,
     _render_export_tab,
     _render_part_of_speech_tab,
     _render_review_tab,
@@ -39,8 +39,22 @@ from versevad.ui.design import (
     render_stateful_section_navigation,
     render_workspace_header,
 )
-from versevad.analysis_profiles import LexicalScope, ProfileSelection
+from versevad.analysis_profiles import (
+    AnalysisProfile,
+    LexicalScope,
+    ProfileSelection,
+    WEIGHTING_ORDER,
+)
 from versevad.ui.profile_controls import render_report_profile_controls
+from versevad.ui.module_scope_overrides import (
+    active_override_modules,
+    render_content_word_scope_override,
+)
+from versevad.report_profile_overrides import (
+    CONTENT_WORD_SCOPE_OVERRIDE_MODULES,
+    corpus_metric_module_id,
+    profile_applies_to_module,
+)
 
 
 PERSONAL_CORPUS_TITLE = "My Personal Corpus"
@@ -356,6 +370,7 @@ def _render_poem_detail(
     project_id: str,
     profile_selection: ProfileSelection,
 ) -> None:
+    profile_workspace_id = f"personal_corpus_{project_id}"
     texts = repository.list_texts(project_id)
     if not texts:
         st.info("Add and analyze at least one poem to view poem-specific results.")
@@ -404,6 +419,12 @@ def _render_poem_detail(
         return
 
     with st.expander("Affective Metrics", expanded=False):
+        render_content_word_scope_override(
+            profile_workspace_id,
+            "emotion",
+            profile_selection,
+        )
+        overridden_modules = active_override_modules(profile_workspace_id)
         if not affective:
             st.info("The latest batch contains no affective lexicon results.")
         else:
@@ -421,10 +442,29 @@ def _render_poem_detail(
                 "stopwords_excluded": "Stopword-excluded",
                 "content_words": "Content words only",
             }
+            scope_by_view = {value: key for key, value in view_ids.items()}
             chosen = tuple(
                 row
                 for row in affective
-                if row.analysis_view in views and row.weighting in weightings
+                if row.analysis_view in scope_by_view
+                and row.weighting in {item.value.casefold() for item in WEIGHTING_ORDER}
+                and (
+                    profile_applies_to_module(
+                        AnalysisProfile(
+                            scope_by_view[row.analysis_view],
+                            next(
+                                item for item in WEIGHTING_ORDER
+                                if item.value.casefold() == row.weighting
+                            ),
+                        ),
+                        module_id=corpus_metric_module_id(row.metric),
+                        selection=profile_selection,
+                        overridden_modules=overridden_modules,
+                    )
+                    if corpus_metric_module_id(row.metric)
+                    in CONTENT_WORD_SCOPE_OVERRIDE_MODULES
+                    else row.analysis_view in views and row.weighting in weightings
+                )
             )
             frame = pd.DataFrame(
                 [
@@ -487,6 +527,40 @@ def _render_poem_detail(
                 format_func=_humanize,
                 key=f"personal_detail_module_{project_id}",
             )
+            override_group_by_module = {
+                "concreteness": "concreteness",
+                "frequency": "frequency",
+                "lexical_frequency": "frequency",
+                "aoa": "aoa",
+                "age_of_acquisition": "aoa",
+                "sensorimotor": "sensorimotor",
+                "sensorimotor_imagery_and_embodiment": "sensorimotor",
+            }
+            override_group = override_group_by_module.get(selected_module)
+            canonical_module = {
+                "lexical_frequency": "frequency",
+                "age_of_acquisition": "aoa",
+                "sensorimotor_imagery_and_embodiment": "sensorimotor",
+            }.get(selected_module, selected_module)
+            if override_group:
+                render_content_word_scope_override(
+                    profile_workspace_id,
+                    override_group,
+                    profile_selection,
+                )
+                rendered = _render_canonical_corpus_module_profiles(
+                    affective,
+                    module_id=canonical_module,
+                    profile_selection=profile_selection,
+                    overridden_modules=active_override_modules(profile_workspace_id),
+                    selected_text_id=selected_id,
+                )
+                if rendered:
+                    non_versemap = tuple(
+                        row
+                        for row in non_versemap
+                        if corpus_metric_module_id(row.metric_id) != canonical_module
+                    )
             frame = pd.DataFrame(
                 [
                     {
@@ -789,15 +863,11 @@ def render_personal_corpus_workspace(
                 )
         elif active_section == "Export":
             with st.expander("CSV and Word Reports", expanded=False):
-                part_of_speech_rows = _corpus_part_of_speech_rows(
-                    repository,
-                    project_id,
-                    preprocessor,
-                )
                 _render_export_tab(
                     repository,
                     project_id,
-                    part_of_speech_rows,
+                    preprocessor,
+                    profile_workspace_id=f"personal_corpus_{project_id}",
                 )
                 _bottom_collapse(
                     "CSV and Word Reports",

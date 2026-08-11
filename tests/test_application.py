@@ -10,6 +10,7 @@ from versevad.analysis_profiles import (
     AggregationWeighting,
     AnalysisProfile,
     LexicalScope,
+    ProfileSelection,
 )
 from versevad.analysis.phase2 import analyze_lexicon, compare_lexicons
 from versevad.application import (
@@ -694,6 +695,36 @@ def test_detailed_download_starts_with_friendly_files_and_retains_audit(
             ).label
             for row in metric_rows
         )
+
+
+def test_current_view_export_applies_scope_exception_only_to_target_module(
+    synthetic_workspace,
+) -> None:
+    archive = detailed_export_zip(
+        synthetic_workspace,
+        use_cache=False,
+        profile_selection=ProfileSelection(),
+        export_mode="current_view",
+        visible_section="Affective Evidence",
+        module_scope_overrides=("emotion_association", "emotion_intensity"),
+    )
+
+    with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+        rows = _csv_rows(bundle.read("profile_metrics_selected.csv"))
+        override_rows = _csv_rows(bundle.read("module_scope_overrides.csv"))
+
+    vad_rows = [row for row in rows if row["module_id"] == "vad"]
+    emotion_rows = [
+        row
+        for row in rows
+        if row["module_id"] in {"emotion_association", "emotion_intensity"}
+    ]
+    assert vad_rows and {row["scope"] for row in vad_rows} == {"STOPWORD_EXCLUDED"}
+    assert emotion_rows and {row["scope"] for row in emotion_rows} == {"CONTENT_WORDS"}
+    assert {row["module_id"] for row in override_rows} == {
+        "emotion_association",
+        "emotion_intensity",
+    }
 
 
 def test_profile_semantics_suppress_invalid_generic_statistics(

@@ -32,6 +32,12 @@ All notable changes to VerseVAD are recorded here.
 
 ### Changed
 
+- Added the module-specific **Content Words Only (Scope Override)** for
+  emotional association/intensity, concreteness, sensorimotor imagery and
+  embodiment, frequency/rarity, and age of acquisition. It preserves global
+  token/type weighting, leaves other modules unchanged, and is recorded in
+  Current View reports while Complete Audit retains all compatible profiles.
+
 - Unified comprehensive-report and selected-profile ZIP member resolution
   across flat Current View and reorganized Complete Audit bundles, including
   single-text downloads, saved-analysis exports, and research-note appendices.
