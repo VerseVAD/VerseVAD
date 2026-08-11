@@ -32,6 +32,9 @@ All notable changes to VerseVAD are recorded here.
 
 ### Changed
 
+- Unified comprehensive-report and selected-profile ZIP member resolution
+  across flat Current View and reorganized Complete Audit bundles, including
+  single-text downloads, saved-analysis exports, and research-note appendices.
 - Made the comprehensive Word report's primary VAD coverage column follow the
   row's weighting (token coverage for token-weighted profiles and type coverage
   for type-weighted profiles), and clarified pooled lexical-rating versus
