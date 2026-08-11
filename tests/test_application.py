@@ -41,6 +41,7 @@ from versevad.application import (
     vad_views,
 )
 from versevad.models import PhrasePolicy
+from versevad.db import ProjectRepository
 from versevad.phase2_validation import (
     phase2_synthetic_emotion_lexicon,
     phase2_synthetic_intensity_lexicon,
@@ -733,6 +734,31 @@ def test_type_weighted_association_rate_uses_type_denominator(
     assert row.value == pytest.approx(
         row.coverage.matched_type_count / row.coverage.eligible_type_count
     )
+
+
+def test_persisted_type_weighted_metrics_use_type_metadata(
+    synthetic_workspace,
+) -> None:
+    profile = AnalysisProfile(LexicalScope.ALL_LEXICAL, AggregationWeighting.TYPE)
+    expected = next(
+        item
+        for item in workspace_profile_metrics(synthetic_workspace)
+        if item.module_id == "emotion_association"
+        and item.metric_id == "fear_association"
+        and item.profile == profile
+    )
+    persisted = next(
+        row
+        for row in ProjectRepository._metric_rows(synthetic_workspace)
+        if row[3] == "all_matched"
+        and row[4] == "emotion_association_fear_association_mean"
+        and row[7] == "type"
+    )
+    assert "eligible types matched" in persisted[9]
+    assert persisted[11] == expected.observation_count
+    assert persisted[12] == expected.coverage.matched_type_count
+    assert persisted[13] == expected.coverage.eligible_type_count
+    assert persisted[14] == pytest.approx(expected.coverage.type_coverage)
 
 
 def test_workspace_can_run_pronunciation_without_an_affective_lexicon(

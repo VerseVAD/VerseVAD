@@ -63,7 +63,7 @@ def test_current_view_comprehensive_report_is_readable_and_deterministic() -> No
     assert "[Enter research question]" in text
     assert "0.572" in text
     assert "Valence, Arousal, and Dominance" in text
-    assert "Not reported" in text
+    assert "Not calculated" in text
 
 
 def test_complete_audit_report_marks_uncalculated_modules_and_lists_audit_files() -> None:
@@ -83,3 +83,33 @@ def test_complete_audit_report_marks_uncalculated_modules_and_lists_audit_files(
     assert "Not calculated" in text
     assert "phase2_token_audit.csv" in text
     assert "full-precision" in text.lower()
+
+
+def test_current_view_distinguishes_calculated_but_unreported_modules() -> None:
+    content = build_comprehensive_analysis_report(
+        export_files={"profile_metrics_selected.csv": _profile_csv()},
+        text_title="Example Poem",
+        export_mode="current_view",
+        visible_section="Overview",
+        calculated_modules=("vad", "readability", "meter", "poetry_id"),
+    )
+    text = _document_text(content)
+    assert "Calculated, not included" in text
+    assert "selected Overview report section" in text
+
+
+def test_corpus_vad_profile_appendix_names_real_companion_file() -> None:
+    content = build_comprehensive_analysis_report(
+        export_files={
+            "profile_metrics_selected.csv": _profile_csv(),
+            "profile_metrics_all_compatible.csv": _profile_csv(),
+            "corpus_vad_profiles.csv": _csv("dimension,value\nvalence,0.5\n"),
+        },
+        text_title="Example Corpus",
+        export_mode="complete_audit",
+        workspace_label="Saved Projects / Corpus",
+    )
+    text = _document_text(content)
+    assert "All Compatible VAD Profiles" in text
+    assert "companion corpus_vad_profiles.csv" in text
+    assert "companion profile_metrics_all_compatible.csv" not in text
