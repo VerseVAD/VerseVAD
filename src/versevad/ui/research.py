@@ -1313,6 +1313,38 @@ def render_analysis_library_workspace() -> None:
     except ResearchLibraryError as error:
         st.error(str(error))
         return
+    pending_delete = st.session_state.pop(
+        "_pending_library_item_delete",
+        None,
+    )
+    if isinstance(pending_delete, tuple) and len(pending_delete) == 2:
+        pending_id, pending_title = pending_delete
+        try:
+            repository.delete_item(str(pending_id))
+        except ResearchLibraryError as error:
+            if any(
+                item.item_id == str(pending_id)
+                for item in repository.list_items()
+            ):
+                st.session_state["_analysis_library_action_notice"] = (
+                    "error",
+                    str(error),
+                )
+            else:
+                st.session_state["_analysis_library_action_notice"] = (
+                    "success",
+                    f'Deleted "{pending_title}" from the analysis library.',
+                )
+        else:
+            for workspace_id in _RESEARCHABLE_WORKSPACES:
+                _discard_stale_library_reference(
+                    workspace_id,
+                    str(pending_id),
+                )
+            st.session_state["_analysis_library_action_notice"] = (
+                "success",
+                f'Deleted "{pending_title}" from the analysis library.',
+            )
     action_notice = st.session_state.pop(
         "_analysis_library_action_notice",
         None,
@@ -1465,23 +1497,9 @@ def render_analysis_library_workspace() -> None:
                 "Select the confirmation checkbox before permanently deleting this saved analysis.",
             )
             return
-        try:
-            research_repository().delete_item(selected_item.item_id)
-        except ResearchLibraryError as error:
-            st.session_state["_analysis_library_action_notice"] = (
-                "error",
-                str(error),
-            )
-            return
-        for workspace_id in _RESEARCHABLE_WORKSPACES:
-            _discard_stale_library_reference(
-                workspace_id,
-                selected_item.item_id,
-            )
-        st.session_state.pop(confirmation_key, None)
-        st.session_state["_analysis_library_action_notice"] = (
-            "success",
-            f'Deleted "{selected_item.title}" from the analysis library.',
+        st.session_state["_pending_library_item_delete"] = (
+            selected_item.item_id,
+            selected_item.title,
         )
 
     with open_columns[1].popover("Delete from library", width="stretch"):
